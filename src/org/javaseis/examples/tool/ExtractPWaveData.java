@@ -28,7 +28,7 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
     setParameterIfUnset(parms,"outputFileSystem","/home/wilsonmr/javaseis");
     setParameterIfUnset(parms,"outputFilePath","100a-rawsynthpwaves.js");
     //TODO if you set threadCount to 2, half of the data will be missing
-    // the task fails outrigth if you set it higher than 2.
+    // the task fails outright if you set it higher than 2.
     setParameterIfUnset(parms,"threadCount","1");
     exec(parms, new ExtractPWaveData());
   }
