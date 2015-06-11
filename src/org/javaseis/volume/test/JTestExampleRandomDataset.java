@@ -1,6 +1,7 @@
 package org.javaseis.volume.test;
 
 import java.io.File;
+import java.util.Arrays;
 //import java.util.Arrays;
 import java.util.Iterator;
 
@@ -40,6 +41,10 @@ public class JTestExampleRandomDataset {
     file.delete();
   }
 
+  private ExampleRandomDataset createDefaultData() {
+    return new ExampleRandomDataset();
+  }
+
   //TODO replace UnsupportedOperationException with a javaseis specific exception
   // say DatasetAlreadyExistsException
   @Test(expected=UnsupportedOperationException.class)
@@ -59,10 +64,15 @@ public class JTestExampleRandomDataset {
   @Test
   public void testPublicDeleteMethod() {
     dataset = createDefaultData();
-    dataset.deleteJavaSeisData();
+    try {
+      dataset.deleteJavaSeisData();
+    } catch (SeisException e1) {
+      Assert.fail("deleteJavaSeisData method failed");
+      e1.printStackTrace();
+    }
     try {
       dataset = new ExampleRandomDataset();
-    } catch (UnsupportedOperationException e) {
+    } catch (UnsupportedOperationException e2) {
       Assert.fail("Data folder still exists after delete");
     }
   }
@@ -74,13 +84,20 @@ public class JTestExampleRandomDataset {
     Assert.assertTrue("Dataset is empty",datasetIsNonEmpty());
   }
 
+  @Test
+  public void testNoFrameIsEmpty() {
+    dataset = createDefaultData();
+    initializeWorkFrame();
+    Assert.assertTrue("At least one frame is empty",everyFrameIsNonEmpty());
+  }
+
   private void initializeWorkFrame() {
     long[] axisLengths = dataset.gridDefinition.getAxisLengths();
     workFrame = new MultiArray(2,float.class,
         new int[] {(int)axisLengths[0],(int)axisLengths[1]});
     workFrame.allocate();
   }
-  
+
   private boolean datasetIsNonEmpty() {
     Iterator<int[]> frameIterator = dataset.seisio.frameIterator();
     while (frameIterator.hasNext()) {
@@ -92,12 +109,50 @@ public class JTestExampleRandomDataset {
         e.printStackTrace();
       }
       if (frameIsNotEmpty(workFrame)) {
-        return true;
+        return true; //this frame is nonempty
       }
     }
-    return false; 
+    return false; //all frames are empty
   }
-  
+
+  @Test
+  public void testSeisioFrameIterator() {
+    dataset = createDefaultData();
+    Iterator<int[]> seisioFrameIterator = dataset.seisio.frameIterator();
+    Iterator<int[]> customFrameIterator = dataset.frameIterator();
+    while (seisioFrameIterator.hasNext() && customFrameIterator.hasNext()) {
+      int[] seisioFrameIndex = seisioFrameIterator.next();
+      int[] customFrameIndex = customFrameIterator.next();
+      /*
+      System.out.println("Seisio Frame Iterator: " + 
+          Arrays.toString(seisioFrameIndex));
+      System.out.println("Custom Frame Iterator: " + 
+          Arrays.toString(customFrameIndex));
+       */
+      Assert.assertArrayEquals("Iterator index arrays do not match",customFrameIndex, seisioFrameIndex);
+    }
+    //fail if one iterator still has more frames
+    Assert.assertTrue("Iterators have a different number of elements",
+        seisioFrameIterator.hasNext() == customFrameIterator.hasNext());
+  }
+
+  private boolean everyFrameIsNonEmpty() {
+    Iterator<int[]> frameIterator = dataset.seisio.frameIterator();
+    while (frameIterator.hasNext()) {
+      int[] nextIndex = frameIterator.next();
+      try {
+        dataset.seisio.readMultiArray(workFrame, nextIndex);
+      } catch (SeisException e) {
+        // Auto-generated catch block
+        e.printStackTrace();
+      }
+      if (!frameIsNotEmpty(workFrame)) {
+        return false; //this frame is empty
+      }
+    }
+    return true; //all frames are nonempty
+  }
+
   private boolean frameIsNotEmpty(IMultiArray frame) {
     //look at all the sample values until you find one that isn't zero
     int[] framesize = frame.getShape();
@@ -110,15 +165,10 @@ public class JTestExampleRandomDataset {
         float[] samp = new float[1];
         frame.getSample(samp,position);
         if (samp[0] != 0) {
-          System.out.println(samp[0]);
           return true;
         }
       }
     }
     return false; //if every element is zero.
-  }
-
-  private ExampleRandomDataset createDefaultData() {
-    return new ExampleRandomDataset();
   }
 }
