@@ -121,10 +121,10 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input, ISeismicVolume output) {
     compTime.start();
-    
+
     /*{
     //TODO extract these musings into a coherent set of tests
-      
+
       //Get the global grid position of the position {0,0,0} in the local grid
       double[] volumePosition = new double[toolContext.inputGrid.getNumDimensions()];
       int[] pos = new int[] {0,0,0};
@@ -138,17 +138,17 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
       GridDefinition inputGlobalGrid = input.getGlobalGrid();
       System.out.println(inputGlobalGrid.getNumDimensions()); //looks right
       System.out.println(Arrays.toString(inputGlobalGrid.getAxisLengths())); //looks right
-      
+
       GridDefinition outputGlobalGrid = output.getGlobalGrid();
       System.out.println(outputGlobalGrid.getNumDimensions()); //looks right
       System.out.println(Arrays.toString(outputGlobalGrid.getAxisLengths())); //looks right
-      
+
       int[] position = new int[] {43,2,4,2,3};
       //This shouldn't always be true
       System.out.println(input.isPositionLocal(position));
       //This should return true exactly when we're looking at the volume corresponding
       //to the volume from {t,x,y,2,3}, and false otherwise.
-      
+
       System.out.println(output.isPositionLocal(position));
       //I would expect this to fail because the position is not the right size for the
       //output grid.
