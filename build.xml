@@ -47,7 +47,7 @@
         <classpath path="lib/jacocoant.jar"/>
     </taskdef>
 	
-    <target name="all" description="Do most targets" depends="compile, dist">
+    <target name="all" description="Do most targets" depends="compile, dist, unittests, doc">
     </target>
 
     <target name="init">
