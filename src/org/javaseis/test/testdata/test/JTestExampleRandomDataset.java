@@ -1,4 +1,4 @@
-package org.javaseis.examples.testdata.test;
+package org.javaseis.test.testdata.test;
 
 import java.io.File;
 import java.util.Arrays;
@@ -7,7 +7,7 @@ import java.util.Iterator;
 
 import org.javaseis.array.IMultiArray;
 import org.javaseis.array.MultiArray;
-import org.javaseis.examples.testdata.ExampleRandomDataset;
+import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.util.SeisException;
 import org.junit.After;
 import org.junit.Assert;

@@ -1,9 +1,9 @@
 package org.javaseis.volume.test;
 
-import org.javaseis.examples.testdata.ExampleRandomDataset;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.parallel.IParallelContext;
 import org.javaseis.parallel.UniprocessorContext;
+import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.util.SeisException;
 import org.junit.After;
 import org.junit.Assert;

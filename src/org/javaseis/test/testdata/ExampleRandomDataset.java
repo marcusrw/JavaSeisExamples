@@ -1,4 +1,4 @@
-package org.javaseis.examples.testdata;
+package org.javaseis.test.testdata;
 
 import java.io.File;
 import java.util.Arrays;
