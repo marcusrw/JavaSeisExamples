@@ -191,9 +191,15 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
     return volumeGrid.createCopy();
   }
 
+  
+  //TODO  Here's the real problem.  If I want to copy the data from one volume to
+  //      another, it shouldn't matter if the globalGrids match.  Only the portion
+  //      up to the volume axis should matter.
+  
+  // It looks like we're copying the DA that stores the first 3 dimensions only.
   @Override
   public void copyVolume(ISeismicVolume source) {
-    if (!source.matches(this))
+    if (!localGrid.matches(source.getLocalGrid()))
       throw new IllegalArgumentException("Source volume and this volume do not match");
     this.getDistributedArray().copy(source.getDistributedArray());
   }
@@ -209,10 +215,10 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
   } 
 
   //TODO Surely two seismicVolumes match if their localGrids are the same,
-  // not their globalGrids.
+  // not their globalGrids.  Update:  No, the problem is with copyVolume.
   @Override
   public boolean matches(ISeismicVolume seismicVolume) {
-    return localGrid.matches(seismicVolume.getLocalGrid());
+    return globalGrid.matches(seismicVolume.getGlobalGrid());
   }
 
   @Override
