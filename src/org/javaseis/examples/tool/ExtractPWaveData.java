@@ -1,5 +1,7 @@
 package org.javaseis.examples.tool;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 
 import org.javaseis.grid.GridDefinition;
@@ -23,21 +25,52 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
 
   public static void main(String[] args) {
     ParameterService parms = new ParameterService(args);
-    setParameterIfUnset(parms,"inputFileSystem","/home/wilsonmr/javaseis");
-    setParameterIfUnset(parms,"inputFilePath","100-rawsyntheticdata.js");
-    setParameterIfUnset(parms,"outputFileSystem","/home/wilsonmr/javaseis");
-    setParameterIfUnset(parms,"outputFilePath","100a-rawsynthpwaves.js");
-    //TODO if you set threadCount to 2, half of the data will be missing
-    // the task fails outright if you set it higher than 2.
-    setParameterIfUnset(parms,"threadCount","1");
-    exec(parms, new ExtractPWaveData());
+    try {
+      String inputFileName = "100-rawsyntheticdata.js";
+      String dataFolder = findTestDataLocation(parms,inputFileName);
+      setParameterIfUnset(parms,"inputFileSystem",dataFolder);
+      setParameterIfUnset(parms,"inputFilePath","100-rawsyntheticdata.js");
+      setParameterIfUnset(parms,"outputFileSystem",dataFolder);
+      setParameterIfUnset(parms,"outputFilePath","100a-rawsynthpwaves.js");
+      //TODO if you set threadCount to 2, half of the data will be missing
+      // the task fails outright if you set it higher than 2.
+      setParameterIfUnset(parms,"threadCount","1");
+      exec(parms, new ExtractPWaveData());
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public static String findTestDataLocation(ParameterService parms,String filename) throws FileNotFoundException {
+
+    if (parameterIsSet(parms,"inputFileSystem")) {
+      return parms.getParameter("inputFileSystem");
+    }
+    String[] candidates = new String[] {
+        System.getProperty("user.home") + File.separator + "javaseis",
+        "/home/seisspace/data/datageneration/simplemodelsfo"
+    };
+
+    for (String candidate : candidates) {
+      System.out.println(candidate);
+      if (new File(candidate).isDirectory()) {
+        return candidate;
+      }
+    }
+    throw new FileNotFoundException("Unable to locate input data directory.");
+
   }
 
   private static void setParameterIfUnset(ParameterService parameterService,
       String parameterName, String parameterValue) {
-    if (parameterService.getParameter(parameterName) == "null") {
+    if (!parameterIsSet(parameterService,parameterName)) {
       parameterService.setParameter(parameterName, parameterValue);
     }
+  }
+
+  private static boolean parameterIsSet(ParameterService parameterService,
+      String parameterName) {
+    return parameterService.getParameter(parameterName) != "null";
   }
 
   @Override

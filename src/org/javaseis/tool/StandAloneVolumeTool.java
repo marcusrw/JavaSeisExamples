@@ -94,7 +94,7 @@ public class StandAloneVolumeTool implements IVolumeTool {
         GridDefinition currentGrid = opio.getGridDefinition();
         opio.close();
         if (currentGrid.matches(outputGrid) == false)
-          throw new RuntimeException("outputFilePath GridDefintion: "
+          throw new RuntimeException("outputFilePath GridDefinition: "
               + outputGrid + "\n does not match toolContext GridDefinition: "
               + currentGrid);
       } catch (SeisException ex) {

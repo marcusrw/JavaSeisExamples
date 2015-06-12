@@ -18,6 +18,8 @@ import edu.mines.jtk.util.ArrayMath;
 
 /**
  * Create an example JavaSeis data set for testing purposes.
+ * This dataset exposes most of its direct members so you can
+ * get the information you need to evaluate your class's logic.
  * 
  * This class only makes and cleans up the data set.
  * 
@@ -39,17 +41,16 @@ public class ExampleRandomDataset {
   public Seisio seisio;
   public GridDefinition gridDefinition;
 
-  //basic sanity check only.  The rest of the tests are in the corresponding JTest
+  //basic sanity check only.  Make sure the data is there after you make it.
   public static void main(String[] args) {
     ExampleRandomDataset test = new ExampleRandomDataset();
     JavaSeisMovieRunner.showMovie(defaultPath);
     try {
       test.deleteJavaSeisData();
     } catch (SeisException e) {
-      System.out.println("Unable to delete dataset");
+      System.out.println("Unable to delete dataset at " + test.dataFullPath);
       e.printStackTrace();
     }
-
   }
 
   //Noarg constructor
@@ -58,6 +59,20 @@ public class ExampleRandomDataset {
     exceptionIfFileAlreadyExists();
     AxisDefinition[] axes = defaultAxisDefinitions();
     gridDefinition = makeGridDefinition(axes);
+    try {
+      seisio = createSeisIO(gridDefinition);
+      createJavaSeisData(seisio);
+      insertRandomData(seisio);
+    } catch (SeisException e) {
+      e.printStackTrace();
+    }
+  }
+  
+  //Path & GridDefinition constructor
+  public ExampleRandomDataset(String fullPath , GridDefinition gridDefinition) {
+    this.dataFullPath = fullPath;
+    exceptionIfFileAlreadyExists();
+    this.gridDefinition = gridDefinition;
     try {
       seisio = createSeisIO(gridDefinition);
       createJavaSeisData(seisio);
