@@ -1,0 +1,215 @@
+<project name="JavaSeisExamples" default="all" xmlns:jacoco="antlib:org.jacoco.ant">
+	
+    <property name="src" location="src"/>
+    <property name="bin" location="bin"/>
+    <property name="jar" location="${bin}/lib/javaseis_examples.jar"/>
+    <property name="javadoc.dir" location="doc"/>
+    <property name="report.lint.dir" location="bin/reports/lint" />
+    <property name="report.unittests.dir" location="bin/reports/unit_tests"/>
+    <property name="report.unittests.html.dir" location="bin/reports/unit_tests/html"/>
+    <property name="coverage.unittests.dir" location="bin/reports/coverage"/>
+    <property name="coverage.unittests.filename" location="jacoco.exec"/>
+    <property name="coverage.unittests.html.dir" location="bin/reports/coverage/html"/>
+
+    <!-- If mpi.root is not set in the environment, use MPI_ROOT from 
+       command line.  To set on command line, use something like
+           -Dmpi.root=/.../openmpi-1.7rc6  -->
+    <condition property="mpi.root"
+               value="${env.MPI_ROOT}"
+               else="${mpi.root}">
+        <isset property="env.MPI_ROOT" />
+    </condition>
+
+    <!-- define library paths -->
+    <property name="ld.library.path" value="" />
+
+    <!-- define classpaths -->
+
+    <path id="classpath.external">
+      <fileset dir="lib">
+        <include name="**/*.jar" />
+      </fileset>
+    </path>
+
+    <path id="classpath.myjar">
+      <fileset dir="${bin}/lib">
+        <include name="**/*.jar" />
+      </fileset>
+    </path>
+      
+    <path id="classpath.default">
+        <pathelement location="bin" />
+          <path refid="classpath.external"/>
+          <path refid="classpath.myjar"/>
+    </path>
+
+    <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+        <classpath path="lib/jacocoant.jar"/>
+    </taskdef>
+	
+    <target name="all" description="Do most targets" depends="compile, dist, unittests, doc">
+    </target>
+
+    <target name="init">
+        <mkdir dir="${bin}"/>
+        <mkdir dir="${bin}/lib"/>
+        <mkdir dir="${report.lint.dir}" />
+    </target>
+
+    <target name="compile" depends="init"
+            description="Compiles the Java code.">
+
+        <javac
+            srcdir="${src}"
+            includes="org/"
+            destdir="${bin}"
+            debug="on"
+            source="1.7"
+            fork="yes"
+            memoryInitialSize="512m"
+            memoryMaximumSize="800m"
+            deprecation="on"
+            includeantruntime="no">
+
+            <classpath refid="classpath.default"/>
+
+            <compilerarg value="-Xlint" />
+            <compilerarg value="-Xlint:-serial" />
+            <compilerarg value="-Xlint:deprecation"/>
+            <compilerarg value="-Xlint:unchecked"/>
+            <compilerarg value="-Xstdout" />
+            <compilerarg value="${report.lint.dir}/lint_project_report.txt" />
+        </javac>
+    </target>
+
+    <target name="dist" depends="compile"
+            description="Builds the jar for distribution.">
+        <mkdir dir="${bin}/lib"/>
+        <jar destfile="${jar}" compress="true">
+            <fileset dir="${bin}" includes="org/" />
+            <fileset dir="${src}" includes="org/"/>
+        </jar>
+    </target>
+
+    <target name="unittests" depends="compile"
+            description="Runs the unit tests." >
+        <delete includeEmptyDirs="true" quiet="true">
+            <fileset dir="${report.unittests.dir}"/>
+        </delete>
+        <mkdir dir="${report.unittests.dir}"/>
+        <mkdir dir="${report.unittests.html.dir}"/>
+    	
+    	<delete includeEmptyDirs="true" quiet="true">
+    		<fileset dir="${coverage.unittests.dir}"/>
+    	</delete>
+    	<mkdir dir="${coverage.unittests.dir}"/>
+    	<mkdir dir="${coverage.unittests.html.dir}"/>
+        
+    	<jacoco:coverage destfile="${coverage.unittests.dir}/jacoco.exec" enabled="true">
+          <junit fork="yes"
+                 maxmemory="12g"
+                 tempDir="${report.unittests.dir}"
+                 printsummary="withOutAndErr"
+                 showoutput="yes"
+                 haltonfailure="no"
+                 haltonerror="no" 
+                 failureproperty="test.failure">
+            <jvmarg value="-Djava.library.path=${ld.library.path}"/>
+            <jvmarg value="-ea"/>
+            <jvmarg value="-XX:NewRatio=9"/>
+            <env key="MPI_ROOT" value="${mpi.root}" />
+
+            <classpath>
+                <path refid="classpath.default" />
+            </classpath>
+
+            <formatter type="xml"/>
+            <batchtest fork="yes" toDir="${report.unittests.dir}">
+                <fileset dir="${src}" >
+                    <include name="org/**/*JTest*.java"/>
+                </fileset>
+            </batchtest>
+          </junit>
+        </jacoco:coverage>
+
+        <junitreport todir="${report.unittests.html.dir}">
+            <fileset dir="${report.unittests.dir}">
+                <include name="TEST-*.xml"/>
+            </fileset>
+            <report format="frames" todir="${report.unittests.html.dir}"/>
+        </junitreport>
+    	
+    	<jacoco:report>
+    		<executiondata>
+    		        <file file="${coverage.unittests.dir}/jacoco.exec"/>
+    		</executiondata>
+    		                       
+    		<structure name="JavaSeis Project">
+    		   <classfiles>
+    		       <fileset dir="${bin}"/>
+    		   </classfiles>
+    		   <sourcefiles encoding="UTF-8">
+    		     <fileset dir="${src}"/>
+    		   </sourcefiles>
+    		</structure>
+    		                       
+    		<html destdir="${coverage.unittests.html.dir}"/>
+    		<!--
+    		<xml destfile="${coverage.unittests.dir}/jacoco_report.xml"/>
+    		<csv destfile="${coverage.unittests.dir}/jacoco_report.csv"/>
+    		-->
+    	</jacoco:report>
+
+        <!-- comment out the following fail task if failing unit tests should NOT fail build -->
+        <fail if="test.failure"
+              message="Tests failed.${line.separator}See test report in${line.separator}  ${report.unittests.html.dir}/index.html"/>
+    </target>
+
+    <!-- create javadoc -->
+    <target name="doc"
+        depends="init, compile"
+        description="Builds javadoc">
+
+        <tstamp>
+            <format property="capture.time" pattern="yyyy-MMMM-dd hh:mm" />
+        </tstamp>
+
+        <javadoc
+            sourcepath="${src}"
+            packagenames="org.*"
+            destdir="${javadoc.dir}"
+            defaultexcludes="yes"
+            version="true"
+            use="true"
+            access="protected"
+            maxmemory="512m"
+            breakiterator="yes"
+            windowtitle="JavaSeis API">
+
+            <classpath>
+                <path refid="classpath.default" />
+            </classpath>
+
+            <doctitle><![CDATA[<h1>JavaSeis API</h1>]]>${capture.time}</doctitle>
+            <bottom><![CDATA[<i>Copyright &#169; 2006, 2007 JavaSeis.org. All Rights Reserved.</i>]]></bottom>
+
+        </javadoc>
+
+    </target>
+
+    <target name="clean">
+        <delete dir="${bin}"/>
+    </target>
+
+    <target name="info"
+        description="Print information about build environment to aid in debugging.">
+        <echo>
+            Ant info target output, buildcop.xml:
+            mpi.root                 = ${mpi.root}
+            ld.library.path          = ${ld.library.path}
+            local.repository         = ${local.repository}
+         </echo>
+    </target>
+
+</project>
+
