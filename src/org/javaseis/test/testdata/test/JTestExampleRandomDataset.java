@@ -130,7 +130,8 @@ public class JTestExampleRandomDataset {
       System.out.println("Custom Frame Iterator: " + 
           Arrays.toString(customFrameIndex));
        */
-      Assert.assertArrayEquals("Iterator index arrays do not match",customFrameIndex, seisioFrameIndex);
+      Assert.assertArrayEquals("Iterator index arrays do not match",
+          customFrameIndex, seisioFrameIndex);
     }
     //fail if one iterator still has more frames
     Assert.assertTrue("Iterators have a different number of elements",
