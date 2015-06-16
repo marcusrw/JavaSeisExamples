@@ -44,6 +44,7 @@ public class StandAloneVolumeTool implements IVolumeTool {
     // Set a uniprocessor context
     IParallelContext upc = new UniprocessorContext();
     toolContext = new ToolContext(parms);
+    toolContext.setParallelContext(upc);
     ipio = null;
     // Open input file if it is requested
     inputFileSystem = parms.getParameter("inputFileSystem", "null");
@@ -221,13 +222,19 @@ public class StandAloneVolumeTool implements IVolumeTool {
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
-    // TODO Auto-generated method stub
+    System.out.println("Executing StandAloneVolume.processVolume() " 
+        + "on task number " + toolContext.getParallelContext().rank()
+        + "\nYou should override this method if you want "
+        + "your tool to do anything useful.\n");
     return false;
   }
 
   @Override
   public boolean outputVolume(ToolContext toolContext, ISeismicVolume output) {
-    // TODO Auto-generated method stub
+    System.out.println("Executing StandAloneVolume.outputVolume() " 
+        + "on task number " + toolContext.getParallelContext().rank()
+        + "\nYou should override this method if you want "
+        + "your tool to save your output to a file.\n");
     return false;
   }
 
