@@ -52,7 +52,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
     String[] candidates = new String[] {
         System.getProperty("user.home") + File.separator + "javaseis",
-        "/home/seisspace/data/datageneration/simplemodelsfo"
+        "/home/seisspace/data"
     };
 
     for (String candidate : candidates) {
@@ -153,7 +153,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int[] odashape = oda.getShape();
     System.out.println("getTransformShape: " + Arrays.toString(FFTshape));
     System.out.println("Output DA Shape:   " + Arrays.toString(odashape));
-    //fft3d.forward(input.getDistributedArray(),output.getDistributedArray());
+    fft3d.forward(input.getDistributedArray(),output.getDistributedArray());
 
 
     //output.copyVolume(input);

@@ -51,7 +51,7 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
     }
     String[] candidates = new String[] {
         System.getProperty("user.home") + File.separator + "javaseis",
-        "/home/seisspace/data/datageneration/simplemodelsfo"
+        "/home/seisspace/data"
     };
 
     for (String candidate : candidates) {
