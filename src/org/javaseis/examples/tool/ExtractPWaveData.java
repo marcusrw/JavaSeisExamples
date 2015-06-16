@@ -24,6 +24,9 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   private int pwaveComponentNumber;
 
   public static void main(String[] args) {
+    //This is basically a test harness.
+    //The functionality of finding the data and setting the parameters should
+    //be externalized to a GUI or a script eventually.
     ParameterService parms = new ParameterService(args);
     try {
       String inputFileName = "100-rawsyntheticdata.js";
@@ -61,16 +64,16 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
 
   }
 
+  private static boolean parameterIsSet(ParameterService parameterService,
+      String parameterName) {
+    return parameterService.getParameter(parameterName) != "null";
+  }
+  
   private static void setParameterIfUnset(ParameterService parameterService,
       String parameterName, String parameterValue) {
     if (!parameterIsSet(parameterService,parameterName)) {
       parameterService.setParameter(parameterName, parameterValue);
     }
-  }
-
-  private static boolean parameterIsSet(ParameterService parameterService,
-      String parameterName) {
-    return parameterService.getParameter(parameterName) != "null";
   }
 
   @Override
@@ -195,12 +198,12 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
     //      that work right now, so I'm just going to use the counter
     long numComponents = input.getGlobalGrid().getAxisLengths()[componentAxis];
     if (volumeCount % numComponents == pwaveComponentNumber - 1) { 
-      System.out.println("Saving P-waves from volume " + volumeCount++);
+      pc.serialPrint("Saving P-waves from volume " + volumeCount++);
       output.copyVolume(input);
       compTime.stop();
       return true;
     } else {
-      System.out.println("Trashing S-waves from volume " + volumeCount++);
+      pc.serialPrint("Trashing S-waves from volume " + volumeCount++);
       compTime.stop();
       return false;
     }
