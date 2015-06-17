@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 
+import beta.javaseis.array.TransposeType;
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.fft.SeisFft3d;
 import beta.javaseis.parallel.IParallelContext;
 
+import org.javaseis.examples.plot.JavaSeisMovieRunner;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.services.ParameterService;
@@ -17,7 +19,7 @@ import org.javaseis.util.IntervalTimer;
 import org.javaseis.volume.ISeismicVolume;
 
 public class ExampleMigration extends StandAloneVolumeTool {
-  
+
   int volumeCount;
   IParallelContext pc;
   IntervalTimer compTime, totalTime;
@@ -122,10 +124,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     GridDefinition outputGrid = new GridDefinition(
         inputGrid.getNumDimensions(),outputAxes);
     toolContext.setOutputGrid(outputGrid);
-    
-    
+
+
   }
-  
+
   @Override
   public void parallelInit(ToolContext toolContext) {
     volumeCount = 0;
@@ -141,23 +143,50 @@ public class ExampleMigration extends StandAloneVolumeTool {
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
     int[] shape = input.getLengths();
+    DistributedArray inputDA = input.getDistributedArray();
+    DistributedArray outputDA = output.getDistributedArray();
     SeisFft3d fft3d = new SeisFft3d(pc,shape,new float[] {0,0,0},new int[] {-1,1,1});
-    DistributedArray ida = input.getDistributedArray();
-    DistributedArray oda = output.getDistributedArray();
-    oda.setElementCount(2);
+    double[] sampleRates = new double[] {0.002,6,7};
+    fft3d.setTXYSampleRates(sampleRates);
+    DistributedArray fft3dDA = fft3d.getArray();
+    double[] buf = new double[3];
+    fft3d.getKyKxFCoordinatesForPosition(new int[] {28, 28, 684},buf);
+    System.out.println("KyKxF: " + Arrays.toString(buf));
+    
+    System.out.println("fft3DDA Shape:     " + Arrays.toString(fft3dDA.getShape()));
+    fft3dDA.copy(inputDA);
+    outputDA.setElementCount(2);
+    fft3d.forward();
+    //fft3d.forward(input.getDistributedArray(),output.getDistributedArray());
+
+    fft3d.getArray().transpose(TransposeType.T321);
+    outputDA.copy(fft3d.getArray());	//garbage collect outpuDA before this step?
     //TODO begin info dump
     System.out.println("FFT shape:         " + Arrays.toString(fft3d.getFftShape()));
     System.out.println("FFT lengths:       " + Arrays.toString(fft3d.getFftLengths()));
     System.out.println("Shape:             " + Arrays.toString(fft3d.getShape()));
-    int[] FFTshape = fft3d.getTransformShape(input.getLengths(),new float[] {0,0,0},pc);
-    int[] odashape = oda.getShape();
-    System.out.println("getTransformShape: " + Arrays.toString(FFTshape));
-    System.out.println("Output DA Shape:   " + Arrays.toString(odashape));
-    fft3d.forward(input.getDistributedArray(),output.getDistributedArray());
-
+    System.out.println("getTransformShape: " + Arrays.toString(SeisFft3d.getTransformShape(input.getLengths(),new float[] {0,0,0},pc)));
+    System.out.println("Output DA Shape:   " + Arrays.toString(outputDA.getShape()));
+    System.out.println("fft3d Array size:  " + fft3d.getArray().getArrayLength());
+    System.out.println("input Array size:  " + inputDA.getArrayLength());
+    System.out.println("output Array size: " + outputDA.getArrayLength());
+    System.out.println("Current FFT3D shape: " + Arrays.toString(fft3d.getShape()));
+    System.out.println();
+    
+    //System.out.println("Sample Rates: " + fft3d)
 
     //output.copyVolume(input);
-    return false;
+    return true;
   }
-
+  
+  @Override
+  public void serialFinish(ToolContext toolContext) {
+    ParameterService parms = toolContext.getParameterService();
+    String inputJS = parms.getParameter("inputFileSystem") + File.separator + parms.getParameter("inputFilePath");
+    String outputJS = parms.getParameter("outputFileSystem") + File.separator + parms.getParameter("outputFilePath");
+    System.out.println("Displaying Input File:  " + inputJS);
+    JavaSeisMovieRunner.showMovie(inputJS);
+    System.out.println("Displaying Output File: " + outputJS);
+    JavaSeisMovieRunner.showMovie(outputJS);
+  }
 }

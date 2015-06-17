@@ -68,7 +68,7 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
       String parameterName) {
     return parameterService.getParameter(parameterName) != "null";
   }
-  
+
   private static void setParameterIfUnset(ParameterService parameterService,
       String parameterName, String parameterValue) {
     if (!parameterIsSet(parameterService,parameterName)) {
