@@ -29,7 +29,5 @@ public class JTestShotMigPhaseShift {
     double[] zdelta = new double[] { dz, dx, dy };
     RegularGrid image = new RegularGrid( zshape, zdelta, pc );
     assertTrue(true);
-    
   }
-
 }
