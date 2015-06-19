@@ -11,7 +11,7 @@ public class JTestExampleMigration {
     String outputFileName = "testFFT.js";
     try {
       FindTestData ftd = new FindTestData(inputFileName,outputFileName);
-      ExampleMigration em = new ExampleMigration(ftd.getParameterService());
+      new ExampleMigration(ftd.getParameterService());
     } catch (FileNotFoundException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();

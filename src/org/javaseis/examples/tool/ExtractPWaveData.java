@@ -22,6 +22,12 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
 
   private int componentAxis;
   private int pwaveComponentNumber;
+  
+  public ExtractPWaveData() {}
+  
+  public ExtractPWaveData(ParameterService parms) {
+    exec(parms,new ExtractPWaveData());
+  }
 
   public static void main(String[] args) {
     //This is basically a test harness.
@@ -37,6 +43,8 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
       setParameterIfUnset(parms,"outputFilePath","100a-rawsynthpwaves.js");
       //TODO if you set threadCount to 2, half of the data will be missing
       // the task fails outright if you set it higher than 2.
+      //TODO write a test showing how the multithreading fails. (remember the
+      //     uniprocessor context)
       setParameterIfUnset(parms,"threadCount","1");
       exec(parms, new ExtractPWaveData());
     } catch (FileNotFoundException e) {

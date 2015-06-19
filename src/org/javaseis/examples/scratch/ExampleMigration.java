@@ -1,7 +1,6 @@
 package org.javaseis.examples.scratch;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.Arrays;
 
 import beta.javaseis.array.TransposeType;
@@ -36,7 +35,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
   SeisFft3d fft3d;
 
   public ExampleMigration() {
-
   }
 
   public ExampleMigration(ParameterService parms) {
