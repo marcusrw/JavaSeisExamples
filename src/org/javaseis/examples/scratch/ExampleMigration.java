@@ -35,62 +35,19 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   SeisFft3d fft3d;
 
+  public ExampleMigration() {
+
+  }
+
+  public ExampleMigration(ParameterService parms) {
+    exec(parms,new ExampleMigration());
+  }
+
+  //allows running this tool from the command line, using key/value pairs to
+  //fill in the necessary parameters.
   public static void main(String[] args) {
-    //This is basically a test harness.
-    //The functionality of finding the data and setting the parameters should
-    //be externalized to a GUI, JTest or a script eventually.
     ParameterService parms = new ParameterService(args);
-    try {
-      String inputFileName = "100a-rawsynthpwaves.js";
-      String dataFolder = findTestDataLocation(parms,inputFileName);
-      setParameterIfUnset(parms,"inputFileSystem",dataFolder);
-      setParameterIfUnset(parms,"inputFilePath",inputFileName);
-      setParameterIfUnset(parms,"outputFileSystem",dataFolder);
-      setParameterIfUnset(parms,"outputFilePath","testFFT.js");
-      //TODO if you set threadCount to 2, half of the data will be missing
-      // the task fails outright if you set it higher than 2.
-      setParameterIfUnset(parms,"threadCount","1");
-      exec(parms, new ExampleMigration());
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
-  }
-
-  private static String findTestDataLocation(ParameterService parms,String filename) throws FileNotFoundException {
-
-    if (parameterIsSet(parms,"inputFileSystem")) {
-      System.out.println("Getting input directory from Parameter Service.");
-      return parms.getParameter("inputFileSystem");
-    }
-    String[] candidates = new String[] {
-        System.getProperty("user.home") + File.separator + "javaseis",
-        "/home/seisspace/data"
-    };
-
-    for (String candidate : candidates) {
-      System.out.println("Searching for " + candidate);
-      if (new File(candidate).isDirectory()) {
-        File test = new File(candidate + File.separator + filename);
-        if (test.exists()) {
-          System.out.println("JavaSeis folder located at " + test.getAbsolutePath()+ "\n");
-          return candidate;
-        }
-      }
-    }
-    throw new FileNotFoundException("Unable to locate input data directory.");
-
-  }
-
-  private static boolean parameterIsSet(ParameterService parameterService,
-      String parameterName) {
-    return parameterService.getParameter(parameterName) != "null";
-  }
-
-  private static void setParameterIfUnset(ParameterService parameterService,
-      String parameterName, String parameterValue) {
-    if (!parameterIsSet(parameterService,parameterName)) {
-      parameterService.setParameter(parameterName, parameterValue);
-    }
+    exec(parms, new ExampleMigration());
   }
 
   @Override
@@ -121,15 +78,15 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //TODO change output domains to frequency, units to hertz etc.
     AxisDefinition[] outputAxes = new AxisDefinition[inputAxisLengths.length];
     for (int k = 0 ; k < inputAxisLengths.length ; k++) {
-      AxisDefinition in = inputGrid.getAxis(k);
-      outputAxes[k] = new AxisDefinition(in.getLabel(),
-          in.getUnits(),
-          in.getDomain(),
+      AxisDefinition inputAxis = inputGrid.getAxis(k);
+      outputAxes[k] = new AxisDefinition(inputAxis.getLabel(),
+          inputAxis.getUnits(),
+          inputAxis.getDomain(),
           outputAxisLengths[k],
-          in.getLogicalOrigin(),
-          in.getLogicalDelta(),
-          in.getPhysicalOrigin(),
-          in.getPhysicalDelta());
+          inputAxis.getLogicalOrigin(),
+          inputAxis.getLogicalDelta(),
+          inputAxis.getPhysicalOrigin(),
+          inputAxis.getPhysicalDelta());
     }
 
     GridDefinition outputGrid = new GridDefinition(

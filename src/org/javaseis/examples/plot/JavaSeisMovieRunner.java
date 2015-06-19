@@ -27,7 +27,5 @@ public class JavaSeisMovieRunner {
       pathToDataset = args[0];
     }
     JavaSeisMovieRunner.showMovie(pathToDataset);
-    movie.stop();
-    movie.destroy();
   }
 }
