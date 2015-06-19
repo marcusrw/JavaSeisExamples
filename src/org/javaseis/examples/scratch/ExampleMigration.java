@@ -1,4 +1,4 @@
-package org.javaseis.examples.tool;
+package org.javaseis.examples.scratch;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -59,6 +59,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private static String findTestDataLocation(ParameterService parms,String filename) throws FileNotFoundException {
 
     if (parameterIsSet(parms,"inputFileSystem")) {
+      System.out.println("Getting input directory from Parameter Service.");
       return parms.getParameter("inputFileSystem");
     }
     String[] candidates = new String[] {
@@ -220,17 +221,19 @@ public class ExampleMigration extends StandAloneVolumeTool {
    * @param da - The Distributed Array
    */
   public static DistributedArray cabs(DistributedArray da) {
+    //Make a new DA that's the same shape as the input...
     IParallelContext pc = da.getParallelContext();
     ElementType type = da.getElementType();
     int[] lengths = da.getShape();
     DistributedArray absDA = new DistributedArray(pc,type,lengths);
+    //...because this didn't work for whatever reason.
     //DistributedArray absDA = new DistributedArray(da);
     //absDA.setElementCount(1);
     int direction = 1; //forward
     int scope = 0; //iterate over samples
     DistributedArrayPositionIterator dapi =
         new DistributedArrayPositionIterator(da,direction,scope);
-    float[] inputBuffer = new float[2];
+    float[] inputBuffer = new float[2]; //complex numbers
     float outputBuffer = 0;
     int numiterates = 0;
     while (dapi.hasNext()) {

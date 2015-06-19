@@ -4,9 +4,11 @@ import org.javaseis.util.SeisException;
 
 public class JavaSeisMovieRunner {
 
+  static JavaSeisMovieApplet movie;
+
   public static void showMovie(String pathToDataset) {
     try {
-      new JavaSeisMovieApplet(pathToDataset);
+      movie = new JavaSeisMovieApplet(pathToDataset);
     } catch (SeisException e) {
       e.printStackTrace();
     }
@@ -25,5 +27,7 @@ public class JavaSeisMovieRunner {
       pathToDataset = args[0];
     }
     JavaSeisMovieRunner.showMovie(pathToDataset);
+    movie.stop();
+    movie.destroy();
   }
 }
