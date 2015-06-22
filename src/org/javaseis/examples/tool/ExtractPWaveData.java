@@ -23,65 +23,17 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   private int componentAxis;
   private int pwaveComponentNumber;
   
+  //For command line use
+  public static void main(String args[]) {
+    ParameterService parms = new ParameterService(args);
+    new ExtractPWaveData(parms);
+  }
+  
   public ExtractPWaveData() {}
   
+  //TODO what is the best way to call these things
   public ExtractPWaveData(ParameterService parms) {
     exec(parms,new ExtractPWaveData());
-  }
-
-  public static void main(String[] args) {
-    //This is basically a test harness.
-    //The functionality of finding the data and setting the parameters should
-    //be externalized to a GUI or a script eventually.
-    ParameterService parms = new ParameterService(args);
-    try {
-      String inputFileName = "100-rawsyntheticdata.js";
-      String dataFolder = findTestDataLocation(parms,inputFileName);
-      setParameterIfUnset(parms,"inputFileSystem",dataFolder);
-      setParameterIfUnset(parms,"inputFilePath","100-rawsyntheticdata.js");
-      setParameterIfUnset(parms,"outputFileSystem",dataFolder);
-      setParameterIfUnset(parms,"outputFilePath","100a-rawsynthpwaves.js");
-      //TODO if you set threadCount to 2, half of the data will be missing
-      // the task fails outright if you set it higher than 2.
-      //TODO write a test showing how the multithreading fails. (remember the
-      //     uniprocessor context)
-      setParameterIfUnset(parms,"threadCount","1");
-      exec(parms, new ExtractPWaveData());
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
-  }
-
-  public static String findTestDataLocation(ParameterService parms,String filename) throws FileNotFoundException {
-
-    if (parameterIsSet(parms,"inputFileSystem")) {
-      return parms.getParameter("inputFileSystem");
-    }
-    String[] candidates = new String[] {
-        System.getProperty("user.home") + File.separator + "javaseis",
-        "/home/seisspace/data"
-    };
-
-    for (String candidate : candidates) {
-      System.out.println(candidate);
-      if (new File(candidate).isDirectory()) {
-        return candidate;
-      }
-    }
-    throw new FileNotFoundException("Unable to locate input data directory.");
-
-  }
-
-  private static boolean parameterIsSet(ParameterService parameterService,
-      String parameterName) {
-    return parameterService.getParameter(parameterName) != "null";
-  }
-
-  private static void setParameterIfUnset(ParameterService parameterService,
-      String parameterName, String parameterValue) {
-    if (!parameterIsSet(parameterService,parameterName)) {
-      parameterService.setParameter(parameterName, parameterValue);
-    }
   }
 
   @Override
@@ -89,11 +41,6 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
 
     findAndRemoveComponentAxisFromGrid(toolContext);
     pwaveComponentNumber = determinePWaveHeaderValue(toolContext);
-  }
-
-  private int determinePWaveHeaderValue(ToolContext toolContext) {
-    //TODO figure out a nice way to do this in general (ask the user probably)
-    return 3;    
   }
 
   private void findAndRemoveComponentAxisFromGrid(ToolContext toolContext) {
@@ -127,6 +74,8 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
     return componentAxis;
   }
 
+  //TODO this is garbage code, because it uses a code to indicate that
+  //the axis was not found instead of throwing an exception.
   private boolean dataIsMulticomponent(ToolContext toolContext) {
     return (findComponentAxis(toolContext) != -1);
   }
@@ -149,6 +98,11 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
 
     if (dim < axisToRemove) return inputGrid.getAxis(dim);
     else return inputGrid.getAxis(dim+1);
+  }
+
+  private int determinePWaveHeaderValue(ToolContext toolContext) {
+    //TODO figure out a nice way to do this in general (ask the user probably)
+    return 3;    
   }
 
   @Override
