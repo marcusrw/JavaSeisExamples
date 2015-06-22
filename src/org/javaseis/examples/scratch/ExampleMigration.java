@@ -16,6 +16,7 @@ import org.javaseis.array.ElementType;
 import org.javaseis.examples.plot.JavaSeisMovieRunner;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
+import org.javaseis.properties.DataDomain;
 import org.javaseis.services.ParameterService;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
@@ -75,11 +76,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //copy rest of AxisDefinitions for now
     //TODO change output domains to frequency, units to hertz etc.
     AxisDefinition[] outputAxes = new AxisDefinition[inputAxisLengths.length];
+    DataDomain[] outputAxisDomains = FindOutputDomains(inputGrid.getAxisDomains());
     for (int k = 0 ; k < inputAxisLengths.length ; k++) {
       AxisDefinition inputAxis = inputGrid.getAxis(k);
       outputAxes[k] = new AxisDefinition(inputAxis.getLabel(),
           inputAxis.getUnits(),
-          inputAxis.getDomain(),
+          outputAxisDomains[k],
           outputAxisLengths[k],
           inputAxis.getLogicalOrigin(),
           inputAxis.getLogicalDelta(),
@@ -90,6 +92,28 @@ public class ExampleMigration extends StandAloneVolumeTool {
     GridDefinition outputGrid = new GridDefinition(
         inputGrid.getNumDimensions(),outputAxes);
     toolContext.setOutputGrid(outputGrid);
+  }
+
+  private DataDomain[] FindOutputDomains(DataDomain[] inputAxisDomains) {
+    System.out.println(Arrays.toString(inputAxisDomains));
+    for (int k = 0 ; k < 3 ; k++) {
+      switch (inputAxisDomains[k].toString()) {
+      case "time":
+        inputAxisDomains[k] = new DataDomain("frequency");
+        break;
+      case "frequency":
+        inputAxisDomains[k] = new DataDomain("time");
+        break;
+      case "space":
+        inputAxisDomains[k] = new DataDomain("wavenumber");
+        break;
+      case "wavenumber":
+        inputAxisDomains[k] = new DataDomain("space");
+        break;
+      }
+    }
+    System.out.println(Arrays.toString(inputAxisDomains));
+    return inputAxisDomains;
   }
 
   @Override
