@@ -5,9 +5,6 @@ import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.volume.ISeismicVolume;
 
-import beta.javaseis.distributed.DistributedArray;
-import beta.javaseis.distributed.DistributedArrayMosaicPlot;
-
 /**
  * Display each volume in the input data set in a Mosaic plot.  If
  * any of the spatial dimensions are Fourier Transformed, shift those dimensions
@@ -41,7 +38,8 @@ public class DistributedArrayViewer extends StandAloneVolumeTool {
   @Override  //display the volume, then wait for the user to close it
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
-    new SingleVolumeDAViewer(toolContext,input);
+    SingleVolumeDAViewer daView = new SingleVolumeDAViewer(input);
+    daView.showAsModalDialog();
     return false;
   }
   

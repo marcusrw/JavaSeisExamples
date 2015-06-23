@@ -1,9 +1,5 @@
 package org.javaseis.examples.tool;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Arrays;
-
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.services.ParameterService;
@@ -24,7 +20,7 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   private int pwaveComponentNumber;
   
   //For command line use
-  public static void main(String args[]) {
+  public static void main(String[] args) {
     ParameterService parms = new ParameterService(args);
     new ExtractPWaveData(parms);
   }
@@ -77,11 +73,11 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   //TODO this is garbage code, because it uses a code to indicate that
   //the axis was not found instead of throwing an exception.
   private boolean dataIsMulticomponent(ToolContext toolContext) {
-    return (findComponentAxis(toolContext) != -1);
+    return findComponentAxis(toolContext) != -1;
   }
 
   private void removeComponentAxisFromOutputGrid(ToolContext toolContext) {
-    int componentAxis = findComponentAxis(toolContext);
+    componentAxis = findComponentAxis(toolContext);
 
     GridDefinition inputGrid = toolContext.getInputGrid();
     int outputNumDimensions = toolContext.getInputGrid().getNumDimensions() - 1;
