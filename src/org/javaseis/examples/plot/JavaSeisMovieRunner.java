@@ -1,8 +1,15 @@
 package org.javaseis.examples.plot;
 
+import org.javaseis.examples.plot.test.JTestDistributedArrayViewer;
 import org.javaseis.util.SeisException;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class JavaSeisMovieRunner {
+  
+  private static final Logger LOGGER =
+      Logger.getLogger(JTestDistributedArrayViewer.class.getName());
 
   static JavaSeisMovieApplet movie;
 
@@ -10,6 +17,7 @@ public class JavaSeisMovieRunner {
     try {
       movie = new JavaSeisMovieApplet(pathToDataset);
     } catch (SeisException e) {
+      LOGGER.log(Level.INFO, "Unable to open the dataset at " + pathToDataset,e);
       e.printStackTrace();
     }
   }

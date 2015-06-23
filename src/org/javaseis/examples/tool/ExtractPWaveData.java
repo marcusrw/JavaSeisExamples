@@ -22,7 +22,8 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   //For command line use
   public static void main(String[] args) {
     ParameterService parms = new ParameterService(args);
-    new ExtractPWaveData(parms);
+    //TODO add basic error checking?
+    exec(parms,new ExtractPWaveData());
   }
   
   public ExtractPWaveData() {}
@@ -45,14 +46,14 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
 
     if (dataIsMulticomponent(toolContext) && componentAxis > 2) {
       System.out.println("Input Data is multicomponent.  The component axis is #" + 
-          (componentAxis+1));
+          (componentAxis+1) + "\n");
       removeComponentAxisFromOutputGrid(toolContext);
     } else {
       if (componentAxis == -1) {
-        System.out.println("Input Data is not multicomponent");
+        System.out.println("Input Data is not multicomponent.\n");
       } else {
         System.out.println("Input Data is multicomponent, "
-            + "but the components differ within volumes");
+            + "but the components differ within volumes.\n");
       }
       toolContext.setOutputGrid(new GridDefinition(toolContext.getInputGrid()));
     }
@@ -105,8 +106,8 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   public void parallelInit(ToolContext toolContext) {
     volumeCount = 0;
     pc = toolContext.getParallelContext();
-    pc.masterPrint("Input Grid Definition:\n" + toolContext.getInputGrid());
-    pc.masterPrint("Output Grid Definition:\n" + toolContext.getOutputGrid());
+    pc.masterPrint("Input Grid Definition:\n" + toolContext.getInputGrid() + "\n");
+    pc.masterPrint("Output Grid Definition:\n" + toolContext.getOutputGrid() + "\n");
     compTime = new IntervalTimer();
     totalTime = new IntervalTimer();
     totalTime.start();

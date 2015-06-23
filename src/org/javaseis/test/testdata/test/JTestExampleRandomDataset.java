@@ -4,9 +4,12 @@ import java.io.File;
 import java.util.Arrays;
 //import java.util.Arrays;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.javaseis.array.IMultiArray;
 import org.javaseis.array.MultiArray;
+import org.javaseis.examples.plot.test.JTestDistributedArrayViewer;
 import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.util.SeisException;
 import org.junit.After;
@@ -15,6 +18,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class JTestExampleRandomDataset {
+  
+  private static final Logger LOGGER =
+      Logger.getLogger(JTestDistributedArrayViewer.class.getName());
 
   private ExampleRandomDataset dataset;
   private MultiArray workFrame;
@@ -67,13 +73,14 @@ public class JTestExampleRandomDataset {
     dataset = createDefaultData();
     try {
       dataset.deleteJavaSeisData();
-    } catch (SeisException e1) {
+    } catch (SeisException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e);
       Assert.fail("deleteJavaSeisData method failed");
-      e1.printStackTrace();
     }
     try {
       dataset = new ExampleRandomDataset();
-    } catch (UnsupportedOperationException e2) {
+    } catch (UnsupportedOperationException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e);
       Assert.fail("Data folder still exists after delete");
     }
   }
@@ -106,8 +113,8 @@ public class JTestExampleRandomDataset {
       try {
         dataset.seisio.readMultiArray(workFrame, nextIndex);
       } catch (SeisException e) {
-        // Auto-generated catch block
-        e.printStackTrace();
+        LOGGER.log(Level.INFO,e.getMessage(),e);
+        Assert.fail("Seisio.readMultiArray() failed.");
       }
       if (frameIsNotEmpty(workFrame)) {
         return true; //this frame is nonempty
@@ -145,8 +152,7 @@ public class JTestExampleRandomDataset {
       try {
         dataset.seisio.readMultiArray(workFrame, nextIndex);
       } catch (SeisException e) {
-        // Auto-generated catch block
-        e.printStackTrace();
+        LOGGER.log(Level.INFO,e.getMessage(),e);
       }
       if (!frameIsNotEmpty(workFrame)) {
         return false; //this frame is empty

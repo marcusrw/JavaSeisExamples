@@ -10,20 +10,18 @@ import org.javaseis.test.testdata.FindTestData;
 import org.junit.Assert;
 import org.junit.Test;
 
-
-
-
 public class JTestDistributedArrayViewer {
-  
-  ParameterService parms;
   
   private static final Logger LOGGER =
       Logger.getLogger(JTestDistributedArrayViewer.class.getName());
+  
+  ParameterService parms;
 
+  //Try to find a .js folder with the given name in a few folders.
   private void loadDataset(String datasetname) {
     try {
       parms = new FindTestData(datasetname).getParameterService();
-      new DistributedArrayViewer(parms);
+      DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
     } catch (FileNotFoundException e) {
       LOGGER.log(Level.INFO,"Unable to open test dataset",e);
       Assert.fail(e.getMessage());

@@ -10,15 +10,16 @@ import org.javaseis.volume.ISeismicVolume;
  * any of the spatial dimensions are Fourier Transformed, shift those dimensions
  * so they are centered.
  * 
- * @author wilsonmr
+ * @author Marcus Wilson
  *
  */
 public class DistributedArrayViewer extends StandAloneVolumeTool {
   
-  private DistributedArrayViewer() {}
+  public DistributedArrayViewer() {}
   
+  //Why does my compiler say I need this?
   public DistributedArrayViewer(ParameterService parms) {
-    exec(parms,new DistributedArrayViewer());
+    //exec(parms,new DistributedArrayViewer());
   }
   
   public static void main(String[] args) {

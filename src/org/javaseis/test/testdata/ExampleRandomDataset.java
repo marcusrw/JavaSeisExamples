@@ -1,12 +1,14 @@
 package org.javaseis.test.testdata;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.javaseis.io.Seisio;
 import org.javaseis.array.MultiArray;
 import org.javaseis.examples.plot.JavaSeisMovieRunner;
+import org.javaseis.examples.plot.test.JTestDistributedArrayViewer;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
@@ -28,6 +30,9 @@ import edu.mines.jtk.util.ArrayMath;
  */
 public class ExampleRandomDataset {
 
+  private static final Logger LOGGER =
+      Logger.getLogger(JTestDistributedArrayViewer.class.getName());  
+
   private static final int DEFAULT_NUM_DIMENSIONS = 5;
   public static final String defaultPath = defaultDataLocation();
   private double[] defaultPhysicalDeltas = new double[] {2, 12, 100, 1, 1};
@@ -48,8 +53,7 @@ public class ExampleRandomDataset {
     try {
       test.deleteJavaSeisData();
     } catch (SeisException e) {
-      System.out.println("Unable to delete dataset at " + test.dataFullPath);
-      e.printStackTrace();
+      LOGGER.log(Level.INFO,"Unable to delete dataset at " + test.dataFullPath,e);
     }
   }
 
@@ -64,10 +68,10 @@ public class ExampleRandomDataset {
       createJavaSeisData(seisio);
       insertRandomData(seisio);
     } catch (SeisException e) {
-      e.printStackTrace();
+      LOGGER.log(Level.INFO,e.getMessage(),e);
     }
   }
-  
+
   //Path & GridDefinition constructor
   public ExampleRandomDataset(String fullPath , GridDefinition gridDefinition) {
     this.dataFullPath = fullPath;
@@ -78,7 +82,7 @@ public class ExampleRandomDataset {
       createJavaSeisData(seisio);
       insertRandomData(seisio);
     } catch (SeisException e) {
-      e.printStackTrace();
+      LOGGER.log(Level.INFO,e.getMessage(),e);
     }
   }
 
@@ -95,7 +99,7 @@ public class ExampleRandomDataset {
     assert dataFullPath != null;
     if (dataSetExists(dataFullPath)) {
       throw new UnsupportedOperationException(
-          "Unable to create data.  File already exists");
+          "Unable to create data.  File already exists.");
     }
   }
 

@@ -3,23 +3,34 @@ package org.javaseis.examples.tool.test;
 import java.io.FileNotFoundException;
 
 import org.javaseis.examples.tool.ExtractPWaveData;
+import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-//TODO Simple tests to make sure the subsetting method does what you expect.
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+//TODO Simple tests to make sure the sub-setting method does what you expect.
 public class JTestExtractPWaveData {
   
-  public static void main(String[] args) {
+  private static final Logger LOGGER = 
+      Logger.getLogger(JTestExtractPWaveData.class.getName());
+  
+  ParameterService parms;
+  
+  @Test
+  public void toolExecutes() {
     String inputFileName = "100-rawsyntheticdata.js";
     String outputFileName = "100a-rawsynthpwaves.js";
     try {
-      FindTestData ftd = new FindTestData(inputFileName,outputFileName);
-      new ExtractPWaveData(ftd.getParameterService());
+      parms = new FindTestData(inputFileName,outputFileName).getParameterService();
+      ExtractPWaveData.exec(parms,new ExtractPWaveData());;
     } catch (FileNotFoundException e) {
-      //TODO handle properly, more detail
-      e.printStackTrace();
+      LOGGER.log(Level.INFO, "Unable to open test dataset",e);
+      Assert.fail(e.getMessage());
     }
   }
   
