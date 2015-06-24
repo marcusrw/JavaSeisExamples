@@ -1,39 +1,44 @@
 package org.javaseis.examples.plot;
 
-import org.javaseis.examples.plot.test.JTestDistributedArrayViewer;
-import org.javaseis.util.SeisException;
-
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.javaseis.services.ParameterService;
+import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.util.SeisException;
 
 public class JavaSeisMovieRunner {
   
   private static final Logger LOGGER =
-      Logger.getLogger(JTestDistributedArrayViewer.class.getName());
+      Logger.getLogger(JavaSeisMovieRunner.class.getName());
 
   static JavaSeisMovieApplet movie;
+  static ParameterService parms;
 
-  public static void showMovie(String pathToDataset) {
+  public static void showMovie(String dataset) {
     try {
-      movie = new JavaSeisMovieApplet(pathToDataset);
+      parms = new FindTestData(dataset).getParameterService();
+      String fullpath = parms.getParameter("inputFileSystem") + File.separator + dataset;
+      movie = new JavaSeisMovieApplet(fullpath);
+    } catch (FileNotFoundException e) {
+      LOGGER.log(Level.INFO, "Unable to locate javaseis data folder " + dataset,e);
     } catch (SeisException e) {
-      LOGGER.log(Level.INFO, "Unable to open the dataset at " + pathToDataset,e);
-      e.printStackTrace();
+      LOGGER.log(Level.INFO,"Unable to open javaseis data set " + dataset,e);
     }
   }
 
   public static void main(String[] args) {
-    //String pathToDataset = "/home/wilsonmr/javaseis/inputpwaves.VID";
-    //String pathToDataset = "/home/wilsonmr/javaseis/100-rawsyntheticdata.js";
-    //String pathToDataset = "/home/seisspace/data/testFFT.js";
-    String pathToDataset = "/home/wilsonmr/javaseis/testFFT.js";
-    //String pathToDataset = "/home/seisspace/data/100a-rawsynthpwaves.js";
-    //String pathToDataset = "/home/seisspace/data/100-rawsyntheticdata.js";
-    //String pathToDataset = "/home/wilsonmr/javaseis/seg_salt_vrms.VEL";	 
+    //String dataset = "inputpwaves.VID";
+    String dataset = "testFFT.js";
+    //String dataset = "100a-rawsynthpwaves.js";
+    //String dataset = "100-rawsyntheticdata.js";
+    //String dataset = "seg_salt_vrms.VEL";
 
     if (args.length > 0) {
-      pathToDataset = args[0];
+      dataset = args[0];
     }
-    JavaSeisMovieRunner.showMovie(pathToDataset);
+    JavaSeisMovieRunner.showMovie(dataset);
   }
 }

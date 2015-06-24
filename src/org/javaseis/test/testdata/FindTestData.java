@@ -2,21 +2,32 @@ package org.javaseis.test.testdata;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.logging.Logger;
 
 import org.javaseis.services.ParameterService;
 
+/**
+ * Convenience class to automate the task of finding the path
+ * to a requested dataset.  For test automation purposes.
+ * 
+ * @author Marcus Wilson
+ *
+ */
 public class FindTestData {
 
-  private ParameterService parms;
+  private static final String INPUT_FILE_PATH = "inputFilePath";
+  private static final Logger LOGGER = Logger.getLogger(FindTestData.class.getName());
 
+  private ParameterService parms;
+  
   public FindTestData(ParameterService parms)
       throws NoSuchFieldException, FileNotFoundException {
     this.parms = parms;
-    if (!parameterIsSet(parms,"inputFilePath")) {
+    if (!parameterIsSet(parms,INPUT_FILE_PATH)) {
       throw new NoSuchFieldException("You need to specify an input filename"
-          + "\n in the Parameter Service field \"inputFilePath\"");
+          + "\n in the Parameter Service field " + INPUT_FILE_PATH);
     }
-    findAndSetDataFolder(parms,parms.getParameter("inputFilePath"));
+    findAndSetDataFolder(parms,parms.getParameter(INPUT_FILE_PATH));
   }
 
   public FindTestData(String inputFilePath) throws FileNotFoundException {
@@ -32,7 +43,7 @@ public class FindTestData {
   private void initializeParameterServiceAndFindInput(
       String inputFilePath) throws FileNotFoundException {
     parms = new ParameterService(new String[0]);
-    setParameterIfUnset(parms,"inputFilePath",inputFilePath);
+    setParameterIfUnset(parms,INPUT_FILE_PATH,inputFilePath);
     findAndSetDataFolder(parms,inputFilePath);
   }
 
@@ -52,25 +63,26 @@ public class FindTestData {
       ParameterService parms,String filename) throws FileNotFoundException {
 
     if (parameterIsSet(parms,"inputFileSystem")) {
-      System.out.println("Getting input directory from Parameter Service.");
+      LOGGER .info("Getting input directory from Parameter Service.");
       return;
     }
 
     //If the file system is not set, try to find it by searching this list
     //Add to this list if you want to keep your data somewhere else.
     String[] candidates = new String[] {
+        "",
         System.getProperty("user.home") + File.separator + "javaseis",
         System.getProperty("java.io.tmpdir"),
         "/home/seisspace/data"
     };
 
     for (String candidate : candidates) {
-      System.out.println("Searching for " + filename + " in " + candidate);
+      LOGGER.info("Searching for " + filename + " in " + candidate);
       if (new File(candidate).isDirectory()) {
         File file = new File(candidate + File.separator + filename);
         if (file.exists()) {
-          System.out.println("JavaSeis folder located at "
-              + file.getAbsolutePath()+ "\n");
+          LOGGER.info("JavaSeis folder located at "
+              + file.getAbsolutePath() + "\n");
           setParameterIfUnset(parms,"inputFileSystem",candidate);
           setParameterIfUnset(parms,"outputFileSystem",candidate);
           return;

@@ -26,10 +26,10 @@ public class SingleVolumeDAViewer {
     DataDomain[] domains = input.getLocalGrid().getAxisDomains();
     shiftDimensions = determineAxesToShift(domains);
 
-    //copy the inputDA into a second DA, with the positions set to true shifted
+    //Get the input distributed array.  If no shifts are necessary, we are done.
     DistributedArray inputDA = input.getDistributedArray();
-    //if no shifts are necessary we are done
 
+    //Otherwise, copy the input into a shifted array.
     if (!shiftsExist) {
       displayDA = inputDA;
     } else {
@@ -37,10 +37,22 @@ public class SingleVolumeDAViewer {
     }
   }
 
+  private boolean[] determineAxesToShift(DataDomain[] domains) {
+    boolean[] shiftDimension = new boolean[domains.length];
+  
+    for (int k = 0 ; k < domains.length ; k++) {
+      if (domains[k].getName() == "wavenumber") {
+        shiftDimension[k] = true;
+        shiftsExist = true;
+      }
+    }
+    return shiftDimension;
+  }
+
   private void generateShiftedArray(DistributedArray inputDA) {
     displayDA = new DistributedArray(inputDA);
     int[] axisLengths = inputDA.getShape();
-    DistributedArrayPositionIterator dapi = new DistributedArrayPositionIterator(inputDA,1,0);
+    DistributedArrayPositionIterator dapi = initializePositionIterator(inputDA);
 
     //TODO make this do the absolute value if the samples are complex
     int elementsPerSample = inputDA.getElementCount();
@@ -53,16 +65,13 @@ public class SingleVolumeDAViewer {
     }
   }
 
-  private boolean[] determineAxesToShift(DataDomain[] domains) {
-    boolean[] shiftDimension = new boolean[domains.length];
-
-    for (int k = 0 ; k < domains.length ; k++) {
-      if (domains[k].getName() == "wavenumber") {
-        shiftDimension[k] = true;
-        shiftsExist = true;
-      }
-    }
-    return shiftDimension;
+  private DistributedArrayPositionIterator initializePositionIterator(
+      DistributedArray inputDA) {
+    int direction = 1; //traverse the array forwards
+    int scope = 0; //iterate over samples
+    DistributedArrayPositionIterator dapi =
+        new DistributedArrayPositionIterator(inputDA,direction,scope);
+    return dapi;
   }
 
   private int[] shiftedPosition(int[] position,int[] shape) {
@@ -70,7 +79,7 @@ public class SingleVolumeDAViewer {
     for (int k = 0 ; k < shape.length ; k++) {
       if (shiftDimensions[k]) {
         int midwaypoint = shape[k]/2;
-        newPosition[k] = (newPosition[k] + midwaypoint) % shape[k];
+        newPosition[k] = (position[k] + midwaypoint) % shape[k];
       }
     }
     return newPosition;
