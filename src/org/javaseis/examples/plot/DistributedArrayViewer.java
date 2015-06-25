@@ -1,5 +1,7 @@
 package org.javaseis.examples.plot;
 
+import org.javaseis.grid.GridDefinition;
+import beta.javaseis.distributed.DistributedArray;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.volume.ISeismicVolume;
@@ -34,7 +36,10 @@ public class DistributedArrayViewer extends StandAloneVolumeTool {
   @Override  //display the volume, then wait for the user to close it
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
-    SingleVolumeDAViewer daView = new SingleVolumeDAViewer(input);
+    DistributedArray inputDA = input.getDistributedArray();
+    GridDefinition grid = input.getLocalGrid();
+    
+    SingleVolumeDAViewer daView = new SingleVolumeDAViewer(inputDA,grid);
     daView.showAsModalDialog();
     return false;
   }

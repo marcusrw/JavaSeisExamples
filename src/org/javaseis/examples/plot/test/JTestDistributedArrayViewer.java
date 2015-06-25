@@ -17,7 +17,6 @@ public class JTestDistributedArrayViewer {
   
   ParameterService parms;
 
-  //Try to find a .js folder with the given name in a few folders.
   private void loadDataset(String datasetname) {
     try {
       parms = new FindTestData(datasetname).getParameterService();
@@ -30,6 +29,24 @@ public class JTestDistributedArrayViewer {
   
   @Test
   public void toolExecutes() {
-    loadDataset("100-rawsyntheticdata.js");
+    //TODO randomly generate a single random volume for this test.
+    loadDataset("100a-rawsynthpwaves.js");
+  }
+  
+  @Test
+  public void noChangesToTimeDomainData() {
+    //The data that is shown in the viewer is exactly the data
+    //that is input
+  }
+  
+  @Test
+  public void complexDataDisplaysAbsValue() {
+    //Given complex input, the amplitude spectra is shown
+  }
+  
+  @Test
+  public void waveNumberCoordsAreShifted() {
+    //Given input in wavenumber coordinates, those axes are shifted so that
+    //zero is in the centre.
   }
 }

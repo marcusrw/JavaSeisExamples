@@ -14,6 +14,7 @@ import beta.javaseis.parallel.IParallelContext;
 
 import org.javaseis.array.ElementType;
 import org.javaseis.examples.plot.JavaSeisMovieRunner;
+import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.DataDomain;
@@ -36,10 +37,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
   SeisFft3d fft3d;
 
   public ExampleMigration() {
-  }
-
-  public ExampleMigration(ParameterService parms) {
-    exec(parms,new ExampleMigration());
   }
 
   //allows running this tool from the command line, using key/value pairs to
@@ -141,64 +138,22 @@ public class ExampleMigration extends StandAloneVolumeTool {
     DistributedArray outputDA = output.getDistributedArray();
     fft3d = new SeisFft3d(pc,shape,new float[] {0,0,0},new int[] {-1,1,1});
     DistributedArray fft3dDA = fft3d.getArray();
-
-
-    double[] sampleRates = new double[] {0.002,100,100};
-    fft3d.setTXYSampleRates(sampleRates);
-    double[] buf = new double[3];
-    fft3d.getKyKxFCoordinatesForPosition(new int[] {53, 28, 85},buf);
-    System.out.println("KyKxF: " + Arrays.toString(buf));
-
-
-    System.out.println("fft3DDA Shape:     "
-        + Arrays.toString(fft3dDA.getShape()));
     fft3dDA.copy(inputDA);
-    //outputDA.setElementCount(2);
     fft3d.forward();
 
     fft3d.getArray().transpose(TransposeType.T321);
-    DistributedArray test = cabs(fft3d.getArray());
-    //DistributedArrayMosaicPlot.showAsModalDialog(test,"Magnitude Test");
+    DistributedArray test = fft3d.getArray();
+    System.out.println("Element count: " + test.getElementCount());
+    
+    //So far this is the only way to test the DAViewer on complex data,
+    //since we can't properly load a complex dataset into a SeismicVolume object
+    SingleVolumeDAViewer display = new SingleVolumeDAViewer(test,output.getLocalGrid());
+    display.showAsModalDialog();
 
-    if (DAcontainsNegativeSample(test)) {
-      System.out.println("Output contains a negative sample.  "
-          + "/nMagnitude calculation is not working.");
-    }
-
-    //TODO begin info dump
-    System.out.println("FFT shape:         " + Arrays.toString(fft3d.getFftShape()));
-    System.out.println("FFT lengths:       " + Arrays.toString(fft3d.getFftLengths()));
-    System.out.println("Shape:             " + Arrays.toString(fft3d.getShape()));
-    System.out.println("getTransformShape: " + Arrays.toString(SeisFft3d.getTransformShape(input.getLengths(),new float[] {0,0,0},pc)));
-    System.out.println("Output DA Shape:   " + Arrays.toString(outputDA.getShape()));
-    System.out.println("fft3d Array size:  " + fft3d.getArray().getArrayLength());
-    System.out.println("input Array size:  " + inputDA.getArrayLength());
-    System.out.println("output Array size: " + outputDA.getArrayLength());
-    System.out.println("Current FFT3D shape: " + Arrays.toString(fft3d.getShape()));
-    System.out.println();
-
-    //DistributedArrayMosaicPlot.showAsModalDialog(inputDA,"Input Data");
-    //DistributedArrayMosaicPlot.showAsModalDialog(outputDA,"Output Data");
+    outputDA.setElementCount(test.getElementCount());
     outputDA.copy(test);
 
     return true;
-  }
-
-  private boolean DAcontainsNegativeSample(DistributedArray da) {
-    DistributedArrayPositionIterator dapi = 
-        new DistributedArrayPositionIterator(da,1,0);
-    float[] buffer = new float[1];
-    int[] position;
-    while (dapi.hasNext()) {
-      position = dapi.next();
-      da.getSample(buffer,position);
-      //System.out.println("Position: " + Arrays.toString(position));
-      //System.out.println("Value: " + Arrays.toString(buffer));
-      if (buffer[0] < 0) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -220,25 +175,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
         new DistributedArrayPositionIterator(da,direction,scope);
     float[] inputBuffer = new float[2]; //complex numbers
     float outputBuffer = 0;
-    int numiterates = 0;
     while (dapi.hasNext()) {
-      numiterates++;
       int[] position = dapi.next();
-      //System.out.println(Arrays.toString(position));
       da.getSample(inputBuffer, position);
-      //System.out.println(Arrays.toString(inputBuffer));
       outputBuffer = (float)Math.hypot(inputBuffer[0], inputBuffer[1]);
-      //System.out.println(outputBuffer);
       absDA.putSample(outputBuffer, position);
     }
-    System.out.println("Number of Iterates: " + numiterates);
-
-    System.out.println("Input Array Length: " + da.getArrayLength());
-    System.out.println("Input Total Sample Count: " + da.getTotalSampleCount());
-    System.out.println("Input Element Count: " + da.getElementCount());
-    System.out.println("Output Array Length: " + absDA.getArrayLength());
-    System.out.println("Output Total Sample Count: " + absDA.getTotalSampleCount());
-    System.out.println("Output Element Count: " + absDA.getElementCount());
     return absDA;
   }
 
