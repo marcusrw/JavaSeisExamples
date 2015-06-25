@@ -120,7 +120,7 @@ public class StandAloneVolumeTool implements IVolumeTool {
 
   /**
    * StandAlone tool handler for processing regular volumes from JavaSeis
-   * datasets
+   * data sets
    *
    * @author Chuck Mosher for JavaSeis.org
    */

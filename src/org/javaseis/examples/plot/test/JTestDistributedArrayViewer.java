@@ -30,6 +30,6 @@ public class JTestDistributedArrayViewer {
   
   @Test
   public void toolExecutes() {
-    loadDataset("testFFT.js");
+    loadDataset("100-rawsyntheticdata.js");
   }
 }

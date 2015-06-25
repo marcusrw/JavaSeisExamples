@@ -27,7 +27,7 @@ public class JTestExtractPWaveData {
     String outputFileName = "100a-rawsynthpwaves.js";
     try {
       parms = new FindTestData(inputFileName,outputFileName).getParameterService();
-      ExtractPWaveData.exec(parms,new ExtractPWaveData());;
+      ExtractPWaveData.exec(parms,new ExtractPWaveData());
     } catch (FileNotFoundException e) {
       LOGGER.log(Level.INFO, "Unable to open test dataset",e);
       Assert.fail(e.getMessage());

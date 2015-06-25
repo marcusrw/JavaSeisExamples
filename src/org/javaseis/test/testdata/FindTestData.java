@@ -16,9 +16,18 @@ import org.javaseis.services.ParameterService;
 public class FindTestData {
 
   private static final String INPUT_FILE_PATH = "inputFilePath";
-  private static final Logger LOGGER = Logger.getLogger(FindTestData.class.getName());
+  private static final Logger LOGGER =
+      Logger.getLogger(FindTestData.class.getName());
 
   private ParameterService parms;
+  
+  //List of possible folders where data can be found.
+  private final String[] candidates = new String[] {
+      "/",
+      System.getProperty("user.home") + File.separator + "javaseis",
+      System.getProperty("java.io.tmpdir"),
+      "/home/seisspace/data"
+  };
   
   public FindTestData(ParameterService parms)
       throws NoSuchFieldException, FileNotFoundException {
@@ -66,15 +75,6 @@ public class FindTestData {
       LOGGER .info("Getting input directory from Parameter Service.");
       return;
     }
-
-    //If the file system is not set, try to find it by searching this list
-    //Add to this list if you want to keep your data somewhere else.
-    String[] candidates = new String[] {
-        "",
-        System.getProperty("user.home") + File.separator + "javaseis",
-        System.getProperty("java.io.tmpdir"),
-        "/home/seisspace/data"
-    };
 
     for (String candidate : candidates) {
       LOGGER.info("Searching for " + filename + " in " + candidate);

@@ -69,9 +69,7 @@ public class SingleVolumeDAViewer {
       DistributedArray inputDA) {
     int direction = 1; //traverse the array forwards
     int scope = 0; //iterate over samples
-    DistributedArrayPositionIterator dapi =
-        new DistributedArrayPositionIterator(inputDA,direction,scope);
-    return dapi;
+    return new DistributedArrayPositionIterator(inputDA,direction,scope);
   }
 
   private int[] shiftedPosition(int[] position,int[] shape) {

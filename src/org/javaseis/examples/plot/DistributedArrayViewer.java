@@ -1,6 +1,5 @@
 package org.javaseis.examples.plot;
 
-import org.javaseis.services.ParameterService;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.volume.ISeismicVolume;
@@ -16,11 +15,6 @@ import org.javaseis.volume.ISeismicVolume;
 public class DistributedArrayViewer extends StandAloneVolumeTool {
 
   public DistributedArrayViewer() {}
-
-  //Why does my compiler say I need this?
-  public DistributedArrayViewer(ParameterService parms) {
-    //exec(parms,new DistributedArrayViewer());
-  }
 
   public static void main(String[] args) {
     throw new UnsupportedOperationException(

@@ -54,19 +54,23 @@ public class ExampleMigration extends StandAloneVolumeTool {
     GridDefinition inputGrid = toolContext.getInputGrid();
     long[] inputAxisLengths = inputGrid.getAxisLengths();
     if (inputAxisLengths.length < 3) {
-      throw new IllegalArgumentException("Input dataset is not big enough for a Volumetool");
+      throw new IllegalArgumentException("Input dataset is not big "
+          + "enough for a Volumetool");
     }
-    long[] outputAxisLengths = Arrays.copyOf(inputAxisLengths,inputAxisLengths.length);
+    long[] outputAxisLengths = Arrays.copyOf(inputAxisLengths,
+        inputAxisLengths.length);
     int[] inputVolumeLengths = new int[3];
     for (int k = 0 ; k < 3 ; k++) {
       if (inputVolumeLengths[k] > Integer.MAX_VALUE) {
-        throw new IllegalArgumentException("Input array dimension is way too big.");
+        throw new IllegalArgumentException("Input array dimension "
+            + "is way too big.");
       }
       inputVolumeLengths[k] = (int)inputAxisLengths[k];
     }
 
     pc = toolContext.getParallelContext();
-    fft3d = new SeisFft3d(pc,inputVolumeLengths,new float[] {0,0,0},new int[] {-1,1,1});
+    fft3d = new SeisFft3d(pc,inputVolumeLengths,
+        new float[] {0,0,0},new int[] {-1,1,1});
 
     //determine shape of output
     for (int k = 0 ; k < 3 ; k++) {
@@ -75,8 +79,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //copy rest of AxisDefinitions for now
     //TODO change output domains to frequency, units to hertz etc.
-    AxisDefinition[] outputAxes = new AxisDefinition[inputAxisLengths.length];
-    DataDomain[] outputAxisDomains = FindOutputDomains(inputGrid.getAxisDomains());
+    AxisDefinition[] outputAxes = 
+        new AxisDefinition[inputAxisLengths.length];
+    DataDomain[] outputAxisDomains = 
+        FindOutputDomains(inputGrid.getAxisDomains());
     for (int k = 0 ; k < inputAxisLengths.length ; k++) {
       AxisDefinition inputAxis = inputGrid.getAxis(k);
       outputAxes[k] = new AxisDefinition(inputAxis.getLabel(),

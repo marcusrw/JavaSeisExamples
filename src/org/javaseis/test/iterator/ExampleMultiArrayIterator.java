@@ -1,6 +1,9 @@
 package org.javaseis.test.iterator;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
+
+import org.javaseis.test.testdata.FindTestData;
 
 /**
  * Example demonstrating the specification for how an iterator over a multiarray
@@ -10,6 +13,10 @@ import java.util.Arrays;
  *
  */
 public class ExampleMultiArrayIterator {
+  
+  private static final Logger LOGGER =
+      Logger.getLogger(ExampleMultiArrayIterator.class.getName());
+  
   int[] multiArraySizes = new int[] {2,3,2,1,4};
   int[] index;
   int unitSize;
@@ -20,18 +27,17 @@ public class ExampleMultiArrayIterator {
   public static void main(String[] args) {
     int[] testSizes = new int[] {2,3,2,1,4};
     for (int unitSize = 0 ; unitSize <= testSizes.length ; unitSize++) {
-      System.out.println("Iterate size: " + unitSize);
+      LOGGER.info("Iterate size: " + unitSize);
       ExampleMultiArrayIterator test = new ExampleMultiArrayIterator(testSizes,unitSize);
       test.initializeIndex(test.unitSize);
       int numIndices = 0;
       while (test.hasNext()) {
         test.nextIndex();
-        System.out.println(Arrays.toString(test.index) +
+        LOGGER.info(Arrays.toString(test.index) +
             " out of " + Arrays.toString(test.multiArraySizes));
         numIndices++;
       }
-      System.out.println("Total number of elements: " + numIndices);
-      System.out.println();
+      LOGGER.info("Total number of elements: " + numIndices + ".\n");
     }
   }
 

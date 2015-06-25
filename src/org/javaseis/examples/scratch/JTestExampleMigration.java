@@ -13,7 +13,9 @@ public class JTestExampleMigration {
   public static void main(String[] args) throws FileNotFoundException {
     String inputFileName = "100a-rawsynthpwaves.js";
     String outputFileName = "testFFT.js";
-      FindTestData ftd = new FindTestData(inputFileName,outputFileName);
-      ExampleMigration exmig = new ExampleMigration(ftd.getParameterService());
+      FindTestData ftd =
+          new FindTestData(inputFileName,outputFileName);
+      ExampleMigration exmig =
+          new ExampleMigration(ftd.getParameterService());
   }
 }
