@@ -1,8 +1,6 @@
 package org.javaseis.test.testdata.test;
 
 import java.io.File;
-import java.util.Arrays;
-//import java.util.Arrays;
 import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -131,12 +129,7 @@ public class JTestExampleRandomDataset {
     while (seisioFrameIterator.hasNext() && customFrameIterator.hasNext()) {
       int[] seisioFrameIndex = seisioFrameIterator.next();
       int[] customFrameIndex = customFrameIterator.next();
-      /*
-      System.out.println("Seisio Frame Iterator: " + 
-          Arrays.toString(seisioFrameIndex));
-      System.out.println("Custom Frame Iterator: " + 
-          Arrays.toString(customFrameIndex));
-       */
+
       Assert.assertArrayEquals("Iterator index arrays do not match",
           customFrameIndex, seisioFrameIndex);
     }
@@ -172,11 +165,16 @@ public class JTestExampleRandomDataset {
         position[0] = sample;
         float[] samp = new float[1];
         frame.getSample(samp,position);
-        if (samp[0] != 0) {
+        if (!floatEqualsZero(samp[0])) {
           return true;
         }
       }
     }
     return false; //if every element is zero.
   }
+  
+  private boolean floatEqualsZero(float f) {
+    return Float.floatToRawIntBits(f) == 0;
+  }
+  
 }
