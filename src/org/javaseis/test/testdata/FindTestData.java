@@ -20,7 +20,7 @@ public class FindTestData {
       Logger.getLogger(FindTestData.class.getName());
 
   private ParameterService parms;
-  
+
   //List of possible folders where data can be found.
   private final String[] candidates = new String[] {
       "/",
@@ -28,7 +28,7 @@ public class FindTestData {
       System.getProperty("java.io.tmpdir"),
       "/home/seisspace/data"
   };
-  
+
   public FindTestData(ParameterService parms)
       throws NoSuchFieldException, FileNotFoundException {
     this.parms = parms;
@@ -72,16 +72,16 @@ public class FindTestData {
       ParameterService parms,String filename) throws FileNotFoundException {
 
     if (parameterIsSet(parms,"inputFileSystem")) {
-      LOGGER .info("Getting input directory from Parameter Service.");
+      LOGGER.info("Getting input directory from Parameter Service.");
       return;
     }
 
     for (String candidate : candidates) {
-      LOGGER.info("Searching for " + filename + " in " + candidate);
+      LOGGER.fine("Searching for " + filename + " in " + candidate);
       if (new File(candidate).isDirectory()) {
         File file = new File(candidate + File.separator + filename);
         if (file.exists()) {
-          LOGGER.info("JavaSeis folder located at "
+          LOGGER.fine("JavaSeis folder located at "
               + file.getAbsolutePath() + "\n");
           setParameterIfUnset(parms,"inputFileSystem",candidate);
           setParameterIfUnset(parms,"outputFileSystem",candidate);
