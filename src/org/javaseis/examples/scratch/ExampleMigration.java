@@ -98,7 +98,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
   }
 
   private DataDomain[] FindOutputDomains(DataDomain[] inputAxisDomains) {
-    System.out.println(Arrays.toString(inputAxisDomains));
     for (int k = 0 ; k < 3 ; k++) {
       switch (inputAxisDomains[k].toString()) {
       case "time":
@@ -115,7 +114,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
         break;
       }
     }
-    System.out.println(Arrays.toString(inputAxisDomains));
     return inputAxisDomains;
   }
 
@@ -143,8 +141,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     fft3d.getArray().transpose(TransposeType.T321);
     DistributedArray test = fft3d.getArray();
-    System.out.println("Element count: " + test.getElementCount());
-    
+
     //So far this is the only way to test the DAViewer on complex data,
     //since we can't properly load a complex dataset into a SeismicVolume object
     SingleVolumeDAViewer display = new SingleVolumeDAViewer(test,output.getLocalGrid());
@@ -186,12 +183,5 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   @Override
   public void serialFinish(ToolContext toolContext) {
-    ParameterService parms = toolContext.getParameterService();
-    String inputJS = parms.getParameter("inputFileSystem") + File.separator + parms.getParameter("inputFilePath");
-    String outputJS = parms.getParameter("outputFileSystem") + File.separator + parms.getParameter("outputFilePath");
-    System.out.println("Displaying Input File:  " + inputJS);
-    JavaSeisMovieRunner.showMovie(inputJS);
-    System.out.println("Displaying Output File: " + outputJS);
-    JavaSeisMovieRunner.showMovie(outputJS);
   }
 }

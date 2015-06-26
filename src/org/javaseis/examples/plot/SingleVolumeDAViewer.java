@@ -21,7 +21,7 @@ import beta.javaseis.parallel.IParallelContext;
  *
  */
 public class SingleVolumeDAViewer {
-  
+
   //TODO make this into a static method call, like in the backend viewer,
   //so we don't have to instantiate an object to get it.  Maybe.
 
@@ -39,11 +39,6 @@ public class SingleVolumeDAViewer {
   public SingleVolumeDAViewer(DistributedArray inputDA,GridDefinition grid) {
     DataDomain[] domains = grid.getAxisDomains();
     shiftDimensions = determineAxesToShift(domains);
-
-    System.out.println("input shape: " + Arrays.toString(inputDA.getShape()));
-    System.out.println("input num samples: " + inputDA.getTotalSampleCount());
-    System.out.println("input array size: " + inputDA.getArrayLength());
-    System.out.println("Element Count: " + inputDA.getElementCount());
 
     if (inputDA.getElementCount() > 2) {
       throw new IllegalArgumentException("Input distributed array has more than"
@@ -88,7 +83,6 @@ public class SingleVolumeDAViewer {
     }
   }
 
-
   private void generateTransformArray(DistributedArray inputDA) {
     IParallelContext pc = inputDA.getParallelContext();
     ElementType type = inputDA.getElementType();
@@ -97,11 +91,8 @@ public class SingleVolumeDAViewer {
     int[] axisLengths = inputDA.getShape();
     DistributedArrayPositionIterator dapi = initializePositionIterator(inputDA);
 
-    //TODO make this do the absolute value if the samples are complex
     int elementsPerSample = inputDA.getElementCount();
     float[] rawSample = new float[elementsPerSample];
-    System.out.println("Sample: " + Arrays.toString(rawSample));
-    System.out.println("Elements per sample: " + elementsPerSample);
     while (dapi.hasNext()) {
       int[] position = dapi.next();
       inputDA.getSample(rawSample, position);
