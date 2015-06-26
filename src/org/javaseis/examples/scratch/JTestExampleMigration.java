@@ -12,7 +12,7 @@ import org.javaseis.test.testdata.FindTestData;
 import java.util.logging.Logger;
 
 public class JTestExampleMigration {
-  
+
   private static final Logger LOGGER = 
       Logger.getLogger(JTestExampleMigration.class.getName());
 
@@ -20,7 +20,7 @@ public class JTestExampleMigration {
 
   //test harness to see if the process runs
   public static void main(String[] args) throws FileNotFoundException {
-    String inputFileName = "100a-rawsynthpwaves.js";
+    String inputFileName = "seg45shot.js";
     String outputFileName = "testFFT.js";
     ParameterService parms =
         new FindTestData(inputFileName,outputFileName).getParameterService();
