@@ -12,7 +12,7 @@ import beta.javaseis.regulargrid.IRegularGrid;
 import beta.javaseis.regulargrid.OrientationType;
 import beta.javaseis.regulargrid.RegularGrid;
 
-public class SeismicVolume implements ISeismicVolume, IRegularGrid {
+public class SeismicVolume implements ISeismicVolume {
 
   GridDefinition globalGrid, localGrid;
 
@@ -32,6 +32,8 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
   int decompType;
 
   int[] volumeShape;
+  
+  int[] superGridPosition;
 
   IParallelContext pc;
 
@@ -50,6 +52,8 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
     //TODO need a volumeGrid that knows where it is in the global grid.
     volumeGrid = new RegularGrid(volume,localGrid,binGrid);
     elementType = ElementType.FLOAT;
+    // TODO Hard coded.  Read the Axis Units to figure 
+    //      out if the data is real or complex
     elementCount = 1;
     decompType = Decomposition.BLOCK;
   }
@@ -69,7 +73,7 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
     elementCount = 1;
     decompType = Decomposition.BLOCK;
   }
-  
+
   public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
       BinGrid binGridIn, ElementType volumeElementType, int volumeElementCount, int volumeDecompType ) {
     pc = parallelContext;
@@ -91,7 +95,7 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
         maxLength);
     volume.allocate();
   }
-  
+
   @Override
   public long shapeLength() {
     long length = elementCount;
@@ -191,11 +195,11 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
     return volumeGrid.createCopy();
   }
 
-  
+
   //TODO  Here's the real problem.  If I want to copy the data from one volume to
   //      another, it shouldn't matter if the globalGrids match.  Only the portion
   //      up to the volume axis should matter.
-  
+
   // It looks like we're copying the DA that stores the first 3 dimensions only.
   @Override
   public void copyVolume(ISeismicVolume source) {
@@ -208,7 +212,7 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
   public GridDefinition getGlobalGrid() {
     return globalGrid;
   }
-  
+
   @Override
   public GridDefinition getLocalGrid() {
     return localGrid;

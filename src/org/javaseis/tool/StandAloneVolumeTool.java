@@ -1,5 +1,6 @@
 package org.javaseis.tool;
 
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 import org.javaseis.grid.GridDefinition;
@@ -165,6 +166,7 @@ public class StandAloneVolumeTool implements IVolumeTool {
       while (ipio.hasNext()) {
         // Get the next input volume
         ipio.next();
+        System.out.println(Arrays.toString(ipio.getFilePosition()));
         try {
           ipio.read();
         } catch (SeisException e) {
