@@ -16,6 +16,7 @@ import org.javaseis.array.ElementType;
 import org.javaseis.examples.plot.JavaSeisMovieRunner;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
+import org.javaseis.parallel.DistributedArrayTraceIterator;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.DataDomain;
 import org.javaseis.services.ParameterService;
@@ -35,6 +36,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
   IntervalTimer compTime, totalTime;
 
   SeisFft3d fft3d;
+  private long[] transformAxisLengths;
+  private DataDomain[] transformDomains;
+  private AxisDefinition[] transformAxes;
+  private GridDefinition transformGrid;
+  private SingleVolumeDAViewer display;
 
   public ExampleMigration() {
   }
@@ -49,56 +55,51 @@ public class ExampleMigration extends StandAloneVolumeTool {
   @Override
   public void serialInit(ToolContext toolContext) {
     GridDefinition inputGrid = toolContext.getInputGrid();
+    pc = toolContext.getParallelContext();
+    transformGrid = computeTransformAxes(inputGrid);
+    toolContext.setOutputGrid(inputGrid);
+  }
+
+  private GridDefinition computeTransformAxes(GridDefinition inputGrid) {
     long[] inputAxisLengths = inputGrid.getAxisLengths();
     if (inputAxisLengths.length < 3) {
       throw new IllegalArgumentException("Input dataset is not big "
           + "enough for a Volumetool");
     }
-    long[] outputAxisLengths = Arrays.copyOf(inputAxisLengths,
+    transformAxisLengths = Arrays.copyOf(inputAxisLengths,
         inputAxisLengths.length);
     int[] inputVolumeLengths = new int[3];
     for (int k = 0 ; k < 3 ; k++) {
-      if (inputVolumeLengths[k] > Integer.MAX_VALUE) {
-        throw new IllegalArgumentException("Input array dimension "
-            + "is way too big.");
-      }
       inputVolumeLengths[k] = (int)inputAxisLengths[k];
     }
 
-    pc = toolContext.getParallelContext();
     fft3d = new SeisFft3d(pc,inputVolumeLengths,
         new float[] {0,0,0},new int[] {-1,1,1});
 
     //determine shape of output
     for (int k = 0 ; k < 3 ; k++) {
-      outputAxisLengths[k] = fft3d.getFftShape()[k];
+      transformAxisLengths[k] = fft3d.getFftShape()[k];
     }
 
-    //copy rest of AxisDefinitions for now
-    //TODO change output domains to frequency, units to hertz etc.
-    AxisDefinition[] outputAxes = 
-        new AxisDefinition[inputAxisLengths.length];
-    DataDomain[] outputAxisDomains = 
-        FindOutputDomains(inputGrid.getAxisDomains());
+    transformAxes = new AxisDefinition[inputAxisLengths.length];
+    transformDomains = findTransformDomains(inputGrid.getAxisDomains());
     for (int k = 0 ; k < inputAxisLengths.length ; k++) {
       AxisDefinition inputAxis = inputGrid.getAxis(k);
-      outputAxes[k] = new AxisDefinition(inputAxis.getLabel(),
+      transformAxes[k] = new AxisDefinition(inputAxis.getLabel(),
           inputAxis.getUnits(),
-          outputAxisDomains[k],
-          outputAxisLengths[k],
+          transformDomains[k],
+          transformAxisLengths[k],
           inputAxis.getLogicalOrigin(),
           inputAxis.getLogicalDelta(),
           inputAxis.getPhysicalOrigin(),
           inputAxis.getPhysicalDelta());
     }
 
-    GridDefinition outputGrid = new GridDefinition(
-        inputGrid.getNumDimensions(),outputAxes);
-    toolContext.setOutputGrid(outputGrid);
+    return new GridDefinition(inputGrid.getNumDimensions(),transformAxes);
   }
 
-  private DataDomain[] FindOutputDomains(DataDomain[] inputAxisDomains) {
-    for (int k = 0 ; k < 3 ; k++) {
+  private DataDomain[] findTransformDomains(DataDomain[] inputAxisDomains) {
+    for (int k = 0 ; k < inputAxisDomains.length ; k++) {
       switch (inputAxisDomains[k].toString()) {
       case "time":
         inputAxisDomains[k] = new DataDomain("frequency");
@@ -138,16 +139,97 @@ public class ExampleMigration extends StandAloneVolumeTool {
     fft3d.getArray().copy(inputDA);;
     fft3d.forward();
 
-    //visualize
-    fft3d.getArray().transpose(TransposeType.T321);
+    //Get the DA to visualize
     DistributedArray test = fft3d.getArray();
+    //test.transpose(TransposeType.T321);
+    //display = new SingleVolumeDAViewer(test,transformGrid);
+    //display.showAsModalDialog();
+    //test.transpose(TransposeType.T321);
+    
+    //Find the Source Location, assume we have SOU_XYZ
+    //For now we're just going to use the globalGrid and our prior knowledge
+    //then refactor it into an auto/manual source field generator.
+    int SOU_X = 0;
+    int SOU_Y = 0;
+    int SOU_X_INDX = -1;
+    int SOU_Y_INDX = -1;
+    GridDefinition globalGrid = input.getGlobalGrid();
+    String[] axisLabels = globalGrid.getAxisLabelsStrings();
+    System.out.println(Arrays.toString(axisLabels));
+    for (int k = 0 ; k < axisLabels.length ; k++) {
+      if (axisLabels[k] == "SOURCE") {
+        SOU_X_INDX = k % 2;
+        SOU_Y_INDX = k / 2;
+        if (SOU_X_INDX == 0) {
+          SOU_X = 14;
+        }
+        if (SOU_X_INDX == 1) {
+          SOU_X = 34;
+        }
+        if (SOU_Y_INDX == 0) {
+          SOU_Y = 14;
+        }
+        if (SOU_Y_INDX == 1) {
+          SOU_Y = 34;
+        }
+      }      
+    }
+    System.out.println("Source location: " + "(" + SOU_X + "," + SOU_Y + ")");
+    if (SOU_X == 0 || SOU_Y == 0) {
+      throw new IllegalArgumentException("Unable to find source location.");
+    }
+    
+    //Build the Source signature by finding the best array index 
+    //for the source location, then stick a little gaussian thing there
+    
 
-    //So far this is the only way to test the DAViewer on complex data,
-    //since we can't properly load a complex dataset into a SeismicVolume object
-    SingleVolumeDAViewer display = new SingleVolumeDAViewer(test,output.getLocalGrid());
+    //phase shift
+    float V = 2000f;
+    float dz = -1000;
+    float EPS = 1E-12f;
+
+    int[] position = new int[test.getDimensions()];
+    int direction = 1; //forward
+    int scope = 0; //samples
+    DistributedArrayPositionIterator dapi =
+        new DistributedArrayPositionIterator(test,position,direction,scope);
+
+    float[] sample = new float[test.getElementCount()];
+    float[] outsample = new float[test.getElementCount()];
+    double[] coords = new double[position.length];
+    fft3d.setTXYSampleRates(new double[] {0.002,100,100});
+    DistributedArray operator = new DistributedArray(test);
+    while (dapi.hasNext()) {
+      position = dapi.next();
+      test.getSample(sample, position);
+      fft3d.getKyKxFCoordinatesForPosition(position, coords);
+      //System.out.println(Arrays.toString(position) 
+      //    + " " + Arrays.toString(coords));
+      double Ky = coords[0];
+      double Kx = coords[1];
+      double F = coords[2];
+      double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
+      double shift = 0;
+      if (Kz2 > EPS) {
+        shift = (2*Math.PI*dz * Math.sqrt(Kz2));
+      }
+      float shift2 = (float)(Math.atan(shift));
+      operator.putSample(shift2, position);
+      outsample[0] = (float) (sample[0]*Math.cos(shift) - sample[1]*Math.sin(shift));
+      outsample[1] = (float) (sample[1]*Math.cos(shift) + sample[0]*Math.sin(shift));
+      test.putSample(outsample,position);
+    }
+
+    //operator.transpose(TransposeType.T321);
+    //display = new SingleVolumeDAViewer(operator,transformGrid);
+    //display.showAsModalDialog();
+    //operator.transpose(TransposeType.T321);
+
+    fft3d.inverse();
+    test = fft3d.getArray();
+    display = new SingleVolumeDAViewer(test,output.getLocalGrid());
     display.showAsModalDialog();
 
-    //don't be saving stuff complex.  It doesn't really work.
     DistributedArray outputDA = output.getDistributedArray();
     outputDA.setElementCount(test.getElementCount());
     outputDA.copy(test);

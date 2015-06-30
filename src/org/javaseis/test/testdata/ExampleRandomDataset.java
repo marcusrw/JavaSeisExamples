@@ -71,6 +71,21 @@ public class ExampleRandomDataset {
       LOGGER.log(Level.INFO,e.getMessage(),e);
     }
   }
+  
+  //Path & GridDefinition constructor
+  public ExampleRandomDataset(String fullPath) {
+    this.dataFullPath = fullPath;
+    exceptionIfFileAlreadyExists();
+    AxisDefinition[] axes = defaultAxisDefinitions();
+    gridDefinition = makeGridDefinition(axes);
+    try {
+      seisio = createSeisIO(gridDefinition);
+      createJavaSeisData(seisio);
+      insertRandomData(seisio);
+    } catch (SeisException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e);
+    }
+  }
 
   //Path & GridDefinition constructor
   public ExampleRandomDataset(String fullPath , GridDefinition gridDefinition) {
@@ -88,7 +103,7 @@ public class ExampleRandomDataset {
 
   private static String defaultDataLocation() {
     String dataFolder = System.getProperty("java.io.tmpdir");
-    String dataFileName = "temp1758383.js";
+    String dataFileName = "temp.js";
     String dataFullPath = dataFolder + File.separator + dataFileName;
     return dataFullPath;
   }

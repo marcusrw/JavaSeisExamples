@@ -2,13 +2,16 @@ package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
 
-
-
-
 import org.javaseis.examples.plot.JavaSeisMovieRunner;
 import org.javaseis.services.ParameterService;
+import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.util.SeisException;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JTestExampleMigration {
@@ -16,18 +19,47 @@ public class JTestExampleMigration {
   private static final Logger LOGGER = 
       Logger.getLogger(JTestExampleMigration.class.getName());
 
-  private JTestExampleMigration() {};
+  public JTestExampleMigration() {};
 
   //test harness to see if the process runs
   public static void main(String[] args) throws FileNotFoundException {
-    String inputFileName = "seg45shot.js";
-    String outputFileName = "testFFT.js";
+    String inputFileName = "100a-rawsynthpwaves.js";
+    String outputFileName = "test1.js";
     ParameterService parms =
         new FindTestData(inputFileName,outputFileName).getParameterService();
     ExampleMigration.exec(parms,new ExampleMigration());
-    LOGGER.info("Displaying input file: " + inputFileName);
+    LOGGER.fine("Displaying input file: " + inputFileName);
     JavaSeisMovieRunner.showMovie(inputFileName);
-    LOGGER.info("Displaying output file: " + outputFileName);
+    LOGGER.fine("Displaying output file: " + outputFileName);
     JavaSeisMovieRunner.showMovie(outputFileName);
+  }
+
+  //@Test
+  public void generateTestData() {
+    String path1 = "/tmp/tempin.js";
+    String path2 = "/tmp/tempout.js";
+    ExampleRandomDataset testdata1 = new ExampleRandomDataset(path1);
+    ExampleRandomDataset testdata2 = new ExampleRandomDataset(path2);
+
+    ParameterService parms = null;
+    try {
+      parms = new FindTestData(testdata1.dataFullPath,
+          testdata2.dataFullPath).getParameterService();
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      LOGGER.log(Level.INFO,e.getMessage(),e);
+      Assert.fail();
+    }
+
+    ExampleMigration.exec(parms,new ExampleMigration());
+    
+    testdata1.frameIterator();
+
+    try {
+      testdata1.deleteJavaSeisData();
+      testdata2.deleteJavaSeisData();
+    } catch (SeisException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e);
+    }
   }
 }

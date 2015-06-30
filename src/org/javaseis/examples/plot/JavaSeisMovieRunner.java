@@ -31,8 +31,8 @@ public class JavaSeisMovieRunner {
 
   public static void main(String[] args) {
     //String dataset = "inputpwaves.VID";
-    String dataset = "testFFT.js";
-    //String dataset = "100a-rawsynthpwaves.js";
+    //String dataset = "test1.js";
+    String dataset = "100a-rawsynthpwaves.js";
     //String dataset = "100-rawsyntheticdata.js";
     //String dataset = "seg_salt_vrms.VEL";
 
