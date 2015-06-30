@@ -32,12 +32,15 @@ public class SeismicVolume implements ISeismicVolume {
   int decompType;
 
   int[] volumeShape;
-  
+
+  //define an index into the globalGrid describing the position of the volume.
   int[] superGridPosition;
 
   IParallelContext pc;
 
-  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition) {
+  public SeismicVolume(IParallelContext parallelContext,
+      GridDefinition globalGridDefinition) {
+
     pc = parallelContext;
     globalGrid = globalGridDefinition;
     AxisDefinition[] axis = new AxisDefinition[3];
@@ -58,8 +61,10 @@ public class SeismicVolume implements ISeismicVolume {
     decompType = Decomposition.BLOCK;
   }
 
-  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
+  public SeismicVolume(IParallelContext parallelContext,
+      GridDefinition globalGridDefinition,
       BinGrid binGridIn) {
+
     pc = parallelContext;
     AxisDefinition[] axis = new AxisDefinition[3];
     int[] volumeShape = new int[3];
@@ -74,8 +79,12 @@ public class SeismicVolume implements ISeismicVolume {
     decompType = Decomposition.BLOCK;
   }
 
-  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
-      BinGrid binGridIn, ElementType volumeElementType, int volumeElementCount, int volumeDecompType ) {
+  public SeismicVolume(IParallelContext parallelContext,
+      GridDefinition globalGridDefinition,
+      BinGrid binGridIn,
+      ElementType volumeElementType,
+      int volumeElementCount, int volumeDecompType ) {
+
     pc = parallelContext;
     AxisDefinition[] axis = new AxisDefinition[3];
     int[] volumeShape = new int[3];
@@ -91,8 +100,8 @@ public class SeismicVolume implements ISeismicVolume {
   }
 
   public void allocate(long maxLength) {
-    volume = new DistributedArray(pc, elementType.getClass(), 3, elementCount, volumeShape, decompType,
-        maxLength);
+    volume = new DistributedArray(pc, elementType.getClass(),
+        3, elementCount, volumeShape, decompType,maxLength);
     volume.allocate();
   }
 
@@ -196,15 +205,17 @@ public class SeismicVolume implements ISeismicVolume {
   }
 
 
-  //TODO  Here's the real problem.  If I want to copy the data from one volume to
-  //      another, it shouldn't matter if the globalGrids match.  Only the portion
-  //      up to the volume axis should matter.
+  //TODO  Here's the real problem.  If I want to copy the data from one volume
+  //      to another, it shouldn't matter if the globalGrids match.  Only the
+  //      portion up to the volume axis should matter.
 
-  // It looks like we're copying the DA that stores the first 3 dimensions only.
+  // It looks like we're copying the DA that stores the first
+  // 3 dimensions only.
   @Override
   public void copyVolume(ISeismicVolume source) {
     if (!localGrid.matches(source.getLocalGrid()))
-      throw new IllegalArgumentException("Source volume and this volume do not match");
+      throw new IllegalArgumentException(
+          "Source volume and this volume do not match");
     this.getDistributedArray().copy(source.getDistributedArray());
   }
 

@@ -40,6 +40,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private DataDomain[] transformDomains;
   private AxisDefinition[] transformAxes;
   private GridDefinition transformGrid;
+  
+  //viewer for checking your work.
   private SingleVolumeDAViewer display;
 
   public ExampleMigration() {
