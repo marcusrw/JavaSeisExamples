@@ -16,6 +16,8 @@ public interface ISeismicVolume extends IRegularGrid {
   public void copyVolume(ISeismicVolume volume);
 
   public boolean matches(ISeismicVolume volume);
+  
+  public int[] getVolumePosition();
 
   public int getElementCount();
 
@@ -24,5 +26,7 @@ public interface ISeismicVolume extends IRegularGrid {
   public long shapeLength();
   
   public void allocate(long maxLength);
+
+  public void setVolumePosition(int[] filePosition);
 
 }

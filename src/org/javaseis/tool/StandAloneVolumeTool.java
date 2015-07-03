@@ -159,14 +159,15 @@ public class StandAloneVolumeTool implements IVolumeTool {
       ipio.setDistributedArray(inputVolume.getDistributedArray());
       ISeismicVolume outputVolume = inputVolume;
       if (output) {
-        outputVolume = new SeismicVolume(pc, opio.getGridDefinition());
+        outputVolume = new SeismicVolume(pc,
+            opio.getGridDefinition());
         opio.setDistributedArray(outputVolume.getDistributedArray());
       }
       // Loop over input volumes
       while (ipio.hasNext()) {
         // Get the next input volume
         ipio.next();
-        System.out.println(Arrays.toString(ipio.getFilePosition()));
+        inputVolume.setVolumePosition(ipio.getFilePosition());
         try {
           ipio.read();
         } catch (SeisException e) {

@@ -14,11 +14,16 @@ import beta.javaseis.regulargrid.RegularGrid;
 
 public class SeismicVolume implements ISeismicVolume {
 
+  private static final int VOLUME_NUM_DIMENSIONS = 3;
+
   GridDefinition globalGrid, localGrid;
 
   //TODO  No write occurrences of this grid.  Leads to NullPointerExceptions
   //      Also, this class both implements and contains an IRegularGrid.  Is
   //      this a circular abstraction of the RegularGrid functionality?
+  //      Make sure this is filled in for every constructor.
+  //TODO  This calls for a rename.  volumeGrid and localGrid sound like they
+  //      describe the same thing.
   IRegularGrid volumeGrid;
 
   BinGrid binGrid;
@@ -33,47 +38,35 @@ public class SeismicVolume implements ISeismicVolume {
 
   int[] volumeShape;
 
-  //define an index into the globalGrid describing the position of the volume.
-  int[] superGridPosition;
+  int[] globalVolumePosition;
 
   IParallelContext pc;
 
   public SeismicVolume(IParallelContext parallelContext,
       GridDefinition globalGridDefinition) {
 
-    pc = parallelContext;
-    globalGrid = globalGridDefinition;
-    AxisDefinition[] axis = new AxisDefinition[3];
-    int[] volumeShape = new int[3];
-    for (int i = 0; i < 3; i++) {
-      axis[i] = globalGrid.getAxis(i);
-      volumeShape[i] = (int) axis[i].getLength();
-    }
-    localGrid = new GridDefinition(3, axis);
-    volume = new DistributedArray(pc, volumeShape);
-    binGrid = BinGrid.simpleBinGrid(volumeShape[1], volumeShape[2]);
-    //TODO need a volumeGrid that knows where it is in the global grid.
+    setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
+    setLocalGridAndVolume();
+    binGrid = createDefaultBinGrid();
     volumeGrid = new RegularGrid(volume,localGrid,binGrid);
     elementType = ElementType.FLOAT;
-    // TODO Hard coded.  Read the Axis Units to figure 
-    //      out if the data is real or complex
     elementCount = 1;
     decompType = Decomposition.BLOCK;
+  }
+
+  private BinGrid createDefaultBinGrid() {
+    int[] volumeShape = volume.getShape();
+    return BinGrid.simpleBinGrid(volumeShape[1], volumeShape[2]);
   }
 
   public SeismicVolume(IParallelContext parallelContext,
       GridDefinition globalGridDefinition,
       BinGrid binGridIn) {
 
-    pc = parallelContext;
-    AxisDefinition[] axis = new AxisDefinition[3];
-    int[] volumeShape = new int[3];
-    for (int i = 0; i < 3; i++) {
-      axis[i] = globalGridDefinition.getAxis(i);
-      volumeShape[i] = (int) axis[i].getLength();
-    }
-    localGrid = new GridDefinition(3, axis);
+    setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
+    setLocalGridAndVolume();
     binGrid = binGridIn;
+    volumeGrid = new RegularGrid(volume,localGrid,binGrid);
     elementType = ElementType.FLOAT;
     elementCount = 1;
     decompType = Decomposition.BLOCK;
@@ -85,30 +78,42 @@ public class SeismicVolume implements ISeismicVolume {
       ElementType volumeElementType,
       int volumeElementCount, int volumeDecompType ) {
 
-    pc = parallelContext;
-    AxisDefinition[] axis = new AxisDefinition[3];
-    int[] volumeShape = new int[3];
-    for (int i = 0; i < 3; i++) {
-      axis[i] = globalGridDefinition.getAxis(i);
-      volumeShape[i] = (int) axis[i].getLength();
-    }
-    localGrid = new GridDefinition(3, axis);
+    setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
+    setLocalGridAndVolume();
     binGrid = binGridIn;
+    volumeGrid = new RegularGrid(volume,localGrid,binGrid);
     elementType = volumeElementType;
     elementCount = volumeElementCount;
     decompType = volumeDecompType;
   }
 
+  private void setParallelContextAndGlobalGrid(
+      IParallelContext parallelContext, GridDefinition globalGridDefinition) {
+    pc = parallelContext;
+    globalGrid = globalGridDefinition;
+  }
+
+  private void setLocalGridAndVolume() {
+    AxisDefinition[] axis = new AxisDefinition[VOLUME_NUM_DIMENSIONS];
+    int[] volumeShape = new int[VOLUME_NUM_DIMENSIONS];
+    for (int i = 0; i < VOLUME_NUM_DIMENSIONS; i++) {
+      axis[i] = globalGrid.getAxis(i);
+      volumeShape[i] = (int) axis[i].getLength();
+    }
+    localGrid = new GridDefinition(axis.length, axis);
+    volume = new DistributedArray(pc, volumeShape);
+  }
+
   public void allocate(long maxLength) {
     volume = new DistributedArray(pc, elementType.getClass(),
-        3, elementCount, volumeShape, decompType,maxLength);
+        VOLUME_NUM_DIMENSIONS, elementCount, volumeShape, decompType,maxLength);
     volume.allocate();
   }
 
   @Override
   public long shapeLength() {
     long length = elementCount;
-    for (int i=0; i<3; i++) {
+    for (int i=0; i<VOLUME_NUM_DIMENSIONS; i++) {
       length *= volumeShape[i];
     }
     return length;
@@ -142,6 +147,19 @@ public class SeismicVolume implements ISeismicVolume {
   @Override
   public double[] getDeltas() {
     return volumeGrid.getDeltas();
+  }
+  
+  /**
+   * @return The index of the first position of the local volume
+   * within the larger globalGrid.
+   */
+  @Override
+  public int[] getVolumePosition() {
+    return globalVolumePosition;
+  }
+  
+  public void setVolumePosition(int[] globalVolumePosition) {
+    this.globalVolumePosition = globalVolumePosition;
   }
 
   @Override
@@ -204,13 +222,6 @@ public class SeismicVolume implements ISeismicVolume {
     return volumeGrid.createCopy();
   }
 
-
-  //TODO  Here's the real problem.  If I want to copy the data from one volume
-  //      to another, it shouldn't matter if the globalGrids match.  Only the
-  //      portion up to the volume axis should matter.
-
-  // It looks like we're copying the DA that stores the first
-  // 3 dimensions only.
   @Override
   public void copyVolume(ISeismicVolume source) {
     if (!localGrid.matches(source.getLocalGrid()))
@@ -229,8 +240,6 @@ public class SeismicVolume implements ISeismicVolume {
     return localGrid;
   } 
 
-  //TODO Surely two seismicVolumes match if their localGrids are the same,
-  // not their globalGrids.  Update:  No, the problem is with copyVolume.
   @Override
   public boolean matches(ISeismicVolume seismicVolume) {
     return globalGrid.matches(seismicVolume.getGlobalGrid());
