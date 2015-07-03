@@ -383,13 +383,7 @@ public class SeisFft3d {
    */
   public void forward() {
 
-    // Check Shape
-    if (da.getLength(0) != _inputShape[0] || da.getLength(1) != _inputShape[1]
-        || da.getLength(2) != _inputShape[2] || da.getElementCount() != 1)
-      throw new RuntimeException("\nDistributedArray shape "
-          + Arrays.toString(da.getShape())
-          + "\nDoes not match SeisFft3d input shape "
-          + Arrays.toString(_inputShape));
+    checkShape();
 
     // Get shape information
     // Original input shape
@@ -408,9 +402,12 @@ public class SeisFft3d {
     int nftp = _fpadShape[0];
     int nkxp = _fpadShape[1];
     int nkyp = _fpadShape[2];
-
-    // Trace buffer for transforms
-    float[] fftBuffer = createFFTBuffer(_fftShape);
+    
+    System.out.println(Arrays.toString(_inputShape));
+    System.out.println(Arrays.toString(_fftShape));
+    System.out.println(Arrays.toString(_padShape));
+    System.out.println(Arrays.toString(_fpadShape));
+    
 
     // Make the padded y-axis 'visible'
     da.setShape(new int[] { nt, nx, nyp });
@@ -421,48 +418,25 @@ public class SeisFft3d {
     realDataView = da.distributedView();
 
     // Set the element count and length for the complex transform
+    System.out.println("DA Shape: " + Arrays.toString(da.getShape()));
     da.setElementCount(2);
     da.setShape(new int[] { nftp, nkx, nyp });
 
     // FFT along "T" axis
     // T,X,Y -> F,X,Y
-    int[] position = { 0, 0, 0 };
     int[] currentShape = _inputShape;
-    IFFT currentFFT = _f1;
-    for (int k = 0; k < da.getLocalLength(2); k++) {
-      position[2] = da.localToGlobal(2, k);
-      if (position[2] >= currentShape[2])
-        continue;
-      for (int j = 0; j < currentShape[1]; j++) {
-        position[1] = j;
-        // Get the zero-padded real trace
-        realDataView.getTrace(fftBuffer, position);
-        // Forward transform
-        currentFFT.realToComplex(fftBuffer);
-        // Store back into the complex array
-        da.putTrace(fftBuffer, position);
-      }
-    }
+    System.out.println("DA Shape: " + Arrays.toString(da.getShape()));
+    System.out.println("Current Shape: " + Arrays.toString(currentShape));
+    temporalFFT(_f1,currentShape);
 
     // Transpose and bring "X" axis to front
     // nftp,nkx,nyp (213) nkx,nftp,nyp
     da.transpose(TransposeType.T213);
     currentShape = new int[] {_inputShape[1],_fftShape[0],_inputShape[2]};
-    currentFFT = _f2;
-
+    System.out.println("DA Shape: " + Arrays.toString(da.getShape()));
+    System.out.println("Current Shape: " + Arrays.toString(currentShape));
     // FFT over "X" axis
-    for (int k = 0; k < da.getLocalLength(2); k++) {
-      position[2] = da.localToGlobal(2, k);
-      if (position[2] >= currentShape[2])
-        continue;
-      for (int j = 0; j < currentShape[1]; j++) {
-        position[1] = j;
-        // Get the complex trace, transform, and replace
-        da.getTrace(fftBuffer, position);
-        currentFFT.complexForward(fftBuffer);
-        da.putTrace(fftBuffer, position);
-      }
-    }
+    spatialFFT(_f2,currentShape);
 
     // Transpose and bring "Y" axis to front
     // nkx,nftp,nyp (312) nyp,nkx,nftp
@@ -470,24 +444,11 @@ public class SeisFft3d {
 
     // Expand Y axis to transform length
     // nyp,nkx,nftp --> nky,nkx,nftp
-    da.reshape(new int[] { nky, nkx, nftp });
-    
+    da.reshape(new int[] { nky, nkx, nftp });   
     currentShape = new int[] {_inputShape[2],_fftShape[1],_fftShape[0]};
-    currentFFT = _f3;
-
-    // FFT over "Y" axis
-    for (int k = 0; k < da.getLocalLength(2); k++) {
-      position[2] = da.localToGlobal(2, k);
-      if (position[2] >= currentShape[2])
-        continue;
-      for (int j = 0; j < currentShape[1]; j++) {
-        position[1] = j;
-        // Get the complex trace, transform, and replace
-        da.getTrace(fftBuffer, position);
-        currentFFT.complexForward(fftBuffer);
-        da.putTrace(fftBuffer, position);
-      }
-    }
+    System.out.println("DA Shape: " + Arrays.toString(da.getShape()));
+    System.out.println("Current Shape: " + Arrays.toString(currentShape));
+    spatialFFT(_f3,currentShape);
 
     // Hide the frequency axis padding
     // (nky,nkx,nftp) --> (nky,nkx,nft)
@@ -495,6 +456,47 @@ public class SeisFft3d {
 
     // Return with data axes Ky,Kx,F
     _isTransformed = true;
+  }
+
+  private void checkShape() {
+    if (da.getLength(0) != _inputShape[0] || da.getLength(1) != _inputShape[1]
+        || da.getLength(2) != _inputShape[2] || da.getElementCount() != 1)
+      throw new RuntimeException("\nDistributedArray shape "
+          + Arrays.toString(da.getShape())
+          + "\nDoes not match SeisFft3d input shape "
+          + Arrays.toString(_inputShape));
+  }
+
+  private void temporalFFT(IFFT fft,int[] currentShape) {
+    int[] position = {0,0,0};
+    float[] fftBuffer = createFFTBuffer(_fftShape);
+    for (int k = 0; k < da.getLocalLength(2); k++) {
+      position[2] = da.localToGlobal(2, k);
+      if (position[2] >= currentShape[2])
+        continue;
+      for (int j = 0; j < currentShape[1]; j++) {
+        position[1] = j;
+        realDataView.getTrace(fftBuffer, position);
+        fft.realToComplex(fftBuffer);
+        da.putTrace(fftBuffer, position);
+      }
+    }
+  }
+
+  private void spatialFFT(IFFT fft,int[] currentShape) {
+    int[] position = {0,0,0};
+    float[] fftBuffer = createFFTBuffer(_fftShape);
+    for (int k = 0; k < da.getLocalLength(2); k++) {
+      position[2] = da.localToGlobal(2, k);
+      if (position[2] >= currentShape[2])
+        continue;
+      for (int j = 0; j < currentShape[1]; j++) {
+        position[1] = j;
+        da.getTrace(fftBuffer, position);
+        fft.complexForward(fftBuffer);
+        da.putTrace(fftBuffer, position);
+      }
+    }
   }
 
   private float[] createFFTBuffer(int[] fftShape) {
