@@ -131,6 +131,6 @@ public class SingleVolumeDAViewer {
   public void showAsModalDialog() {
     //TODO add support for proper axis annotations. (will probably involve extending
     // the original viewer class.
-    DistributedArrayMosaicPlot.showAsModalDialog(displayDA,"Is this working?");    
+    DistributedArrayMosaicPlot.showAsModalDialog(displayDA,"Distributed Array Viewer");    
   }
 }

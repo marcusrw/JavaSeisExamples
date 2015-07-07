@@ -1,23 +1,15 @@
 package org.javaseis.examples.scratch;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
-import beta.javaseis.array.TransposeType;
-import beta.javaseis.complex.ComplexArrays;
 import beta.javaseis.distributed.DistributedArray;
-import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
-import beta.javaseis.distributed.DistributedTraceIterator;
 import org.javaseis.examples.scratch.SeisFft3dNew;
 import beta.javaseis.parallel.IParallelContext;
 
-import org.javaseis.array.ElementType;
-import org.javaseis.examples.plot.JavaSeisMovieRunner;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
-import org.javaseis.parallel.DistributedArrayTraceIterator;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.DataDomain;
 import org.javaseis.services.ParameterService;
@@ -43,6 +35,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private long[] transformAxisLengths;
   private DataDomain[] transformDomains;
   private AxisDefinition[] transformAxes;
+  //TODO only for visual checks.  Delete later.
   private GridDefinition transformGrid;
 
   //viewer for checking your work.
@@ -158,8 +151,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     rcvr.forwardTemporal();
     srce.forwardTemporal();
     //Build the Source signature by finding the best array index 
-    //for the source location, then stick a little gaussian thing there
+    //for the source location, then stick a little hat function there
     generateSourceSignature(sourceXYZ);
+    //visual check of source signature.
     //display = new SingleVolumeDAViewer(srceDA,input.getLocalGrid());
     //display.showAsModalDialog();
 
@@ -276,17 +270,31 @@ public class ExampleMigration extends StandAloneVolumeTool {
     while (sourceX < sourceXYZ[0] + 1) {
       int sourceY = (int) Math.floor(sourceXYZ[1]);
       while (sourceY < sourceXYZ[1] + 1) {
-        putWhiteSpectrum(srce,sourceX,sourceY);
+        float weight = Math.max(0, 1-euclideanDistance(sourceX,sourceY,sourceXYZ));
+        putWhiteSpectrum(srce,sourceX,sourceY,weight);
         sourceY++;
       }
       sourceX++;
     }
   }
+  
+  /**
+   * @param sourceX - Target X index in the grid
+   * @param sourceY - Target Y index in the grid
+   * @param sourceXYZ - Actual Source position in the grid
+   * @return The  Euclidean distance between the current array index
+   *           and the input source.
+   */
+  private float euclideanDistance(float sourceX, float sourceY, float[] sourceXYZ) {
+    float dx2 = (sourceX - sourceXYZ[0])*(sourceX - sourceXYZ[0]);
+    float dy2 = (sourceY - sourceXYZ[1])*(sourceY - sourceXYZ[1]);
+    return (float)Math.sqrt(dx2+dy2);
+  }
 
-  private void putWhiteSpectrum(SeisFft3dNew source,int sourceX,int sourceY) {
+  private void putWhiteSpectrum(SeisFft3dNew source,int sourceX,int sourceY,float amplitude) {
     int[] position = new int[] {0,sourceX,sourceY};
     int[] volumeShape = source.getArray().getShape();
-    float[] sample = new float[] {1,0}; //1+0i complex
+    float[] sample = new float[] {amplitude,0}; //amplitude+0i complex
     DistributedArray sourceDA = source.getArray();
     while (position[0] < volumeShape[0]) {
       sourceDA.putSample(sample, position);
