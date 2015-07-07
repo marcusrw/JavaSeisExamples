@@ -10,7 +10,7 @@ import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.distributed.DistributedTraceIterator;
-import org.javaseis.examples.scratch.SeisFft3d;
+import org.javaseis.examples.scratch.SeisFft3dNew;
 import beta.javaseis.parallel.IParallelContext;
 
 import org.javaseis.array.ElementType;
@@ -31,7 +31,7 @@ import org.javaseis.volume.ISeismicVolume;
  *
  */
 public class ExampleMigration extends StandAloneVolumeTool {
-  
+
   private static final Logger LOGGER = 
       Logger.getLogger(ExampleMigration.class.getName());
 
@@ -39,12 +39,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
   IParallelContext pc;
   IntervalTimer compTime, totalTime;
 
-  SeisFft3d fft3d;
+  SeisFft3dNew fft3d;
   private long[] transformAxisLengths;
   private DataDomain[] transformDomains;
   private AxisDefinition[] transformAxes;
   private GridDefinition transformGrid;
-  
+
   //viewer for checking your work.
   private SingleVolumeDAViewer display;
 
@@ -79,7 +79,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       inputVolumeLengths[k] = (int)inputAxisLengths[k];
     }
 
-    fft3d = new SeisFft3d(pc,inputVolumeLengths,
+    fft3d = new SeisFft3dNew(pc,inputVolumeLengths,
         new float[] {0,0,0},new int[] {-1,1,1});
 
     //determine shape of output
@@ -138,7 +138,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
-    
+
     LOGGER.info("Volume Index: " + Arrays.toString(input.getVolumePosition()));
     //Find the Source Location, assume we have SOU_XYZ
     //For now we're just going to use the globalGrid and our prior knowledge
@@ -174,17 +174,18 @@ public class ExampleMigration extends StandAloneVolumeTool {
     if (SOU_X == 0 || SOU_Y == 0) {
       throw new IllegalArgumentException("Unable to find source location.");
     }
-    
+
     int[] inputShape = input.getLengths();
     DistributedArray inputDA = input.getDistributedArray();
-    fft3d = new SeisFft3d(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
+    fft3d = new SeisFft3dNew(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
     fft3d.getArray().copy(inputDA);
-    
+
     DistributedArray test = fft3d.getArray();
     //display = new SingleVolumeDAViewer(test,output.getLocalGrid());
     //display.showAsModalDialog();
-    
-    fft3d.forward();
+
+    fft3d.forwardTemporal();
+    fft3d.forwardSpatial2D();
 
     //Get the DA to visualize
     test = fft3d.getArray();
@@ -192,10 +193,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //display = new SingleVolumeDAViewer(test,transformGrid);
     //display.showAsModalDialog();
     //test.transpose(TransposeType.T321);
-    
+
     //Build the Source signature by finding the best array index 
     //for the source location, then stick a little gaussian thing there
-    
+
 
     //phase shift
     float V = 2000f;
@@ -239,7 +240,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //display.showAsModalDialog();
     //operator.transpose(TransposeType.T321);
 
-    fft3d.inverse();
+    fft3d.inverseSpatial2D();
+    fft3d.inverseTemporal();
     //test = fft3d.getArray();
     //display = new SingleVolumeDAViewer(test,output.getLocalGrid());
     //display.showAsModalDialog();
