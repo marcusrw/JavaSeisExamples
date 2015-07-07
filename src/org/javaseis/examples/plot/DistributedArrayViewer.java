@@ -16,7 +16,8 @@ import org.javaseis.volume.ISeismicVolume;
  */
 public class DistributedArrayViewer extends StandAloneVolumeTool {
 
-  public DistributedArrayViewer() {}
+  public DistributedArrayViewer() {
+  }
 
   public static void main(String[] args) {
     throw new UnsupportedOperationException(
@@ -58,5 +59,4 @@ public class DistributedArrayViewer extends StandAloneVolumeTool {
   public void serialFinish(ToolContext toolContext) {
     //Does nothing
   }
-
 }

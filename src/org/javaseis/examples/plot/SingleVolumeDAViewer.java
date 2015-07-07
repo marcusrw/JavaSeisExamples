@@ -14,8 +14,8 @@ import beta.javaseis.parallel.IParallelContext;
 
 /**
  * Add some functionality to the DistributedArrayMosaicPlot object, including
- * automatically shifting the wavenumber coordinates, and computing the absolute
- * value of a complex distributed array.
+ * automatically shifting the wavenumber coordinates, and computing the
+ * absolute value of a complex distributed array.
  * 
  * @author Marcus Wilson
  *
@@ -31,7 +31,8 @@ public class SingleVolumeDAViewer {
   private boolean[] shiftDimensions;
 
   public SingleVolumeDAViewer() {
-    throw new UnsupportedOperationException("No argument constructor is not valid.");
+    throw new UnsupportedOperationException("No argument constructor is not "
+        + "implemented.");
   }
 
   //just plot the Distributed Array.  The grid tells you which is any dimensions
@@ -129,8 +130,9 @@ public class SingleVolumeDAViewer {
 
   //Method name inherited from DistributedArrayMosaicPlot
   public void showAsModalDialog() {
-    //TODO add support for proper axis annotations. (will probably involve extending
-    // the original viewer class.
-    DistributedArrayMosaicPlot.showAsModalDialog(displayDA,"Distributed Array Viewer");    
+    //TODO add support for proper axis annotations. (will probably involve
+    //     extending the original viewer class.
+    DistributedArrayMosaicPlot.showAsModalDialog(
+        displayDA,"Distributed Array Viewer");    
   }
 }
