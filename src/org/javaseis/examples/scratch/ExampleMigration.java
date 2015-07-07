@@ -39,7 +39,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   IParallelContext pc;
   IntervalTimer compTime, totalTime;
 
-  SeisFft3dNew fft3d;
+  SeisFft3dNew rcvr,srce;
   private long[] transformAxisLengths;
   private DataDomain[] transformDomains;
   private AxisDefinition[] transformAxes;
@@ -79,12 +79,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
       inputVolumeLengths[k] = (int)inputAxisLengths[k];
     }
 
-    fft3d = new SeisFft3dNew(pc,inputVolumeLengths,
+    rcvr = new SeisFft3dNew(pc,inputVolumeLengths,
         new float[] {0,0,0},new int[] {-1,1,1});
 
     //determine shape of output
     for (int k = 0 ; k < 3 ; k++) {
-      transformAxisLengths[k] = fft3d.getFftShape()[k];
+      transformAxisLengths[k] = rcvr.getFftShape()[k];
     }
 
     transformAxes = new AxisDefinition[inputAxisLengths.length];
@@ -139,118 +139,187 @@ public class ExampleMigration extends StandAloneVolumeTool {
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
 
+    float[] sourceXYZ = locateSourceXYZ(input);
+    assert sourceXYZ.length == 3;
+
+    int[] inputShape = input.getLengths();
+    DistributedArray inputDA = input.getDistributedArray();
+    rcvr = new SeisFft3dNew(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
+    srce = new SeisFft3dNew(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
+    rcvr.getArray().copy(inputDA);
+
+    DistributedArray rcvrDA = rcvr.getArray();
+    DistributedArray srceDA = srce.getArray();
+
+    //rcvrDA = rcvr.getArray();
+    //display = new SingleVolumeDAViewer(rcvrDA,output.getLocalGrid());
+    //display.showAsModalDialog();
+
+    rcvr.forwardTemporal();
+    srce.forwardTemporal();
+    //Build the Source signature by finding the best array index 
+    //for the source location, then stick a little gaussian thing there
+    generateSourceSignature(sourceXYZ);
+    //display = new SingleVolumeDAViewer(srceDA,input.getLocalGrid());
+    //display.showAsModalDialog();
+
+    //rcvrDA.transpose(TransposeType.T321);
+    //display = new SingleVolumeDAViewer(rcvrDA,transformGrid);
+    //display.showAsModalDialog();
+    //rcvrDA.transpose(TransposeType.T321);
+
+    //srceDA.transpose(TransposeType.T321);
+    //display = new SingleVolumeDAViewer(srceDA,transformGrid);
+    //display.showAsModalDialog();
+    //srceDA.transpose(TransposeType.T321);
+
+    //phase shift
+    float V = 2000f;
+    float EPS = 1E-12f;
+
+    float zmax = 1000;
+    float dz = 100;
+    for (int zindx = 0 ; zindx*dz < zmax ; zindx++) {
+      rcvr.forwardSpatial2D();
+      srce.forwardSpatial2D();
+
+      int[] position = new int[rcvrDA.getDimensions()];
+      int direction = 1; //forward
+      int scope = 0; //samples
+      DistributedArrayPositionIterator dapi =
+          new DistributedArrayPositionIterator(rcvrDA,position,direction,scope);
+
+      float[] recInSample = new float[rcvrDA.getElementCount()];
+      float[] souInSample = new float[srceDA.getElementCount()];
+      float[] recOutSample = new float[rcvrDA.getElementCount()];
+      float[] souOutSample = new float[rcvrDA.getElementCount()];
+      double[] coords = new double[position.length];
+      double[] sampleRates = {0.002,100,100};
+      rcvr.setTXYSampleRates(sampleRates);
+      srce.setTXYSampleRates(sampleRates);
+      while (dapi.hasNext()) {
+        position = dapi.next();
+        rcvrDA.getSample(recInSample, position);
+        srceDA.getSample(souInSample, position);
+        rcvr.getKyKxFCoordinatesForPosition(position, coords);
+        //LOGGER.info(Arrays.toString(position) 
+        //    + " " + Arrays.toString(coords));
+        double Ky = coords[0];
+        double Kx = coords[1];
+        double F = coords[2];
+        double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
+        double shift = 0;
+        if (Kz2 > EPS && zindx > 0) {
+          shift = (2*Math.PI*dz * Math.sqrt(Kz2));
+        }
+        if (Kz2 > EPS) {
+          recOutSample[0] = (float) (recInSample[0]*Math.cos(-shift) - recInSample[1]*Math.sin(-shift));
+          recOutSample[1] = (float) (recInSample[1]*Math.cos(-shift) + recInSample[0]*Math.sin(-shift));
+          souOutSample[0] = (float) (souInSample[0]*Math.cos(shift) - souInSample[1]*Math.sin(shift));
+          souOutSample[1] = (float) (souInSample[1]*Math.cos(shift) + souInSample[0]*Math.sin(shift));
+        } else {
+          recOutSample = new float[] {0,0};
+          souOutSample = new float[] {0,0};
+        }
+        rcvrDA.putSample(recOutSample, position);
+        srceDA.putSample(souOutSample, position);
+      }
+      //rcvrDA.transpose(TransposeType.T321);
+      //display = new SingleVolumeDAViewer(rcvrDA,transformGrid);
+      //display.showAsModalDialog();
+      //rcvrDA.transpose(TransposeType.T321);      
+      
+      //srceDA.transpose(TransposeType.T321);
+      //display = new SingleVolumeDAViewer(srceDA,transformGrid);
+      //display.showAsModalDialog();  
+      //srceDA.transpose(TransposeType.T321); 
+      
+      rcvr.inverseSpatial2D();
+      srce.inverseSpatial2D();
+
+      //Now image here
+      position = new int[rcvrDA.getDimensions()];
+      dapi = new DistributedArrayPositionIterator(rcvrDA,position,
+          direction,scope);
+      
+      int[] outputPosition = position.clone();
+      outputPosition[0] = zindx;
+      
+      
+    }
+
+
+    rcvr.inverseTemporal();
+    srce.inverseTemporal();
+
+    
+    display = new SingleVolumeDAViewer(rcvrDA,output.getLocalGrid());
+    display.showAsModalDialog();
+
+    display = new SingleVolumeDAViewer(srceDA,output.getLocalGrid());
+    display.showAsModalDialog();    
+
+    DistributedArray outputDA = output.getDistributedArray();
+    outputDA.setElementCount(rcvrDA.getElementCount());
+    outputDA.copy(rcvrDA);
+
+    return true;
+  }
+
+  private void generateSourceSignature(float[] sourceXYZ) {
+    if (sourceXYZ.length != 3)
+      throw new IllegalArgumentException("Wrong number of elements for sourceXYZ");
+    if (sourceXYZ[2] != 0)
+      throw new UnsupportedOperationException("Sources at Depths besides zero not yet implemented");
+
+    int sourceX = (int) Math.floor(sourceXYZ[0]);
+    while (sourceX < sourceXYZ[0] + 1) {
+      int sourceY = (int) Math.floor(sourceXYZ[1]);
+      while (sourceY < sourceXYZ[1] + 1) {
+        putWhiteSpectrum(srce,sourceX,sourceY);
+        sourceY++;
+      }
+      sourceX++;
+    }
+  }
+
+  private void putWhiteSpectrum(SeisFft3dNew source,int sourceX,int sourceY) {
+    int[] position = new int[] {0,sourceX,sourceY};
+    int[] volumeShape = source.getArray().getShape();
+    float[] sample = new float[] {1,0}; //1+0i complex
+    DistributedArray sourceDA = source.getArray();
+    while (position[0] < volumeShape[0]) {
+      sourceDA.putSample(sample, position);
+      position[0]++;
+    }
+  }
+
+  private float[] locateSourceXYZ(ISeismicVolume input) {
     LOGGER.info("Volume Index: " + Arrays.toString(input.getVolumePosition()));
     //Find the Source Location, assume we have SOU_XYZ
     //For now we're just going to use the globalGrid and our prior knowledge
     //then refactor it into an auto/manual source field generator.
-    int SOU_X = 0;
-    int SOU_Y = 0;
-    int SOU_X_INDX = -1;
-    int SOU_Y_INDX = -1;
-    int sourceArrayIndex;
+
+    float[][] sourceLocations = new float[][]
+        {
+        {14.5F,14.5F,0},
+        {34.5F,14.5F,0},
+        {14.5F,34.5F,0},
+        {34.5F,34.5F,0}
+        };
+
+    int volumeArrayIndex;
     GridDefinition globalGrid = input.getGlobalGrid();
     String[] axisLabels = globalGrid.getAxisLabelsStrings();
     LOGGER.info(Arrays.toString(axisLabels));
     for (int k = 0 ; k < axisLabels.length ; k++) {
       if (axisLabels[k] == "SOURCE") {
-        sourceArrayIndex = input.getVolumePosition()[k];
-        SOU_X_INDX = sourceArrayIndex / 2;
-        SOU_Y_INDX = sourceArrayIndex % 2;
-        if (SOU_X_INDX == 0) {
-          SOU_X = 14;
-        }
-        if (SOU_X_INDX == 1) {
-          SOU_X = 34;
-        }
-        if (SOU_Y_INDX == 0) {
-          SOU_Y = 14;
-        }
-        if (SOU_Y_INDX == 1) {
-          SOU_Y = 34;
-        }
+        volumeArrayIndex = input.getVolumePosition()[k];
+        LOGGER.info("Source location: " + Arrays.toString(sourceLocations[volumeArrayIndex]));
+        return sourceLocations[volumeArrayIndex];
       }
     }
-    LOGGER.info("Source location: " + "(" + SOU_X + "," + SOU_Y + ")");
-    if (SOU_X == 0 || SOU_Y == 0) {
-      throw new IllegalArgumentException("Unable to find source location.");
-    }
-
-    int[] inputShape = input.getLengths();
-    DistributedArray inputDA = input.getDistributedArray();
-    fft3d = new SeisFft3dNew(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
-    fft3d.getArray().copy(inputDA);
-
-    DistributedArray test = fft3d.getArray();
-    //display = new SingleVolumeDAViewer(test,output.getLocalGrid());
-    //display.showAsModalDialog();
-
-    fft3d.forwardTemporal();
-    fft3d.forwardSpatial2D();
-
-    //Get the DA to visualize
-    test = fft3d.getArray();
-    //test.transpose(TransposeType.T321);
-    //display = new SingleVolumeDAViewer(test,transformGrid);
-    //display.showAsModalDialog();
-    //test.transpose(TransposeType.T321);
-
-    //Build the Source signature by finding the best array index 
-    //for the source location, then stick a little gaussian thing there
-
-
-    //phase shift
-    float V = 2000f;
-    float dz = -1000;
-    float EPS = 1E-12f;
-
-    int[] position = new int[test.getDimensions()];
-    int direction = 1; //forward
-    int scope = 0; //samples
-    DistributedArrayPositionIterator dapi =
-        new DistributedArrayPositionIterator(test,position,direction,scope);
-
-    float[] sample = new float[test.getElementCount()];
-    float[] outsample = new float[test.getElementCount()];
-    double[] coords = new double[position.length];
-    fft3d.setTXYSampleRates(new double[] {0.002,100,100});
-    DistributedArray operator = new DistributedArray(test);
-    while (dapi.hasNext()) {
-      position = dapi.next();
-      test.getSample(sample, position);
-      fft3d.getKyKxFCoordinatesForPosition(position, coords);
-      //LOGGER.info(Arrays.toString(position) 
-      //    + " " + Arrays.toString(coords));
-      double Ky = coords[0];
-      double Kx = coords[1];
-      double F = coords[2];
-      double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
-      double shift = 0;
-      if (Kz2 > EPS) {
-        shift = (2*Math.PI*dz * Math.sqrt(Kz2));
-      }
-      float shift2 = (float)(Math.atan(shift));
-      operator.putSample(shift2, position);
-      outsample[0] = (float) (sample[0]*Math.cos(shift) - sample[1]*Math.sin(shift));
-      outsample[1] = (float) (sample[1]*Math.cos(shift) + sample[0]*Math.sin(shift));
-      test.putSample(outsample,position);
-    }
-
-    //operator.transpose(TransposeType.T321);
-    //display = new SingleVolumeDAViewer(operator,transformGrid);
-    //display.showAsModalDialog();
-    //operator.transpose(TransposeType.T321);
-
-    fft3d.inverseSpatial2D();
-    fft3d.inverseTemporal();
-    //test = fft3d.getArray();
-    //display = new SingleVolumeDAViewer(test,output.getLocalGrid());
-    //display.showAsModalDialog();
-
-    DistributedArray outputDA = output.getDistributedArray();
-    outputDA.setElementCount(test.getElementCount());
-    outputDA.copy(test);
-
-    return true;
+    throw new IllegalArgumentException("Unable to find source location.");
   }
 
   @Override

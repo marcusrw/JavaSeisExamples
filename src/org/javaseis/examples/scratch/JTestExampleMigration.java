@@ -35,6 +35,7 @@ public class JTestExampleMigration {
   }
 
   //@Test
+  //TODO this test is not finished yet.
   public void generateTestData() {
     String path1 = "/tmp/tempin.js";
     String path2 = "/tmp/tempout.js";
