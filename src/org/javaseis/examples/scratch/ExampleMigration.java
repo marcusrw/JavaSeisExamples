@@ -5,18 +5,23 @@ import java.util.logging.Logger;
 
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
+
 import org.javaseis.examples.scratch.SeisFft3dNew;
+
 import beta.javaseis.parallel.IParallelContext;
 
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
+import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;
+import org.javaseis.properties.Units;
 import org.javaseis.services.ParameterService;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.IntervalTimer;
 import org.javaseis.volume.ISeismicVolume;
+import org.javaseis.volume.SeismicVolume;
 
 /**
  * @author Marcus Wilson 2015
@@ -31,10 +36,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
   IParallelContext pc;
   IntervalTimer compTime, totalTime;
 
-  SeisFft3dNew rcvr,srce;
+  SeisFft3dNew rcvr,shot;
   private long[] transformAxisLengths;
   private DataDomain[] transformDomains;
   private AxisDefinition[] transformAxes;
+  private GridDefinition imageGrid;
   //TODO only for visual checks.  Delete later.
   private GridDefinition transformGrid;
 
@@ -54,9 +60,44 @@ public class ExampleMigration extends StandAloneVolumeTool {
   @Override
   public void serialInit(ToolContext toolContext) {
     GridDefinition inputGrid = toolContext.getInputGrid();
+    ParameterService parms = toolContext.getParameterService();
+    imageGrid = computeImageGrid(inputGrid,parms);
     pc = toolContext.getParallelContext();
     transformGrid = computeTransformAxes(inputGrid);
-    toolContext.setOutputGrid(inputGrid);
+    toolContext.setOutputGrid(imageGrid);
+  }
+
+  private GridDefinition computeImageGrid(GridDefinition inputGrid,
+      ParameterService parms) {
+
+    AxisDefinition[] imageAxes = new AxisDefinition[inputGrid.getNumDimensions()];
+
+    float zmin = Float.parseFloat(parms.getParameter("ZMIN","0"));
+    float zmax = Float.parseFloat(parms.getParameter("ZMAX","2000"));
+    float delz = Float.parseFloat(parms.getParameter("DELZ","250"));
+
+    long depthAxisLength;
+    if (delz == 0 || (zmax - zmin) < delz)
+      depthAxisLength = 1;
+    else
+      depthAxisLength = (long) Math.floor((zmax-zmin)/delz);
+
+    for (int axis = 0 ; axis < imageAxes.length ; axis++) {
+      if (axis == 0) {
+        imageAxes[axis] = new AxisDefinition(
+            AxisLabel.DEPTH,
+            Units.METERS,
+            DataDomain.SPACE,
+            depthAxisLength,
+            0,1,
+            zmin,delz
+            );
+      } else {
+        imageAxes[axis] = inputGrid.getAxis(axis);
+      }
+    }
+
+    return new GridDefinition(imageAxes.length,imageAxes);
   }
 
   private GridDefinition computeTransformAxes(GridDefinition inputGrid) {
@@ -138,18 +179,18 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int[] inputShape = input.getLengths();
     DistributedArray inputDA = input.getDistributedArray();
     rcvr = new SeisFft3dNew(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
-    srce = new SeisFft3dNew(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
+    shot = new SeisFft3dNew(pc,inputShape,new float[] {0,0,0},new int[] {-1,1,1});
     rcvr.getArray().copy(inputDA);
 
     DistributedArray rcvrDA = rcvr.getArray();
-    DistributedArray srceDA = srce.getArray();
+    DistributedArray shotDA = shot.getArray();
 
     //rcvrDA = rcvr.getArray();
     //display = new SingleVolumeDAViewer(rcvrDA,output.getLocalGrid());
     //display.showAsModalDialog();
 
     rcvr.forwardTemporal();
-    srce.forwardTemporal();
+    shot.forwardTemporal();
     //Build the Source signature by finding the best array index 
     //for the source location, then stick a little hat function there
     generateSourceSignature(sourceXYZ);
@@ -169,32 +210,42 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //phase shift
     float V = 2000f;
-    float EPS = 1E-12f;
+    float eps = 1E-12f;
 
-    float zmax = 1000;
-    float dz = 100;
-    for (int zindx = 0 ; zindx*dz < zmax ; zindx++) {
+    DistributedArray image = output.getDistributedArray();
+
+    double zmin = output.getLocalGrid().getAxisPhysicalOrigin(0);
+    double delz = output.getLocalGrid().getAxisPhysicalDelta(0);
+    long numz = output.getLocalGrid().getAxisLength(0);
+    System.out.println("zmin: " + zmin);
+    System.out.println("delz: " + delz);
+    System.out.println("numz: " + numz);
+
+    for (int zindx = 0 ; zindx < numz ; zindx++) {
+      System.out.println("Depth: " + (zmin+delz*zindx));
+
       rcvr.forwardSpatial2D();
-      srce.forwardSpatial2D();
+      shot.forwardSpatial2D();
 
       int[] position = new int[rcvrDA.getDimensions()];
       int direction = 1; //forward
       int scope = 0; //samples
       DistributedArrayPositionIterator dapi =
-          new DistributedArrayPositionIterator(rcvrDA,position,direction,scope);
+          new DistributedArrayPositionIterator(
+              rcvrDA,position,direction,scope);
 
       float[] recInSample = new float[rcvrDA.getElementCount()];
-      float[] souInSample = new float[srceDA.getElementCount()];
+      float[] souInSample = new float[shotDA.getElementCount()];
       float[] recOutSample = new float[rcvrDA.getElementCount()];
       float[] souOutSample = new float[rcvrDA.getElementCount()];
       double[] coords = new double[position.length];
       double[] sampleRates = {0.002,100,100};
       rcvr.setTXYSampleRates(sampleRates);
-      srce.setTXYSampleRates(sampleRates);
+      shot.setTXYSampleRates(sampleRates);
       while (dapi.hasNext()) {
         position = dapi.next();
         rcvrDA.getSample(recInSample, position);
-        srceDA.getSample(souInSample, position);
+        shotDA.getSample(souInSample, position);
         rcvr.getKyKxFCoordinatesForPosition(position, coords);
         //LOGGER.info(Arrays.toString(position) 
         //    + " " + Arrays.toString(coords));
@@ -203,10 +254,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
         double F = coords[2];
         double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
         double shift = 0;
-        if (Kz2 > EPS && zindx > 0) {
-          shift = (2*Math.PI*dz * Math.sqrt(Kz2));
+        if (Kz2 > eps && zindx > 0) {
+          shift = (2*Math.PI*delz * Math.sqrt(Kz2));
         }
-        if (Kz2 > EPS) {
+        if (Kz2 > eps) {
           recOutSample[0] = (float) (recInSample[0]*Math.cos(-shift) - recInSample[1]*Math.sin(-shift));
           recOutSample[1] = (float) (recInSample[1]*Math.cos(-shift) + recInSample[0]*Math.sin(-shift));
           souOutSample[0] = (float) (souInSample[0]*Math.cos(shift) - souInSample[1]*Math.sin(shift));
@@ -216,46 +267,78 @@ public class ExampleMigration extends StandAloneVolumeTool {
           souOutSample = new float[] {0,0};
         }
         rcvrDA.putSample(recOutSample, position);
-        srceDA.putSample(souOutSample, position);
+        shotDA.putSample(souOutSample, position);
       }
       //rcvrDA.transpose(TransposeType.T321);
       //display = new SingleVolumeDAViewer(rcvrDA,transformGrid);
       //display.showAsModalDialog();
       //rcvrDA.transpose(TransposeType.T321);      
-      
+
       //srceDA.transpose(TransposeType.T321);
       //display = new SingleVolumeDAViewer(srceDA,transformGrid);
       //display.showAsModalDialog();  
       //srceDA.transpose(TransposeType.T321); 
-      
+
       rcvr.inverseSpatial2D();
-      srce.inverseSpatial2D();
+      shot.inverseSpatial2D();
 
       //Now image here
       position = new int[rcvrDA.getDimensions()];
       dapi = new DistributedArrayPositionIterator(rcvrDA,position,
           direction,scope);
-      
-      int[] outputPosition = position.clone();
-      outputPosition[0] = zindx;
-      
-      
+
+      //Get the source and receiver samples
+      System.out.println(image.getElementCount());
+      System.out.println("shot: "
+          + Arrays.toString(shotDA.getShape())
+          + " "
+          + shotDA.getTotalSampleCount());
+      System.out.println("rcvr: "
+          + Arrays.toString(rcvrDA.getShape()) 
+          + " "
+          + rcvrDA.getTotalSampleCount());
+      System.out.println("image: " 
+          + Arrays.toString(image.getShape()) 
+          + " " 
+          + image.getTotalSampleCount());
+
+      float[] imageSample = new float[image.getElementCount()];
+      while (dapi.hasNext()) {
+        position = dapi.next();
+        int[] outputPosition = position.clone();
+        outputPosition[0] = zindx;
+        //System.out.println("Position in: "
+        //    + Arrays.toString(position)
+        //    + " position out: "
+        //    + Arrays.toString(outputPosition));
+        rcvrDA.getSample(recInSample, position);
+        shotDA.getSample(souInSample, position);
+
+        image.getSample(imageSample, outputPosition);
+        imageSample[0] += recInSample[0]*souInSample[0]
+            + recInSample[1]*souInSample[1];
+        //imageSample[1] += recInSample[0]*souInSample[1]
+        //    - recInSample[1]*souInSample[0];
+        image.putSample(imageSample, outputPosition);
+      }
     }
 
-
     rcvr.inverseTemporal();
-    srce.inverseTemporal();
+    shot.inverseTemporal();
 
-    
-    display = new SingleVolumeDAViewer(rcvrDA,output.getLocalGrid());
-    display.showAsModalDialog();
 
-    display = new SingleVolumeDAViewer(srceDA,output.getLocalGrid());
-    display.showAsModalDialog();    
+    //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
+    //display.showAsModalDialog();
 
-    DistributedArray outputDA = output.getDistributedArray();
-    outputDA.setElementCount(rcvrDA.getElementCount());
-    outputDA.copy(rcvrDA);
+    //display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
+    //display.showAsModalDialog();    
+
+    //DistributedArray outputDA = output.getDistributedArray();
+    //outputDA.setElementCount(rcvrDA.getElementCount());
+    //outputDA.copy(rcvrDA);
+
+    //display = new SingleVolumeDAViewer(image,output.getLocalGrid());
+    //display.showAsModalDialog();     
 
     return true;
   }
@@ -271,13 +354,13 @@ public class ExampleMigration extends StandAloneVolumeTool {
       int sourceY = (int) Math.floor(sourceXYZ[1]);
       while (sourceY < sourceXYZ[1] + 1) {
         float weight = Math.max(0, 1-euclideanDistance(sourceX,sourceY,sourceXYZ));
-        putWhiteSpectrum(srce,sourceX,sourceY,weight);
+        putWhiteSpectrum(shot,sourceX,sourceY,weight);
         sourceY++;
       }
       sourceX++;
     }
   }
-  
+
   /**
    * @param sourceX - Target X index in the grid
    * @param sourceY - Target Y index in the grid

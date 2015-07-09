@@ -27,6 +27,8 @@ public class JTestExampleMigration {
     String outputFileName = "test1.js";
     ParameterService parms =
         new FindTestData(inputFileName,outputFileName).getParameterService();
+    
+    parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
     LOGGER.fine("Displaying input file: " + inputFileName);
     JavaSeisMovieRunner.showMovie(inputFileName);
@@ -50,10 +52,10 @@ public class JTestExampleMigration {
       // TODO Auto-generated catch block
       LOGGER.log(Level.INFO,e.getMessage(),e);
       Assert.fail();
-    }
+    }    
 
     ExampleMigration.exec(parms,new ExampleMigration());
-    
+
     testdata1.frameIterator();
 
     try {

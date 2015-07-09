@@ -432,7 +432,9 @@ public class SeisFft3dNew {
     //In inverse, setting the element count back to 1 and setShape are
     //done together.  I'm changing this one for consistency
     //da.setElementCount(2);
-    da.setShape(2,new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
+    //da.setShape(2,new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
+    da.setShape(2,new int[] { _fpadShape[0], _inputShape[1], _padShape[2] });
+
     // FFT along "T" axis
     // T,X,Y -> F,X,Y
     System.out.println("FFT over T");
@@ -475,6 +477,7 @@ public class SeisFft3dNew {
     }
     // Transpose and bring "X" axis to front
     // nftp,nkx,nyp (213) nkx,nftp,nyp
+    da.setShape(2,new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
     da.transpose(TransposeType.T213);
     // FFT over "X" axis
     System.out.println("FFT over X");
@@ -551,34 +554,36 @@ public class SeisFft3dNew {
 
   public void inverseSpatial2D() {
     checkDAShapeForInverseTransform();
-  
+
     if (!_isSpaceTransformed) {
       throw new IllegalArgumentException(
           "Attempted spatial IFFT on data that is not in the wavenumber domain.");      
     }
     // Make 3rd dimension padding 'visible'
     da.setShape(new int[] { _fftShape[2], _fftShape[1], _fpadShape[0] });
-  
+
     // Inverse FFT over "Y" axis
     int[] inputShape = new int[] {_fftShape[2],_fftShape[1],_fftShape[0]};
     System.out.println("IFFT over Y");
     spatialIFFT(_f3,inputShape);
-  
+
     // Reshape to truncate Y axis back to original padded length
     da.reshape(new int[] { _padShape[2], _fftShape[1], _fpadShape[0] });
-  
+
     // Transpose and bring "Kx" axis to front
     // nyp,nkx,nftp (231) nkx,nftp,nyp
     da.transpose(TransposeType.T231);
-  
+
     // Inverse FFT over "Kx" axis
     inputShape = new int[] {_fftShape[1],_fftShape[0],_inputShape[2]};
     System.out.println("IFFT over X");
+    System.out.println("DA task #" + da.getParallelContext().rank());
     spatialIFFT(_f2,inputShape);
     // Transpose and bring "F" axis to front
     // nx,nftp,nyp (213) nftp,nx,nyp
     da.transpose(TransposeType.T213);
     _isSpaceTransformed = false;
+    da.setShape(2,new int[] { _fpadShape[0], _inputShape[1], _padShape[2] });
   }
 
   private void checkDAShapeForInverseTransform() {
