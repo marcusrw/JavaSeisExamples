@@ -18,12 +18,10 @@ public class SeismicVolume implements ISeismicVolume {
 
   GridDefinition globalGrid, localGrid;
 
-  //TODO  No write occurrences of this grid.  Leads to NullPointerExceptions
-  //      Also, this class both implements and contains an IRegularGrid.  Is
-  //      this a circular abstraction of the RegularGrid functionality?
-  //      Make sure this is filled in for every constructor.
   //TODO  This calls for a rename.  volumeGrid and localGrid sound like they
-  //      describe the same thing.
+  //      describe the same thing.  I think the only reason this guy is here
+  //      is so you can call his methods (since ISeismicVolume extends
+  //      IRegularGrid.  There should be a better way to do this.
   IRegularGrid volumeGrid;
 
   BinGrid binGrid;
@@ -38,6 +36,9 @@ public class SeismicVolume implements ISeismicVolume {
 
   int[] volumeShape;
 
+  //TODO  I hate the way this is implemented.  I want this to be final
+  //      and declared during construction.  Does that mean I need a second
+  //      copy of each constructor that takes it as an argument?
   int[] globalVolumePosition;
 
   IParallelContext pc;
