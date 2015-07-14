@@ -411,7 +411,7 @@ public class SeisFft3dNew {
 
     forwardTemporal();
     forwardSpatial2D();
-    System.out.println(Arrays.toString(_fpadShape));
+    //System.out.println(Arrays.toString(_fpadShape));
   }
 
   public void forwardTemporal() {
@@ -426,7 +426,8 @@ public class SeisFft3dNew {
     da.setShape(new int[] { _inputShape[0], _inputShape[1], _padShape[2] });
 
     // Reshape the first two dimensions for the complex transforms
-    da.reshape(new int[] { 2 * _fpadShape[0], _fftShape[1], _padShape[2] });
+    da.reshape(new int[] { 2 * _fpadShape[0], _inputShape[1], _padShape[2] });
+    //da.reshape(new int[] { 2 * _fpadShape[0], _fftShape[1], _padShape[2] });
 
     // Retain a temporary view of the real data
     realDataView = da.distributedView();
@@ -481,6 +482,7 @@ public class SeisFft3dNew {
     }
     // Transpose and bring "X" axis to front
     // nftp,nkx,nyp (213) nkx,nftp,nyp
+    da.reshape(new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
     da.setShape(2,new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
     da.transpose(TransposeType.T213);
     // FFT over "X" axis
@@ -589,6 +591,8 @@ public class SeisFft3dNew {
     da.transpose(TransposeType.T213);
     _isSpaceTransformed = false;
     //da.setShape(2,new int[] { _fpadShape[0], _padShape[1], _padShape[2] });
+    //TODO check
+    da.reshape(new int[] {_fpadShape[0],_inputShape[1],_inputShape[2]});
     da.setShape(2,new int[] { _fpadShape[0], _inputShape[1], _inputShape[2] });
   }
 

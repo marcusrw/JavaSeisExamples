@@ -12,6 +12,7 @@ import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.synthetic.CosineBellWavelet;
 
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
+import org.javaseis.examples.plot.ThreadedDAViewer;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
@@ -47,7 +48,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   //viewer for checking your work.
   private SingleVolumeDAViewer display;
 
-  static final float[] PAD = new float[] {0,0,0};
+  static final float[] PAD = new float[] {50,50,50};
 
 
   public ExampleMigration() {
@@ -77,7 +78,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     float zmin = Float.parseFloat(parms.getParameter("ZMIN","0"));
     float zmax = Float.parseFloat(parms.getParameter("ZMAX","2000"));
-    float delz = Float.parseFloat(parms.getParameter("DELZ","50"));
+    float delz = Float.parseFloat(parms.getParameter("DELZ","20"));
 
     long depthAxisLength;
     if (delz == 0 || (zmax - zmin) < delz)
@@ -176,7 +177,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       ISeismicVolume output) {
 
     //TODO temporary flag to only process the first shot
-    if (input.getVolumePosition()[3] > 0) return false;
+    //if (input.getVolumePosition()[3] > 0) return false;
 
     float[] sourceXYZ = locateSourceXYZ(input);
     assert sourceXYZ.length == 3;
@@ -200,36 +201,37 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //for the source location, then stick a little hat function there
     generateSourceSignature(sourceXYZ);
     //visual check of source signature.
-    display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
-    display.showAsModalDialog();
-    display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
-    display.showAsModalDialog();
+    //display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
+    //display.showAsModalDialog();
+    //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
+    //display.showAsModalDialog();
 
     //rcvrDA.transpose(TransposeType.T321);
-    rcvr.inverseTemporal();
-    display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
-    display.showAsModalDialog();
-    rcvr.forwardTemporal();
+    //rcvr.inverseTemporal();
+    //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
+    //display.showAsModalDialog();
+    //rcvr.forwardTemporal();
     //rcvrDA.transpose(TransposeType.T321);
 
     //srceDA.transpose(TransposeType.T321);
-    shot.inverseTemporal();
-    display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
-    display.showAsModalDialog();
-    shot.forwardTemporal();
+    //shot.inverseTemporal();
+    //display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
+    //display.showAsModalDialog();
+    //shot.forwardTemporal();
     //srceDA.transpose(TransposeType.T321);
 
-    shot.forwardSpatial2D();
-    display = new SingleVolumeDAViewer(shotDA,transformGrid);
-    display.showAsModalDialog();
+    //shot.forwardSpatial2D();
+    //display = new SingleVolumeDAViewer(shotDA,transformGrid);
+    //display.showAsModalDialog();
 
-    shot.inverseSpatial2D();
-    display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
-    display.showAsModalDialog();
+    //shot.inverseSpatial2D();
+    //display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
+    //display.showAsModalDialog();
 
 
     //phase shift
-    float eps = 1E-12f;
+    float eps = 1E-12F;
+    eps = 0F;
     float V;
 
     DistributedArray image = output.getDistributedArray();
@@ -237,6 +239,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     double zmin = output.getLocalGrid().getAxisPhysicalOrigin(0);
     double delz = output.getLocalGrid().getAxisPhysicalDelta(0);
     long numz = output.getLocalGrid().getAxisLength(0);
+
+    //TODO temp hack for testing
+    //numz = 5;
+    //delz = 500;
     System.out.println("zmin: " + zmin);
     System.out.println("delz: " + delz);
     System.out.println("numz: " + numz);
@@ -248,7 +254,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     for (int zindx = 0 ; zindx < numz ; zindx++) {
       System.out.println("Depth: " + (zmin+delz*zindx));
       if (zmin+delz*zindx <= 1000) V = 2000;
-      else V = 3800;
+      else V = 2000;
 
       rcvr.forwardSpatial2D();
       shot.forwardSpatial2D();
@@ -279,23 +285,29 @@ public class ExampleMigration extends StandAloneVolumeTool {
         double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
         double shift = 0;
         if (Kz2 > eps && zindx > 0) {
-          shift = (2*Math.PI*delz * Math.sqrt(Kz2));
+          shift = (-2*Math.PI*delz * Math.sqrt(Kz2));
         }
-        //TODO should be Kz2 > eps
-        if (Kz2 > Float.NEGATIVE_INFINITY) {
-          //TODO temporary "no nothing" extrapolation
-          recOutSample[0] = recInSample[0];
-          recOutSample[1] = recInSample[1];
-          souOutSample[0] = souInSample[0];
-          souOutSample[1] = souInSample[1];
+        if (Kz2 > eps) {
+          //TODO temporary "do nothing" extrapolation
+          //recOutSample[0] = recInSample[0];
+          //recOutSample[1] = recInSample[1];
+          //souOutSample[0] = souInSample[0];
+          //souOutSample[1] = souInSample[1];
 
-          //recOutSample[0] = (float) (recInSample[0]*Math.cos(-shift) - recInSample[1]*Math.sin(-shift));
-          //recOutSample[1] = (float) (recInSample[1]*Math.cos(-shift) + recInSample[0]*Math.sin(-shift));
-          //souOutSample[0] = (float) (souInSample[0]*Math.cos(shift) - souInSample[1]*Math.sin(shift));
-          //souOutSample[1] = (float) (souInSample[1]*Math.cos(shift) + souInSample[0]*Math.sin(shift));
+          recOutSample[0] = (float) (recInSample[0]*Math.cos(-shift)
+              - recInSample[1]*Math.sin(-shift));
+          recOutSample[1] = (float) (recInSample[1]*Math.cos(-shift)
+              + recInSample[0]*Math.sin(-shift));
+          souOutSample[0] = (float) (souInSample[0]*Math.cos(shift)
+              - souInSample[1]*Math.sin(shift));
+          souOutSample[1] = (float) (souInSample[1]*Math.cos(shift)
+              + souInSample[0]*Math.sin(shift));
         } else {
-          recOutSample = new float[] {0,0};
-          souOutSample = new float[] {0,0};
+          shift = 2*Math.PI*Math.abs(delz)*Math.sqrt(Math.abs(Kz2));
+          recOutSample[0] = (float) (recInSample[0]*Math.exp(-shift));
+          recOutSample[1] = (float) (recInSample[1]*Math.exp(-shift));
+          souOutSample[0] = (float) (souInSample[0]*Math.exp(-shift));
+          souOutSample[1] = (float) (souInSample[1]*Math.exp(-shift));
         }
         //System.out.println("Position out: " + Arrays.toString(position));
         rcvrDA.putSample(recOutSample, position);
@@ -319,22 +331,22 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       //TODO Trick.  Hide the high frequencies from the iterator
       // so that it doesn't waste time accumulating a bunch of zeros.
-      /*
+
+
       int[] DALengths = rcvrDA.getShape().clone();
       System.out.println(Arrays.toString(DALengths));
 
       double fMax = 60;
       double fNY = 1/(2*0.002);
       double delf = fNY/DALengths[0];
+      int realFShape = DALengths[0];
       int maxFindx = (int) (fMax/delf);
 
       DALengths[0] = maxFindx;
       System.out.println("Max F index: " + maxFindx);
       rcvrDA.setShape(DALengths);
-      System.out.println(Arrays.toString(DALengths));     
-       */
-
-      //rcvrDA.setShape();
+      shotDA.setShape(DALengths);
+      System.out.println(Arrays.toString(DALengths));
 
       dapi = new DistributedArrayPositionIterator(rcvrDA,position,
           direction,scope);
@@ -374,15 +386,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
         image.putSample(imageSample, outputPosition);
       }
 
-      rcvr.inverseTemporal();
-      display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
-      display.showAsModalDialog();
-      rcvr.forwardTemporal();
+      DALengths[0] = realFShape;
 
-      shot.inverseTemporal();
-      display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
-      display.showAsModalDialog();
-      shot.forwardTemporal();      
+      //rcvr.inverseTemporal();
+      //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
+      //display.showAsModalDialog();
+      //rcvr.forwardTemporal();
+
+      //shot.inverseTemporal();
+      //display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
+      //display.showAsModalDialog();
+      //shot.forwardTemporal();      
 
       //display = new SingleVolumeDAViewer(image,output.getLocalGrid());
       //display.showAsModalDialog();
@@ -391,11 +405,22 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //rcvr.inverseTemporal();
     //shot.inverseTemporal();
 
+    //ThreadedDAViewer liveDisplay = 
+    //    new ThreadedDAViewer(rcvrDA,input.getLocalGrid());
+    //liveDisplay.start();
+
+    //ThreadedDAViewer liveDisplay2 = 
+    //    new ThreadedDAViewer(shotDA,input.getLocalGrid());
+    //liveDisplay2.start();
+
     //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
     //display.showAsModalDialog();
 
     //display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
-    //display.showAsModalDialog();    
+    //display.showAsModalDialog();
+
+    //display = new SingleVolumeDAViewer(image,output.getLocalGrid());
+    //display.showAsModalDialog();
 
     //DistributedArray outputDA = output.getDistributedArray();
     //outputDA.setElementCount(rcvrDA.getElementCount());
