@@ -23,8 +23,9 @@ public class JTestExampleMigration {
 
   //test harness to see if the process runs
   public static void main(String[] args) throws FileNotFoundException {
-    String inputFileName = "100a-rawsynthpwaves.js";
-    String outputFileName = "test1.js";
+    //String inputFileName = "100a-rawsynthpwaves.js";
+    String inputFileName = "segshotno1.js";
+    String outputFileName = "testImage.js";
     ParameterService parms =
         new FindTestData(inputFileName,outputFileName).getParameterService();
     

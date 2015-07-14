@@ -56,7 +56,8 @@ public class SeisFft3dNew {
   }
 
   /**
-   * Use existing storage for a 3D distributed FFT using DistributedArray shape as lengths
+   * Use existing storage for a 3D distributed FFT using
+   * DistributedArray shape as lengths
    * 
    * @param a pre-existing DistributedArray
    */
@@ -410,6 +411,7 @@ public class SeisFft3dNew {
 
     forwardTemporal();
     forwardSpatial2D();
+    System.out.println(Arrays.toString(_fpadShape));
   }
 
   public void forwardTemporal() {
@@ -417,7 +419,8 @@ public class SeisFft3dNew {
 
     if (_isTimeTransformed) {
       throw new IllegalArgumentException(
-          "Attempted temporal FFT on data that is already in the frequency domain.");
+          "Attempted temporal FFT on data"
+          + " that is already in the frequency domain.");
     }
     // Make the padded y-axis 'visible'
     da.setShape(new int[] { _inputShape[0], _inputShape[1], _padShape[2] });
@@ -437,7 +440,7 @@ public class SeisFft3dNew {
 
     // FFT along "T" axis
     // T,X,Y -> F,X,Y
-    System.out.println("FFT over T");
+    //System.out.println("FFT over T");
     int[] inputShape = _inputShape;
     temporalFFT(_f1,inputShape);
     //release realDataView for the garbage collector
@@ -473,14 +476,15 @@ public class SeisFft3dNew {
   public void forwardSpatial2D() {
     if (_isSpaceTransformed) {
       throw new IllegalArgumentException(
-          "Attempted spatial FFT on data that is already in the wavenumber domain.");
+          "Attempted spatial FFT on data"
+          + " that is already in the wavenumber domain.");
     }
     // Transpose and bring "X" axis to front
     // nftp,nkx,nyp (213) nkx,nftp,nyp
     da.setShape(2,new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
     da.transpose(TransposeType.T213);
     // FFT over "X" axis
-    System.out.println("FFT over X");
+    //System.out.println("FFT over X");
     int[] inputShape = new int[] {_inputShape[1],_fftShape[0],_inputShape[2]};
     spatialFFT(_f2,inputShape);
 
@@ -491,7 +495,7 @@ public class SeisFft3dNew {
     // Expand Y axis to transform length
     // nyp,nkx,nftp --> nky,nkx,nftp
     da.reshape(new int[] { _fftShape[2], _fftShape[1], _fpadShape[0] });   
-    System.out.println("FFT over Y");
+    //System.out.println("FFT over Y");
     inputShape = new int[] {_inputShape[2],_fftShape[1],_fftShape[0]};
     spatialFFT(_f3,inputShape);
 
@@ -557,14 +561,15 @@ public class SeisFft3dNew {
 
     if (!_isSpaceTransformed) {
       throw new IllegalArgumentException(
-          "Attempted spatial IFFT on data that is not in the wavenumber domain.");      
+          "Attempted spatial IFFT on data"
+          + "that is not in the wavenumber domain.");      
     }
     // Make 3rd dimension padding 'visible'
     da.setShape(new int[] { _fftShape[2], _fftShape[1], _fpadShape[0] });
 
     // Inverse FFT over "Y" axis
     int[] inputShape = new int[] {_fftShape[2],_fftShape[1],_fftShape[0]};
-    System.out.println("IFFT over Y");
+    //System.out.println("IFFT over Y");
     spatialIFFT(_f3,inputShape);
 
     // Reshape to truncate Y axis back to original padded length
@@ -576,14 +581,15 @@ public class SeisFft3dNew {
 
     // Inverse FFT over "Kx" axis
     inputShape = new int[] {_fftShape[1],_fftShape[0],_inputShape[2]};
-    System.out.println("IFFT over X");
-    System.out.println("DA task #" + da.getParallelContext().rank());
+    //System.out.println("IFFT over X");
+    //System.out.println("DA task #" + da.getParallelContext().rank());
     spatialIFFT(_f2,inputShape);
     // Transpose and bring "F" axis to front
     // nx,nftp,nyp (213) nftp,nx,nyp
     da.transpose(TransposeType.T213);
     _isSpaceTransformed = false;
-    da.setShape(2,new int[] { _fpadShape[0], _inputShape[1], _padShape[2] });
+    //da.setShape(2,new int[] { _fpadShape[0], _padShape[1], _padShape[2] });
+    da.setShape(2,new int[] { _fpadShape[0], _inputShape[1], _inputShape[2] });
   }
 
   private void checkDAShapeForInverseTransform() {
@@ -616,7 +622,8 @@ public class SeisFft3dNew {
       throw new IllegalArgumentException(
           "Attempted temporal IFFT on data that is not in the frequency domain.");      
     }
-    System.out.println("IFFT over T");
+    
+    //System.out.println("IFFT over T");
     int[] inputShape = new int[] {_fftShape[0],_inputShape[1],_inputShape[2]};
     temporalIFFT(_f1,inputShape);
 
