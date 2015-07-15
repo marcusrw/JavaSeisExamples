@@ -23,7 +23,7 @@ public interface IVolumeTool {
   public void parallelInit( ToolContext toolContext );
 
   /**
-   * Perform the necessary operations on the input volume.
+   * Perform the desired operations on the input volume.
    * 
    * @param toolContext
    * @param input
@@ -32,9 +32,9 @@ public interface IVolumeTool {
    */
   public boolean processVolume( ToolContext toolContext, ISeismicVolume input, ISeismicVolume output);
 
-  //TODO what is this supposed to do?  The StandAloneVolumeTool can output data
-  //even though this method just returns false.
   /**
+   * Perform the desired operations on the output volume, such as stacking.
+   * 
    * @param toolContext
    * @param output
    * @return

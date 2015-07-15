@@ -225,7 +225,7 @@ public class StandAloneVolumeTool implements IVolumeTool {
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
-    System.out.println("Executing StandAloneVolume.processVolume() " 
+    System.out.println("Executing StandAloneVolumeTool.processVolume() " 
         + "on task number " + toolContext.getParallelContext().rank()
         + "\nYou should override this method if you want "
         + "your tool to do anything useful.\n");
@@ -234,10 +234,10 @@ public class StandAloneVolumeTool implements IVolumeTool {
 
   @Override
   public boolean outputVolume(ToolContext toolContext, ISeismicVolume output) {
-    System.out.println("Executing StandAloneVolume.outputVolume() " 
+    System.out.println("Executing StandAloneVolumeTool.outputVolume() " 
         + "on task number " + toolContext.getParallelContext().rank()
         + "\nYou should override this method if you want "
-        + "your tool to save your output to a file.\n");
+        + "your tool to do any post processing on the output.\n");
     return false;
   }
 
