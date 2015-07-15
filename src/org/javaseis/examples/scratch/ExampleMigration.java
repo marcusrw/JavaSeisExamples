@@ -12,7 +12,6 @@ import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.synthetic.CosineBellWavelet;
 
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
-import org.javaseis.examples.plot.ThreadedDAViewer;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
@@ -77,8 +76,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     AxisDefinition[] imageAxes = new AxisDefinition[inputGrid.getNumDimensions()];
 
     float zmin = Float.parseFloat(parms.getParameter("ZMIN","0"));
-    float zmax = Float.parseFloat(parms.getParameter("ZMAX","2000"));
-    float delz = Float.parseFloat(parms.getParameter("DELZ","20"));
+    float zmax = Float.parseFloat(parms.getParameter("ZMAX","1100"));
+    float delz = Float.parseFloat(parms.getParameter("DELZ","50"));
 
     long depthAxisLength;
     if (delz == 0 || (zmax - zmin) < delz)
@@ -332,7 +331,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       //TODO Trick.  Hide the high frequencies from the iterator
       // so that it doesn't waste time accumulating a bunch of zeros.
 
-
+      /*
       int[] DALengths = rcvrDA.getShape().clone();
       System.out.println(Arrays.toString(DALengths));
 
@@ -348,6 +347,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       shotDA.setShape(DALengths);
       System.out.println(Arrays.toString(DALengths));
 
+       */
       dapi = new DistributedArrayPositionIterator(rcvrDA,position,
           direction,scope);
 
@@ -386,7 +386,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
         image.putSample(imageSample, outputPosition);
       }
 
+      /*
       DALengths[0] = realFShape;
+      */
 
       //rcvr.inverseTemporal();
       //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
@@ -520,6 +522,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
       }
     }
     throw new IllegalArgumentException("Unable to find source location.");
+  }
+  
+  @Override
+  public boolean outputVolume(ToolContext toolContext, ISeismicVolume output) {
+    //does nothing.
+    return false;
   }
 
   @Override
