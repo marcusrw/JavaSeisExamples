@@ -43,9 +43,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private GridDefinition imageGrid;
   //TODO only for visual checks.  Delete later.
   private GridDefinition transformGrid;
-
-  //viewer for checking your work.
   private SingleVolumeDAViewer display;
+
 
   static final float[] PAD = new float[] {50,50,50};
 
@@ -76,8 +75,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     AxisDefinition[] imageAxes = new AxisDefinition[inputGrid.getNumDimensions()];
 
     float zmin = Float.parseFloat(parms.getParameter("ZMIN","0"));
-    float zmax = Float.parseFloat(parms.getParameter("ZMAX","1100"));
-    float delz = Float.parseFloat(parms.getParameter("DELZ","50"));
+    float zmax = Float.parseFloat(parms.getParameter("ZMAX","2000"));
+    float delz = Float.parseFloat(parms.getParameter("DELZ","10"));
 
     long depthAxisLength;
     if (delz == 0 || (zmax - zmin) < delz)
@@ -246,7 +245,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     System.out.println("delz: " + delz);
     System.out.println("numz: " + numz);
 
-    double[] sampleRates = {0.002,100,100};
+    double[] sampleRates = {0.002,20,20};
     rcvr.setTXYSampleRates(sampleRates);
     shot.setTXYSampleRates(sampleRates);
 
@@ -287,11 +286,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
           shift = (-2*Math.PI*delz * Math.sqrt(Kz2));
         }
         if (Kz2 > eps) {
-          //TODO temporary "do nothing" extrapolation
-          //recOutSample[0] = recInSample[0];
-          //recOutSample[1] = recInSample[1];
-          //souOutSample[0] = souInSample[0];
-          //souOutSample[1] = souInSample[1];
+          //TODO fix these if statements so we get proper filtering
+          // for depth z = 0.
 
           recOutSample[0] = (float) (recInSample[0]*Math.cos(-shift)
               - recInSample[1]*Math.sin(-shift));
@@ -352,7 +348,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
           direction,scope);
 
       //Get the source and receiver samples
-      System.out.println(image.getElementCount());
       System.out.println("shot: "
           + Arrays.toString(shotDA.getShape())
           + " "
@@ -388,32 +383,25 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       /*
       DALengths[0] = realFShape;
-      */
+       */
+      if (zmin+delz*zindx == 566) {
+        rcvr.inverseTemporal();
+        display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
+        display.showAsModalDialog();
+        rcvr.forwardTemporal();
 
-      //rcvr.inverseTemporal();
-      //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
-      //display.showAsModalDialog();
-      //rcvr.forwardTemporal();
+        shot.inverseTemporal();
+        display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
+        display.showAsModalDialog();
+        shot.forwardTemporal();      
 
-      //shot.inverseTemporal();
-      //display = new SingleVolumeDAViewer(shotDA,input.getLocalGrid());
-      //display.showAsModalDialog();
-      //shot.forwardTemporal();      
-
-      //display = new SingleVolumeDAViewer(image,output.getLocalGrid());
-      //display.showAsModalDialog();
+        display = new SingleVolumeDAViewer(image,output.getLocalGrid());
+        display.showAsModalDialog();
+      }
     }
 
     //rcvr.inverseTemporal();
     //shot.inverseTemporal();
-
-    //ThreadedDAViewer liveDisplay = 
-    //    new ThreadedDAViewer(rcvrDA,input.getLocalGrid());
-    //liveDisplay.start();
-
-    //ThreadedDAViewer liveDisplay2 = 
-    //    new ThreadedDAViewer(shotDA,input.getLocalGrid());
-    //liveDisplay2.start();
 
     //display = new SingleVolumeDAViewer(rcvrDA,input.getLocalGrid());
     //display.showAsModalDialog();
@@ -523,7 +511,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
     throw new IllegalArgumentException("Unable to find source location.");
   }
-  
+
   @Override
   public boolean outputVolume(ToolContext toolContext, ISeismicVolume output) {
     //does nothing.
