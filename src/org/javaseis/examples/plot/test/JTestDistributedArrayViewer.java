@@ -31,7 +31,7 @@ public class JTestDistributedArrayViewer {
   public void toolExecutes() {
     //TODO randomly generate a single random volume for this test.
     //loadDataset("100a-rawsynthpwaves.js");
-    loadDataset("testImage.js");
+    loadDataset("benchmark500m.js");
   }
   
   @Test

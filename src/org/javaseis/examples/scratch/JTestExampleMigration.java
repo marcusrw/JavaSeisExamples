@@ -2,7 +2,7 @@ package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
 
-import org.javaseis.examples.plot.JavaSeisMovieRunner;
+import org.javaseis.examples.scratch.ExampleMigration;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.test.testdata.FindTestData;
@@ -25,16 +25,20 @@ public class JTestExampleMigration {
   public static void main(String[] args) throws FileNotFoundException {
     String inputFileName = "100a-rawsynthpwaves.js";
     //String inputFileName = "segshotno1.js";
-    String outputFileName = "testImage.js";
+    String outputFileName = "benchmark500m.js";
+    
     ParameterService parms =
         new FindTestData(inputFileName,outputFileName).getParameterService();
+    parms.setParameter("ZMIN","0");
+    parms.setParameter("ZMAX","2000");
+    parms.setParameter("DELZ","500");
+    parms.setParameter("PADT","50");
+    parms.setParameter("PADX","50");
+    parms.setParameter("PADY","50");
     
-    parms.setParameter("threadCount", "1");
+    
+    //parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
-    LOGGER.fine("Displaying input file: " + inputFileName);
-    JavaSeisMovieRunner.showMovie(inputFileName);
-    LOGGER.fine("Displaying output file: " + outputFileName);
-    JavaSeisMovieRunner.showMovie(outputFileName);
   }
 
   //@Test
