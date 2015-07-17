@@ -37,6 +37,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
   int volumeCount;
   IParallelContext pc;
 
+  //Is having rcvr and shot as member variables going to cause
+  //some sort of race condition?
   SeisFft3dNew rcvr,shot;
   private long[] transformAxisLengths;
   private DataDomain[] transformDomains;
@@ -187,7 +189,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
-      ISeismicVolume output) {
+      ISeismicVolume outputVolume) {
 
     IntervalTimer singleVolumeTime = new IntervalTimer();
     singleVolumeTime.start();
@@ -204,29 +206,19 @@ public class ExampleMigration extends StandAloneVolumeTool {
     shot = new SeisFft3dNew(pc,inputShape,PAD,DEFAULT_FFT_ORIENTATION);
     rcvr.getArray().copy(inputDA);
 
-    DistributedArray rcvrDA = rcvr.getArray();
+    //DistributedArray rcvr.getArray() = rcvr.getArray();
     DistributedArray shotDA = shot.getArray();
-
-    //rcvrDA = rcvr.getArray();
-    //display = new SingleVolumeDAViewer(rcvrDA,output.getLocalGrid());
-    //display.showAsModalDialog();
-
-    transformTime.start();
-    rcvr.forwardTemporal();
-    shot.forwardTemporal();
-    transformTime.stop(); 
-
-    //Build the Source signature by finding the best array index 
-    //for the source location, then stick a little hat function there
+    
+    transformFromTimeToFrequency(); 
     generateSourceSignature(sourceXYZ);
 
     eps = 1E-12F;
     eps = 0F;
     float V;
 
-    double zmin = output.getLocalGrid().getAxisPhysicalOrigin(0);
-    double delz = output.getLocalGrid().getAxisPhysicalDelta(0);
-    long numz = output.getLocalGrid().getAxisLength(0);
+    double zmin = outputVolume.getLocalGrid().getAxisPhysicalOrigin(0);
+    double delz = outputVolume.getLocalGrid().getAxisPhysicalDelta(0);
+    long numz = outputVolume.getLocalGrid().getAxisLength(0);
 
     LOGGER.info(String.format("zmin: %6.1f, delz: %6.1f, numz: %4d",
         zmin,delz,numz));
@@ -239,90 +231,95 @@ public class ExampleMigration extends StandAloneVolumeTool {
       LOGGER.info("Depth: " + (zmin+delz*zindx));
       if (zmin+delz*zindx <= 1000) V = 2000;
       else V = 2000;
-
-      int[] position;
-      DistributedArrayPositionIterator dapi;
-      extrapolate(rcvrDA, shotDA, V, delz, zindx);
-
-      //Now image here
-      imageTime.start();
-      float[] recInSample2 = new float[rcvrDA.getElementCount()];
-      float[] souInSample2 = new float[shotDA.getElementCount()];
-      position = new int[rcvrDA.getDimensions()];
-
-      //TODO Trick.  Hide the high frequencies from the iterator
-      // so that it doesn't waste time accumulating a bunch of zeros.
-
-      /*
-      int[] DALengths = rcvrDA.getShape().clone();
-      LOGGER.info(Arrays.toString(DALengths));
-
-      double fMax = 60;
-      double fNY = 1/(2*0.002);
-      double delf = fNY/DALengths[0];
-      int realFShape = DALengths[0];
-      int maxFindx = (int) (fMax/delf);
-
-      DALengths[0] = maxFindx;
-      LOGGER.info("Max F index: " + maxFindx);
-      rcvrDA.setShape(DALengths);
-      shotDA.setShape(DALengths);
-      LOGGER.info(Arrays.toString(DALengths));
-
-       */
-
-      int[] position2 = new int[rcvrDA.getDimensions()];
-      int direction2 = 1; //forward
-      int scope2 = 0; //samples
-
-      dapi = new DistributedArrayPositionIterator(rcvrDA,position2,
-          direction2,scope2);
-
-      DistributedArray image = output.getDistributedArray();
-      float[] imageSample = new float[image.getElementCount()];
-      while (dapi.hasNext()) {
-        position2 = dapi.next();
-        int[] outputPosition = position.clone();
-        outputPosition[0] = zindx;
-        //LOGGER.info("Position in: "
-        //    + Arrays.toString(position)
-        //    + " position out: "
-        //    + Arrays.toString(outputPosition));
-        rcvrDA.getSample(recInSample2, position2);
-        shotDA.getSample(souInSample2, position2);
-
-        image.getSample(imageSample, outputPosition);
-        imageSample[0] += recInSample2[0]*souInSample2[0]
-            + recInSample2[1]*souInSample2[1];
-        //imageSample[1] += recInSample[0]*souInSample[1]
-        //    - recInSample[1]*souInSample[0];
-        image.putSample(imageSample, outputPosition);
-      }
-
-      //Get the source and receiver samples
-      LOGGER.fine("\n\nShot DA shape: "
-          + Arrays.toString(shotDA.getShape())
-          + "\nShot DA sample count: "
-          + shotDA.getTotalSampleCount()
-          +"\n\nReceiver DA shape: "
-          + Arrays.toString(rcvrDA.getShape()) 
-          + "\nReceiver DA sample count: "
-          + rcvrDA.getTotalSampleCount()
-          +"\n\nImage DA shape: " 
-          + Arrays.toString(image.getShape()) 
-          + "\nImage DA sample count: " 
-          + image.getTotalSampleCount()
-          + "\n\n");
-
-      /*
-      DALengths[0] = realFShape;
-       */
-      imageTime.stop();
+      extrapolate(V, delz, zindx);
+      imagingCondition(outputVolume,zindx);
     }
 
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time",singleVolumeTime);
     return true;
+  }
+
+  private void imagingCondition(ISeismicVolume outputVolume,int zindx) {
+    //Now image here
+    imageTime.start();
+    
+    DistributedArray rcvrDA = rcvr.getArray();
+    DistributedArray shotDA = shot.getArray();
+    DistributedArray imageDA = outputVolume.getDistributedArray();
+    float[] recInSample2 = new float[rcvrDA.getElementCount()];
+    float[] souInSample2 = new float[shotDA.getElementCount()];
+
+    //TODO Trick.  Hide the high frequencies from the iterator
+    // so that it doesn't waste time accumulating a bunch of zeros.
+
+    /*
+    int[] DALengths = rcvr.getArray().getShape().clone();
+    LOGGER.info(Arrays.toString(DALengths));
+
+    double fMax = 60;
+    double fNY = 1/(2*0.002);
+    double delf = fNY/DALengths[0];
+    int realFShape = DALengths[0];
+    int maxFindx = (int) (fMax/delf);
+
+    DALengths[0] = maxFindx;
+    LOGGER.info("Max F index: " + maxFindx);
+    rcvr.getArray().setShape(DALengths);
+    shotDA.setShape(DALengths);
+    LOGGER.info(Arrays.toString(DALengths));
+
+     */
+
+    //buffers
+    int[] position = new int[rcvrDA.getDimensions()];
+    int direction = 1; //forward
+    int scope = 0; //samples
+
+    DistributedArrayPositionIterator dapi;
+    dapi = new DistributedArrayPositionIterator(rcvr.getArray(),position,
+        direction,scope);
+
+    float[] imageSample = new float[imageDA.getElementCount()];
+    while (dapi.hasNext()) {
+      position = dapi.next();
+      int[] outputPosition = position.clone();
+      outputPosition[0] = zindx;
+      rcvr.getArray().getSample(recInSample2, position);
+      shotDA.getSample(souInSample2, position);
+
+      imageDA.getSample(imageSample, outputPosition);
+      imageSample[0] += recInSample2[0]*souInSample2[0]
+          + recInSample2[1]*souInSample2[1];
+      imageDA.putSample(imageSample, outputPosition);
+    }
+
+    //Get the source and receiver samples
+    LOGGER.fine("\n\nShot DA shape: "
+        + Arrays.toString(shotDA.getShape())
+        + "\nShot DA sample count: "
+        + shotDA.getTotalSampleCount()
+        +"\n\nReceiver DA shape: "
+        + Arrays.toString(rcvr.getArray().getShape()) 
+        + "\nReceiver DA sample count: "
+        + rcvr.getArray().getTotalSampleCount()
+        +"\n\nImage DA shape: " 
+        + Arrays.toString(imageDA.getShape()) 
+        + "\nImage DA sample count: " 
+        + imageDA.getTotalSampleCount()
+        + "\n\n");
+
+    /*
+    DALengths[0] = realFShape;
+     */
+    imageTime.stop();
+  }
+
+  private void transformFromTimeToFrequency() {
+    transformTime.start();
+    rcvr.forwardTemporal();
+    shot.forwardTemporal();
+    transformTime.stop();
   }
 
   private double[] computeVolumeSampleRates(ISeismicVolume input) {
@@ -342,60 +339,89 @@ public class ExampleMigration extends StandAloneVolumeTool {
         +"milliseconds.  I don't know how to deal with that.");
   }
 
-  private void extrapolate(DistributedArray rcvrDA, DistributedArray shotDA,
-      float V, double delz, int zindx) {
-    transformTime.start();
-    rcvr.forwardSpatial2D();
-    shot.forwardSpatial2D();
-    transformTime.stop();
-
+  private void extrapolate(float V, double delz, int zindx) {
+    transformFromSpaceToWavenumber();
     extrapTime.start();
+    
+    DistributedArray rcvrDA = rcvr.getArray();
+    DistributedArray shotDA = shot.getArray();
+    
     int[] position = new int[rcvrDA.getDimensions()];
     int direction = 1; //forward
     int scope = 0; //samples
-    DistributedArrayPositionIterator dapi =
-        new DistributedArrayPositionIterator(
-            rcvrDA,position,direction,scope);
-
+    
+    //buffers
     float[] recInSample = new float[rcvrDA.getElementCount()];
     float[] souInSample = new float[shotDA.getElementCount()];
     float[] recOutSample = new float[rcvrDA.getElementCount()];
     float[] souOutSample = new float[rcvrDA.getElementCount()];
     double[] coords = new double[position.length];
+    
+    float[] recOutSample2;
+    float[] souOutSample2;
+    
+    DistributedArrayPositionIterator dapi =
+        new DistributedArrayPositionIterator(
+            rcvrDA,position,direction,scope);
     while (dapi.hasNext()) {
       position = dapi.next();
       //LOGGER.info("Position in " + Arrays.toString(position));
       rcvrDA.getSample(recInSample, position);
       shotDA.getSample(souInSample, position);
       rcvr.getKyKxFCoordinatesForPosition(position, coords);
-      //LOGGER.info(Arrays.toString(position) 
-      //    + " " + Arrays.toString(coords));
       double Ky = coords[0];
       double Kx = coords[1];
       double F = coords[2];
       double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
-      double shift = 0;
+      double exponent = 0;
       if (Kz2 > eps && zindx > 0) {
-        shift = (-2*Math.PI*delz * Math.sqrt(Kz2));
+        exponent = (-2*Math.PI*delz * Math.sqrt(Kz2));
       }
       if (Kz2 > eps) {
         //TODO fix these if statements so we get proper filtering
         // for depth z = 0.
+        /*
+        recOutSample2 = complexMultiply(
+            recInSample,complexExponential(-exponent));
+        souOutSample2 = complexMultiply(
+            souInSample,complexExponential(exponent));
+        */
+        recOutSample[0] = (float) (recInSample[0]*Math.cos(-exponent)
+            - recInSample[1]*Math.sin(-exponent));
+        recOutSample[1] = (float) (recInSample[1]*Math.cos(-exponent)
+            + recInSample[0]*Math.sin(-exponent));
+        souOutSample[0] = (float) (souInSample[0]*Math.cos(exponent)
+            - souInSample[1]*Math.sin(exponent));
+        souOutSample[1] = (float) (souInSample[1]*Math.cos(exponent)
+            + souInSample[0]*Math.sin(exponent));
+        /*
+        if (!Arrays.equals(recOutSample,recOutSample2)) {
+          System.out.println(Arrays.toString(recOutSample));
+          System.out.println(Arrays.toString(recOutSample2));
+          System.out.println((recOutSample[0]-recOutSample2[0])/recOutSample[0]);
+          System.out.println((recOutSample[1]-recOutSample2[1])/recOutSample[1]);
+          
+          throw new ArithmeticException("Results of complex multiplication were different"
+              + " for recOutSample");
+        }
+        if (!Arrays.equals(souOutSample,souOutSample2)) {
+          System.out.println(Arrays.toString(souOutSample));
+          System.out.println(Arrays.toString(souOutSample2));
+          System.out.println((souOutSample[0]-souOutSample2[0])/souOutSample[0]);
+          System.out.println((souOutSample[1]-souOutSample2[1])/souOutSample[1]);
 
-        recOutSample[0] = (float) (recInSample[0]*Math.cos(-shift)
-            - recInSample[1]*Math.sin(-shift));
-        recOutSample[1] = (float) (recInSample[1]*Math.cos(-shift)
-            + recInSample[0]*Math.sin(-shift));
-        souOutSample[0] = (float) (souInSample[0]*Math.cos(shift)
-            - souInSample[1]*Math.sin(shift));
-        souOutSample[1] = (float) (souInSample[1]*Math.cos(shift)
-            + souInSample[0]*Math.sin(shift));
+          throw new ArithmeticException("Results of complex multiplication were different"
+              + " for souOutSample");
+        }
+        */
+        
+        
       } else {
-        shift = 2*Math.PI*Math.abs(delz)*Math.sqrt(Math.abs(Kz2));
-        recOutSample[0] = (float) (recInSample[0]*Math.exp(-shift));
-        recOutSample[1] = (float) (recInSample[1]*Math.exp(-shift));
-        souOutSample[0] = (float) (souInSample[0]*Math.exp(-shift));
-        souOutSample[1] = (float) (souInSample[1]*Math.exp(-shift));
+        exponent = 2*Math.PI*Math.abs(delz)*Math.sqrt(Math.abs(Kz2));
+        recOutSample[0] = (float) (recInSample[0]*Math.exp(-exponent));
+        recOutSample[1] = (float) (recInSample[1]*Math.exp(-exponent));
+        souOutSample[0] = (float) (souInSample[0]*Math.exp(-exponent));
+        souOutSample[1] = (float) (souInSample[1]*Math.exp(-exponent));
       }
       //LOGGER.info("Position out: " + Arrays.toString(position));
       rcvrDA.putSample(recOutSample, position);
@@ -403,10 +429,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
     extrapTime.stop();
 
-    //rcvrDA.transpose(TransposeType.T321);
-    //display = new SingleVolumeDAViewer(rcvrDA,transformGrid);
+    //rcvr.getArray().transpose(TransposeType.T321);
+    //display = new SingleVolumeDAViewer(rcvr.getArray(),transformGrid);
     //display.showAsModalDialog();
-    //rcvrDA.transpose(TransposeType.T321);      
+    //rcvr.getArray().transpose(TransposeType.T321);      
 
     //srceDA.transpose(TransposeType.T321);
     //display = new SingleVolumeDAViewer(srceDA,transformGrid);
@@ -416,6 +442,33 @@ public class ExampleMigration extends StandAloneVolumeTool {
     transformTime.start();
     rcvr.inverseSpatial2D();
     shot.inverseSpatial2D();
+    transformTime.stop();
+  }
+  
+  private float[] doubleToFloat(double[] doubleArray) {
+    float[] floatArray = new float[doubleArray.length];
+    for (int k = 0 ; k < doubleArray.length ; k++ ) {
+      floatArray[k] = (float) doubleArray[k];
+    }
+    return floatArray;
+  }
+
+  private float[] complexMultiply(float[] c1, float[] c2) {
+    float realPart = c1[0]*c2[0]-c1[1]*c2[1];
+    float imagPart = c1[0]*c2[1]+c1[1]*c2[0];
+    return new float[] {realPart,imagPart};
+  }
+
+  //Computes the complex exponential e^(ir) of a real number r
+  //by Euler's formula.
+  private float[] complexExponential(double r) {
+    return new float[] {(float)Math.cos(r),(float)Math.sin(r)};
+  }
+
+  private void transformFromSpaceToWavenumber() {
+    transformTime.start();
+    rcvr.forwardSpatial2D();
+    shot.forwardSpatial2D();
     transformTime.stop();
   }
 
