@@ -3,8 +3,9 @@ package org.javaseis.examples.scratch;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.junit.Test;
 
@@ -37,7 +38,12 @@ import beta.javaseis.plugin.JssiRegistry;
  * that will prevent you from obtaining a successful comparison.
  */
 public class JTestSeisFft3dNew {
-  private static String[] _args;
+  //1.e-5 is too small and will fail
+  private static final double FORWARD_INVERSE_TOLERANCE = 1.e-4;
+  private static final double INVERSE_FORWARD_TOLERANCE = 1.e-6;
+
+  private static final Logger LOGGER =
+      Logger.getLogger(JTestSeisFft3dNew.class.getName());
 
   private static final int TEST_DC   = 101;
   private static final int TEST_RAMP = 102;
@@ -50,12 +56,7 @@ public class JTestSeisFft3dNew {
   private static final int NYMAX =  39;
   private static final int NTESTS = 20;
 
-  double FORWARD_INVERSE_TOLERANCE = 1.e-4;  // 1.e-5 is too small and will fail
-  double INVERSE_FORWARD_TOLERANCE = 1.e-6;
-
   public static void main(String[] args) {
-    _args = args;
-
     JTestSeisFft3dNew test = new JTestSeisFft3dNew();
 
     // Tests the conversion from sample indices to actual frequency units.
@@ -82,13 +83,13 @@ public class JTestSeisFft3dNew {
     System.setProperty("IFFT", "beta.javaseis.fft.SeisFftJtk,beta.javaseis.fft.SeisFftJTransform");
     System.setProperty("IMultiArray", "beta.javaseis.array.MultiArray");
 
-	try {
-		System.out.println(JssiRegistry.getDefaultImplementation(IFFT.class).toString());
-	} catch (InstantiationException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-	
+    try {
+      LOGGER.info(JssiRegistry.getDefaultImplementation(IFFT.class).toString());
+    } catch (InstantiationException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e);
+      e.printStackTrace();
+    }
+
     SeisFft3dNew fft3d = new SeisFft3dNew(pc, len, pad);
     fft3d.debugPrint("BEFORE:");
     fft3d.setTXYSampleRates(sampleRates);
@@ -123,7 +124,8 @@ public class JTestSeisFft3dNew {
       int nx = (int)((NXMAX-2)*Math.random() + 2);
       int ny = (int)((NYMAX-2)*Math.random() + 2);
       if(CHATTY)
-        System.out.printf("SeisFft3dNewTest:  nf=%4d,  nx=%4d,  ny=%4d\n", nf, nx, ny);
+        LOGGER.info(String.format(
+            "SeisFft3dNewTest:  nf=%4d,  nx=%4d,  ny=%4d%n", nf, nx, ny));
 
       // Run forward round-trip tests.
       doRoundTripForward(TEST_DC, nf, nx, ny);
@@ -138,9 +140,11 @@ public class JTestSeisFft3dNew {
    * Pauses program execution until user hits ENTER (so be sure to comment out
    * occurrences after you're finished debugging).
    */
+  /*
   private static void debugPause() {
     try { System.in.read(); } catch(IOException e) { }
   }
+   */
 
   /**
    * Make 2 copies of input data.  Keep one copy (da1) as control copy, and send
@@ -158,8 +162,8 @@ public class JTestSeisFft3dNew {
     float[] pad = { 0.f, 0.f, 0.f };
     int[] len = new int[]{ nf, nx, ny };
 
-    if(VERBOSE) System.out.printf("\n***** begin test w/testType, nf, nx, ny = " +
-        testType + " %d %d %d *****\n", nf, nx, ny);
+    if(VERBOSE) System.out.printf("%n***** begin test w/testType, nf, nx, ny = "
+        + testType + " %d %d %d *****%n", nf, nx, ny);
 
     SeisFft3dNew f3d0 = new SeisFft3dNew( pc, len, pad );
     SeisFft3dNew f3d1 = new SeisFft3dNew( pc, len, pad );
@@ -171,10 +175,10 @@ public class JTestSeisFft3dNew {
 
     // Print out dimensions.
     if(VERBOSE) {
-      pc.masterPrint(String.format("\nInitial transform fft lengths = %d %d %d",
-        fftLengths[0], fftLengths[1], fftLengths[2]) );
+      pc.masterPrint(String.format("%nInitial transform fft lengths = %d %d %d",
+          fftLengths[0], fftLengths[1], fftLengths[2]) );
       pc.masterPrint(String.format("Initial transform array lengths = %d %d %d",
-        da0.getLength(0), da0.getLength(1), da0.getGlobalLength(2)) );
+          da0.getLength(0), da0.getLength(1), da0.getGlobalLength(2)) );
     }
 
     int[] position = { 0, 0, 0 };
@@ -192,14 +196,14 @@ public class JTestSeisFft3dNew {
         float ramp = 0;
         for (int i=0; i<len[0]; i++) {
           switch(testType) {
-            case TEST_DC:
-              da0.putSample(1f, position);
-              da1.putSample(1f, position);
-              break;
-            case TEST_RAMP:
-              da0.putSample(ramp, position);
-              da1.putSample(ramp, position);
-              break;
+          case TEST_DC:
+            da0.putSample(1f, position);
+            da1.putSample(1f, position);
+            break;
+          case TEST_RAMP:
+            da0.putSample(ramp, position);
+            da1.putSample(ramp, position);
+            break;
           }
           ramp++;
         }
@@ -210,7 +214,8 @@ public class JTestSeisFft3dNew {
     if(CHATTY) pc.masterPrint( "Apply Forward 3D FFT ... ");
     f3d0.forward();
     int l = len[0]*len[1]*len[2];
-    if(CHATTY) pc.masterPrint(String.format("Ky Kx F domain array lengths = %d %d %d\n",
+    if(CHATTY) pc.masterPrint(String.format("Ky Kx F domain array lengths"
+        + "= %d %d %d%n",
         da0.getLength(0), da0.getLength(1), da0.getGlobalLength(2)) );
 
     // Mark potential failure after forward transform.
@@ -225,7 +230,7 @@ public class JTestSeisFft3dNew {
     if(CHATTY) pc.masterPrint( "Apply Inverse 3D FFT ... ");
     f3d0.inverse();
 
-    if(CHATTY) pc.masterPrint(String.format("T X Y domain array lengths = %d %d %d\n",
+    if(CHATTY) pc.masterPrint(String.format("T X Y domain array lengths = %d %d %d%n",
         da0.getLength(0), da0.getLength(1), da0.getGlobalLength(2)) );
 
     if(CHATTY && testType == TEST_DC) {
@@ -246,18 +251,18 @@ public class JTestSeisFft3dNew {
           float a0 = da0.getFloat(position);
           float a1 = da1.getFloat(position);
           if(VERBOSE) {
-            System.out.printf("pos[2], pos[1], ia = %4d %4d %4d\n",
+            System.out.printf("pos[2], pos[1], ia = %4d %4d %4d%n",
                 position[2], position[1], i);
-            System.out.printf("  control, result = %10.5f %10.5f\n", a1, a0);
+            System.out.printf("  control, result = %10.5f %10.5f%n", a1, a0);
           }
           // assertEquals message below lacks detail -- add some more printout
           if(Math.abs(a1 - a0) > FORWARD_INVERSE_TOLERANCE) {
-            System.out.println("\nTOLERANCE exceeded !!!");
-            System.out.printf("  testType = %d\n", testType);
-            System.out.printf("  nf, nx, ny = %4d %4d %4d\n", nf, nx, ny);
-            System.out.printf("  values being compared were %f and %f\n", a1, a0);
-            System.out.printf("  position was pos[2], pos[1], ia = %4d %4d %4d\n",
-                                              position[2], position[1], i);
+            System.out.println("%nTOLERANCE exceeded !!!");
+            System.out.printf("  testType = %d%n", testType);
+            System.out.printf("  nf, nx, ny = %4d %4d %4d%n", nf, nx, ny);
+            System.out.printf("  values being compared were %f and %f%n", a1, a0);
+            System.out.printf("  position was pos[2], pos[1], ia = %4d %4d %4d%n",
+                position[2], position[1], i);
             //debugPause();
           }
           assertEquals(a1, a0, FORWARD_INVERSE_TOLERANCE);
@@ -269,7 +274,7 @@ public class JTestSeisFft3dNew {
     if(CHATTY) pc.masterPrint( f3d0.getClass().toString() + " *** SUCCESS ***");
     pc.finish();
   }
-  
+
   /**
    * Most of the SeisFft3dNew constructors take untransformed data as input, i.e.
    * it's typically TXY data.  This test is designed to test the SeisFft3dNew
@@ -283,7 +288,7 @@ public class JTestSeisFft3dNew {
     int[] len = SeisFft3dNew.getTransformShape(
         new int[] { nf, nx, ny }, new float[] {0f,0f,0f}, pc );
     int[] type =
-    new int[] { Decomposition.BLOCK, Decomposition.BLOCK, Decomposition.BLOCK };
+        new int[] { Decomposition.BLOCK, Decomposition.BLOCK, Decomposition.BLOCK };
     DistributedArray daCopy = new DistributedArray(pc, float.class, 3, 2, len, type);
     DistributedArray da = new DistributedArray(pc, float.class, 3, 2, len, type);
     SeisFft3dNew fft3d = new SeisFft3dNew(da,new int[] {-1,1,1});
@@ -302,8 +307,8 @@ public class JTestSeisFft3dNew {
     float[] buf, bufCopy;
 
     // Put some data into our KyKxF-ordered DistributedArray.
-    //System.out.printf("shape = %d %d %d\n", shape[0], shape[1], shape[2]);
-    //System.out.printf("fftLens = %d %d %d\n", fftLen[0], fftLen[1], fftLen[2]);
+    //System.out.printf("shape = %d %d %d%n", shape[0], shape[1], shape[2]);
+    //System.out.printf("fftLens = %d %d %d%n", fftLen[0], fftLen[1], fftLen[2]);
     buf = new float[2*shape[0]];
     for(int k=0; k<shape[2]; k++) {
       position[2] = k;
@@ -345,10 +350,10 @@ public class JTestSeisFft3dNew {
           if(diffReal > diffRealMax) diffRealMax = diffReal;
           if(diffImag > diffImagMax) diffImagMax = diffImag;
           if(diffReal > INVERSE_FORWARD_TOLERANCE ||
-             diffImag > INVERSE_FORWARD_TOLERANCE  ) {
-            System.out.printf("k=%5d j=%5d\n", k, j);
+              diffImag > INVERSE_FORWARD_TOLERANCE  ) {
+            System.out.printf("k=%5d j=%5d%n", k, j);
             for(int n=0; n<2*shape[0]; n++) {
-              System.out.printf("%10.5f %10.5f\n", bufCopy[n], buf[n]);
+              System.out.printf("%10.5f %10.5f%n", bufCopy[n], buf[n]);
             }
           }
           assertEquals(bufCopy[i], buf[i], INVERSE_FORWARD_TOLERANCE);

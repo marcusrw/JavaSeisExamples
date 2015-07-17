@@ -24,10 +24,10 @@ import java.util.logging.Logger;
 
 
 public class JTestSeismicVolume {
-  
+
   public static final Logger LOGGER =
       Logger.getLogger(JTestSeismicVolume.class.getName());
-  
+
   //Some input parameters
   static IParallelContext pc;
   static ExampleRandomDataset randomInput;
@@ -41,7 +41,7 @@ public class JTestSeismicVolume {
   final int COMPLEX_NUMBERS = 2;
   final int BLOCK_DECOMP = Decomposition.BLOCK;
   final int CIRC_DECOMP = Decomposition.CIRCULAR;
-  
+
   @BeforeClass
   //Create input and output datasets that have different gridDefinitions
   public static void setDefaultParameters() {
@@ -60,16 +60,18 @@ public class JTestSeismicVolume {
     try {
       randomInput.deleteJavaSeisData();
     } catch (SeisException e) {
-      System.out.println("Unable to delete temporary data at " + randomInput.dataFullPath);
+      LOGGER.log(Level.INFO,"Unable to delete temporary data at "
+          + randomInput.dataFullPath,e);
       e.printStackTrace();
     }
   }
-  
+
   @Test
   public void testSimplestConstructorSucceeds() {
-    new SeismicVolume(pc,exampleGrid);    
+    SeismicVolume volume = new SeismicVolume(pc,exampleGrid);
+    Assert.assertNotNull(volume);
   }
-  
+
   @Test
   public void testSimplestConstructorSetsVolume() {
     SeismicVolume simplestVolume = new SeismicVolume(pc,exampleGrid);
@@ -83,9 +85,10 @@ public class JTestSeismicVolume {
 
   @Test
   public void testMiddleConstructorSucceeds() {
-    new SeismicVolume(pc,exampleGrid,binGrid);    
+    SeismicVolume volume = new SeismicVolume(pc,exampleGrid,binGrid);
+    Assert.assertNotNull(volume);
   }
-  
+
   @Test
   public void testMiddleConstructorSetsVolume() {
     SeismicVolume middleVolume = new SeismicVolume(pc,exampleGrid,binGrid);
@@ -99,21 +102,23 @@ public class JTestSeismicVolume {
 
   @Test
   public void testMostDetailedConstructorSucceeds() {
-    new SeismicVolume(pc,
+    SeismicVolume volume = new SeismicVolume(pc,
         exampleGrid,
         binGrid,
         FLOAT_TYPE,
         REAL_NUMBERS,
         BLOCK_DECOMP);
+    Assert.assertNotNull(volume);
   }
- 
+
   @Test
   public void testMostDetailedConstructorWithOtherInputs() {
-    new SeismicVolume(pc,
+    SeismicVolume volume = new SeismicVolume(pc,
         exampleGrid,
         binGrid,
         DOUBLE_TYPE,
         COMPLEX_NUMBERS,
         CIRC_DECOMP);
+    Assert.assertNotNull(volume);
   }
 }

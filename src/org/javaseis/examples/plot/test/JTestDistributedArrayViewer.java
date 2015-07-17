@@ -31,21 +31,21 @@ public class JTestDistributedArrayViewer {
   public void toolExecutes() {
     //TODO randomly generate a single random volume for this test.
     //loadDataset("100a-rawsynthpwaves.js");
-    loadDataset("benchmark500m.js");
+    loadDataset("test100m.js");
   }
   
-  @Test
+  //@Test
   public void noChangesToTimeDomainData() {
     //The data that is shown in the viewer is exactly the data
     //that is input
   }
   
-  @Test
+  //@Test
   public void complexDataDisplaysAbsValue() {
     //Given complex input, the amplitude spectra is shown
   }
   
-  @Test
+  //@Test
   public void waveNumberCoordsAreShifted() {
     //Given input in wavenumber coordinates, those axes are shifted so that
     //zero is in the centre.

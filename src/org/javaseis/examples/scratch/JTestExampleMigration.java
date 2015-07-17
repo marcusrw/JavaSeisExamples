@@ -25,17 +25,17 @@ public class JTestExampleMigration {
   public static void main(String[] args) throws FileNotFoundException {
     String inputFileName = "100a-rawsynthpwaves.js";
     //String inputFileName = "segshotno1.js";
-    String outputFileName = "benchmark500m.js";
+    String outputFileName = "test100m.js";
     
     ParameterService parms =
         new FindTestData(inputFileName,outputFileName).getParameterService();
     parms.setParameter("ZMIN","0");
     parms.setParameter("ZMAX","2000");
-    parms.setParameter("DELZ","500");
+    parms.setParameter("DELZ","100");
     parms.setParameter("PADT","50");
     parms.setParameter("PADX","50");
     parms.setParameter("PADY","50");
-    
+    parms.setParameter("DEBUG","TRUE");    
     
     //parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
