@@ -14,15 +14,12 @@ import beta.javaseis.fft.SeisFft;
  * Sample 3D Fourier Transform for real data that illustrates usage of
  * DistributedArray classes.
  * 
- * @author Chuck Mosher for JavaSeis.org
+ * @author Chuck Mosher & Marcus Wilson for JavaSeis.org
  * 
  */
 public class SeisFft3dNew {
 
-  /**
-   *
-   */
-  private final IFFT       _f1, _f2, _f3;
+  private final IFFT       fft1, fft2, fft3;
 
   //Distributed Array containing data
   private DistributedArray da;
@@ -30,19 +27,18 @@ public class SeisFft3dNew {
   //Temporary view of the original data
   private DistributedArray realDataView;           
 
-  private final int[]      _inputShape;           // Input lengths
-  private final int[]      _fftLengths;           // FFT lengths
-  private final int[]      _fftShape;             // FFT shape, equals
-  // fftLengths for Complex
-  private final int[]      _padShape;             // padded lengths for input
-  // axes
-  private final int[]      _fpadShape;            // padded lengths transform
-  // axes
-  private int[]            _fftSigns;
-  private double[]         _timeDomainSampleRate; // could actually be depth
+  private final int[]      inputShape;
+  private final int[]      fftLengths;
+  private final int[]      fftShape;
+  private final int[]      padShape;
+  private final int[]      fpadShape;
+  private int[]            fftSigns;
+  
+  //Distance between samples in T,X,Y domain.  Used to compute Kx,Ky,F indices.
+  private double[]         timeDomainSampleRate;
   // domain
-  private boolean          _isTimeTransformed = false;
-  private boolean          _isSpaceTransformed = false;
+  private boolean          isTimeTransformed = false;
+  private boolean          isSpaceTransformed = false;
 
   /**
    * Use existing storage for a 3D distributed FFT
@@ -130,24 +126,24 @@ public class SeisFft3dNew {
     assert pad.length > 2;
     assert isign.length > 2;
 
-    _fftSigns = new int[] { isign[0], isign[1], isign[2] };
+    fftSigns = new int[] { isign[0], isign[1], isign[2] };
 
     // Get fft lengths isign == 0 says don't actually FFT that axis,
     // but assume it is being handled separately.
     if (isign[0] != 0)
-      _f1 = new SeisFft(len[0], pad[0], IFFT.Type.REAL, isign[0]);
+      fft1 = new SeisFft(len[0], pad[0], IFFT.Type.REAL, isign[0]);
     else
-      _f1 = new SeisFft(len[0], pad[0], IFFT.Type.REAL);
+      fft1 = new SeisFft(len[0], pad[0], IFFT.Type.REAL);
     if (isign[1] != 0)
-      _f2 = new SeisFft(len[1], pad[1], IFFT.Type.COMPLEX, isign[1]);
+      fft2 = new SeisFft(len[1], pad[1], IFFT.Type.COMPLEX, isign[1]);
     else
-      _f2 = new SeisFft(len[1], pad[1], IFFT.Type.COMPLEX);
+      fft2 = new SeisFft(len[1], pad[1], IFFT.Type.COMPLEX);
     if (isign[2] != 0)
-      _f3 = new SeisFft(len[2], pad[2], IFFT.Type.COMPLEX, isign[2]);
+      fft3 = new SeisFft(len[2], pad[2], IFFT.Type.COMPLEX, isign[2]);
     else
-      _f3 = new SeisFft(len[2], pad[2], IFFT.Type.COMPLEX);
+      fft3 = new SeisFft(len[2], pad[2], IFFT.Type.COMPLEX);
 
-    _fftLengths = new int[] { _f1.getLength(), _f2.getLength(), _f3.getLength() };
+    fftLengths = new int[] { fft1.getLength(), fft2.getLength(), fft3.getLength() };
 
     // If 'a' is null, we assume we've been handed an appropriate distributed
     // array
@@ -159,7 +155,7 @@ public class SeisFft3dNew {
 
       // Although the input is real, the transform will be complex during the
       // transposes, so we allocate the distributed array as complex numbers
-      int[] lengths = _fftLengths.clone();
+      int[] lengths = fftLengths.clone();
       lengths[0] = lengths[0] / 2 + 1;
 
       // We need BLOCK in all dimensions to prepare for transpose
@@ -176,19 +172,19 @@ public class SeisFft3dNew {
     }
 
     // Set the shape to the input data sizes
-    _inputShape = len.clone();
+    inputShape = len.clone();
     da.setShape(len);
-    _fftShape = _fftLengths.clone();
-    _fftShape[0] = 1 + _fftLengths[0] / 2;
-    _padShape = _inputShape.clone();
-    _fpadShape = _fftShape.clone();
+    fftShape = fftLengths.clone();
+    fftShape[0] = 1 + fftLengths[0] / 2;
+    padShape = inputShape.clone();
+    fpadShape = fftShape.clone();
     for (int i = 0; i < 3; i++) {
-      _padShape[i] = (int) Decomposition
-          .paddedLength(_inputShape[i], pc.size());
-      _fpadShape[i] = (int) Decomposition.paddedLength(_fftShape[i], pc.size());
+      padShape[i] = (int) Decomposition
+          .paddedLength(inputShape[i], pc.size());
+      fpadShape[i] = (int) Decomposition.paddedLength(fftShape[i], pc.size());
     }
-    _isTimeTransformed = false;
-    _isSpaceTransformed = false;
+    isTimeTransformed = false;
+    isSpaceTransformed = false;
   }
 
   /**
@@ -207,38 +203,38 @@ public class SeisFft3dNew {
     assert isign.length > 2;
 
     da = KyKxF;
-    _isTimeTransformed = true;
-    _isSpaceTransformed = true;
+    isTimeTransformed = true;
+    isSpaceTransformed = true;
 
     int ret;
     int[] len = KyKxF.getShape();
 
-    _fftSigns = new int[] { isign[0], isign[1], isign[2] };
+    fftSigns = new int[] { isign[0], isign[1], isign[2] };
 
     ret = guaranteeMatchedShape(2 * len[2], 0f, IFFT.Type.REAL);
     if (isign[0] != 0)
-      _f1 = new SeisFft(ret, 0f, IFFT.Type.REAL, isign[0]);
+      fft1 = new SeisFft(ret, 0f, IFFT.Type.REAL, isign[0]);
     else
-      _f1 = new SeisFft(ret, 0f, IFFT.Type.REAL);
+      fft1 = new SeisFft(ret, 0f, IFFT.Type.REAL);
 
     ret = guaranteeMatchedShape(2 * len[1], 0f, IFFT.Type.COMPLEX);
     if (isign[1] != 0)
-      _f2 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX, isign[1]);
+      fft2 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX, isign[1]);
     else
-      _f2 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX);
+      fft2 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX);
 
     ret = guaranteeMatchedShape(2 * len[0], 0f, IFFT.Type.COMPLEX);
     if (isign[2] != 0)
-      _f3 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX, isign[2]);
+      fft3 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX, isign[2]);
     else
-      _f3 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX);
+      fft3 = new SeisFft(ret, 0f, IFFT.Type.COMPLEX);
 
-    _fftLengths = new int[] { _f1.getLength(), _f2.getLength(), _f3.getLength() };
-    _inputShape = new int[] { _fftLengths[0], _fftLengths[1], _fftLengths[2] };
-    _fftShape = _fftLengths.clone();
-    _fftShape[0] = 1 + _fftLengths[0] / 2;
-    _padShape = _inputShape.clone();
-    _fpadShape = _fftShape.clone();
+    fftLengths = new int[] { fft1.getLength(), fft2.getLength(), fft3.getLength() };
+    inputShape = new int[] { fftLengths[0], fftLengths[1], fftLengths[2] };
+    fftShape = fftLengths.clone();
+    fftShape[0] = 1 + fftLengths[0] / 2;
+    padShape = inputShape.clone();
+    fpadShape = fftShape.clone();
   }
 
   /**
@@ -327,13 +323,21 @@ public class SeisFft3dNew {
   public final void debugPrint(String banner) {
     System.out.println("***********************************************");
     System.out.println(banner);
-    System.out.printf("_inputShape = %d %d %d\n", _inputShape[0],
-        _inputShape[1], _inputShape[2]);
-    System.out.printf("_fftLengths = %d %d %d\n", _fftLengths[0],
-        _fftLengths[1], _fftLengths[2]);
+    System.out.printf("_inputShape = %d %d %d\n", inputShape[0],
+        inputShape[1], inputShape[2]);
+    System.out.printf("_fftLengths = %d %d %d\n", fftLengths[0],
+        fftLengths[1], fftLengths[2]);
     System.out.printf("shape = %d %d %d\n", da.getShape()[0], da.getShape()[1],
         da.getShape()[2]);
     System.out.println("***********************************************");
+  }
+  
+  public boolean isTimeTransformed() {
+    return isTimeTransformed;
+  }
+  
+  public boolean isSpaceTransformed() {
+    return isSpaceTransformed;
   }
 
   /**
@@ -361,7 +365,7 @@ public class SeisFft3dNew {
    *         complex.
    */
   public int[] getFftShape() {
-    return _fftShape.clone();
+    return fftShape.clone();
   }
 
   /**
@@ -370,11 +374,11 @@ public class SeisFft3dNew {
    * @return the fft lengths
    */
   public int[] getFftLengths() {
-    return _fftLengths.clone();
+    return fftLengths.clone();
   }
 
   public int[] getFftSigns() {
-    return _fftSigns.clone();
+    return fftSigns.clone();
   }
 
   /**
@@ -417,16 +421,16 @@ public class SeisFft3dNew {
   public void forwardTemporal() {
     checkDAShapeForForwardTransform();
 
-    if (_isTimeTransformed) {
+    if (isTimeTransformed) {
       throw new IllegalArgumentException(
           "Attempted temporal FFT on data"
           + " that is already in the frequency domain.");
     }
     // Make the padded y-axis 'visible'
-    da.setShape(new int[] { _inputShape[0], _inputShape[1], _padShape[2] });
+    da.setShape(new int[] { inputShape[0], inputShape[1], padShape[2] });
 
     // Reshape the first two dimensions for the complex transforms
-    da.reshape(new int[] { 2 * _fpadShape[0], _inputShape[1], _padShape[2] });
+    da.reshape(new int[] { 2 * fpadShape[0], inputShape[1], padShape[2] });
     //da.reshape(new int[] { 2 * _fpadShape[0], _fftShape[1], _padShape[2] });
 
     // Retain a temporary view of the real data
@@ -437,35 +441,35 @@ public class SeisFft3dNew {
     //done together.  I'm changing this one for consistency
     //da.setElementCount(2);
     //da.setShape(2,new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
-    da.setShape(2,new int[] { _fpadShape[0], _inputShape[1], _padShape[2] });
+    da.setShape(2,new int[] { fpadShape[0], inputShape[1], padShape[2] });
 
     // FFT along "T" axis
     // T,X,Y -> F,X,Y
     //System.out.println("FFT over T");
-    int[] inputShape = _inputShape;
-    temporalFFT(_f1,inputShape);
+    
+    temporalFFT(fft1,inputShape);
     //release realDataView for the garbage collector
     realDataView = null;
-    _isTimeTransformed = true;
+    isTimeTransformed = true;
   }
 
   private void checkDAShapeForForwardTransform() {
-    if (da.getLength(0) != _inputShape[0] || da.getLength(1) != _inputShape[1]
-        || da.getLength(2) != _inputShape[2] || da.getElementCount() != 1)
+    if (da.getLength(0) != inputShape[0] || da.getLength(1) != inputShape[1]
+        || da.getLength(2) != inputShape[2] || da.getElementCount() != 1)
       throw new RuntimeException("\nDistributedArray shape "
           + Arrays.toString(da.getShape())
           + "\nDoes not match SeisFft3d input shape "
-          + Arrays.toString(_inputShape));
+          + Arrays.toString(inputShape));
   }
 
-  private void temporalFFT(IFFT fft,int[] inputShape) {
+  private void temporalFFT(IFFT fft,int[] nonemptyShape) {
     int[] position = {0,0,0};
-    float[] fftBuffer = createFFTBuffer(_fftShape);
+    float[] fftBuffer = createFFTBuffer(fftShape);
     for (int k = 0; k < da.getLocalLength(2); k++) {
       position[2] = da.localToGlobal(2, k);
-      if (position[2] >= inputShape[2])
+      if (position[2] >= nonemptyShape[2])
         continue;
-      for (int j = 0; j < inputShape[1]; j++) {
+      for (int j = 0; j < nonemptyShape[1]; j++) {
         position[1] = j;
         realDataView.getTrace(fftBuffer, position);
         fft.realToComplex(fftBuffer);
@@ -475,20 +479,20 @@ public class SeisFft3dNew {
   }
 
   public void forwardSpatial2D() {
-    if (_isSpaceTransformed) {
+    if (isSpaceTransformed) {
       throw new IllegalArgumentException(
           "Attempted spatial FFT on data"
           + " that is already in the wavenumber domain.");
     }
     // Transpose and bring "X" axis to front
     // nftp,nkx,nyp (213) nkx,nftp,nyp
-    da.reshape(new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
-    da.setShape(2,new int[] { _fpadShape[0], _fftShape[1], _padShape[2] });
+    da.reshape(new int[] { fpadShape[0], fftShape[1], padShape[2] });
+    da.setShape(2,new int[] { fpadShape[0], fftShape[1], padShape[2] });
     da.transpose(TransposeType.T213);
     // FFT over "X" axis
     //System.out.println("FFT over X");
-    int[] inputShape = new int[] {_inputShape[1],_fftShape[0],_inputShape[2]};
-    spatialFFT(_f2,inputShape);
+    int[] nonEmptyShape = new int[] {inputShape[1],fftShape[0],inputShape[2]};
+    spatialFFT(fft2,nonEmptyShape);
 
     // Transpose and bring "Y" axis to front
     // nkx,nftp,nyp (312) nyp,nkx,nftp
@@ -496,27 +500,27 @@ public class SeisFft3dNew {
 
     // Expand Y axis to transform length
     // nyp,nkx,nftp --> nky,nkx,nftp
-    da.reshape(new int[] { _fftShape[2], _fftShape[1], _fpadShape[0] });   
+    da.reshape(new int[] { fftShape[2], fftShape[1], fpadShape[0] });   
     //System.out.println("FFT over Y");
-    inputShape = new int[] {_inputShape[2],_fftShape[1],_fftShape[0]};
-    spatialFFT(_f3,inputShape);
+    nonEmptyShape = new int[] {inputShape[2],fftShape[1],fftShape[0]};
+    spatialFFT(fft3,nonEmptyShape);
 
     // Hide the frequency axis padding
     // (nky,nkx,nftp) --> (nky,nkx,nft)
-    da.setShape(2, new int[] { _fftShape[2], _fftShape[1], _fftShape[0] });
+    da.setShape(2, new int[] { fftShape[2], fftShape[1], fftShape[0] });
 
     // Return with data axes Ky,Kx,F
-    _isSpaceTransformed = true;
+    isSpaceTransformed = true;
   }
 
-  private void spatialFFT(IFFT fft,int[] inputShape) {
+  private void spatialFFT(IFFT fft,int[] nonEmptyShape) {
     int[] position = {0,0,0};
-    float[] fftBuffer = createFFTBuffer(_fftShape);
+    float[] fftBuffer = createFFTBuffer(fftShape);
     for (int k = 0; k < da.getLocalLength(2); k++) {
       position[2] = da.localToGlobal(2, k);
-      if (position[2] >= inputShape[2])
+      if (position[2] >= nonEmptyShape[2])
         continue;
-      for (int j = 0; j < inputShape[1]; j++) {
+      for (int j = 0; j < nonEmptyShape[1]; j++) {
         position[1] = j;
         da.getTrace(fftBuffer, position);
         fft.complexForward(fftBuffer);
@@ -561,57 +565,57 @@ public class SeisFft3dNew {
   public void inverseSpatial2D() {
     checkDAShapeForInverseTransform();
 
-    if (!_isSpaceTransformed) {
+    if (!isSpaceTransformed) {
       throw new IllegalArgumentException(
           "Attempted spatial IFFT on data"
           + "that is not in the wavenumber domain.");      
     }
     // Make 3rd dimension padding 'visible'
-    da.setShape(new int[] { _fftShape[2], _fftShape[1], _fpadShape[0] });
+    da.setShape(new int[] { fftShape[2], fftShape[1], fpadShape[0] });
 
     // Inverse FFT over "Y" axis
-    int[] inputShape = new int[] {_fftShape[2],_fftShape[1],_fftShape[0]};
+    int[] nonEmptyShape = new int[] {fftShape[2],fftShape[1],fftShape[0]};
     //System.out.println("IFFT over Y");
-    spatialIFFT(_f3,inputShape);
+    spatialIFFT(fft3,nonEmptyShape);
 
     // Reshape to truncate Y axis back to original padded length
-    da.reshape(new int[] { _padShape[2], _fftShape[1], _fpadShape[0] });
+    da.reshape(new int[] { padShape[2], fftShape[1], fpadShape[0] });
 
     // Transpose and bring "Kx" axis to front
     // nyp,nkx,nftp (231) nkx,nftp,nyp
     da.transpose(TransposeType.T231);
 
     // Inverse FFT over "Kx" axis
-    inputShape = new int[] {_fftShape[1],_fftShape[0],_inputShape[2]};
+    nonEmptyShape = new int[] {fftShape[1],fftShape[0],inputShape[2]};
     //System.out.println("IFFT over X");
     //System.out.println("DA task #" + da.getParallelContext().rank());
-    spatialIFFT(_f2,inputShape);
+    spatialIFFT(fft2,nonEmptyShape);
     // Transpose and bring "F" axis to front
     // nx,nftp,nyp (213) nftp,nx,nyp
     da.transpose(TransposeType.T213);
-    _isSpaceTransformed = false;
+    isSpaceTransformed = false;
     //da.setShape(2,new int[] { _fpadShape[0], _padShape[1], _padShape[2] });
     //TODO check
-    da.reshape(new int[] {_fpadShape[0],_inputShape[1],_inputShape[2]});
-    da.setShape(2,new int[] { _fpadShape[0], _inputShape[1], _inputShape[2] });
+    da.reshape(new int[] {fpadShape[0],inputShape[1],inputShape[2]});
+    da.setShape(2,new int[] { fpadShape[0], inputShape[1], inputShape[2] });
   }
 
   private void checkDAShapeForInverseTransform() {
-    if (da.getLength(0) != _fftShape[2] || da.getLength(1) != _fftShape[1]
-        || da.getLength(2) != _fftShape[0] || da.getElementCount() != 2)
+    if (da.getLength(0) != fftShape[2] || da.getLength(1) != fftShape[1]
+        || da.getLength(2) != fftShape[0] || da.getElementCount() != 2)
       throw new RuntimeException("\nDistributedArray shape "
           + Arrays.toString(da.getShape())
-          + "\nDoes not match transform shape " + Arrays.toString(_fftShape));
+          + "\nDoes not match transform shape " + Arrays.toString(fftShape));
   }
 
-  private void spatialIFFT(IFFT fft3, int[] inputShape) {
+  private void spatialIFFT(IFFT fft3, int[] nonEmptyShape) {
     int[] position = new int[] { 0, 0, 0 };
-    float[] fftBuffer = createFFTBuffer(_fftShape);
+    float[] fftBuffer = createFFTBuffer(fftShape);
     for (int k = 0; k < da.getLocalLength(2); k++) {
       position[2] = da.localToGlobal(2, k);
-      if (position[2] >= inputShape[2])
+      if (position[2] >= nonEmptyShape[2])
         continue;
-      for (int j = 0; j < inputShape[1]; j++) {
+      for (int j = 0; j < nonEmptyShape[1]; j++) {
         position[1] = j;
         da.getTrace(fftBuffer, position);
         fft3.complexInverse(fftBuffer);
@@ -622,27 +626,27 @@ public class SeisFft3dNew {
 
   public void inverseTemporal() {
     // Inverse FFT along F axis
-    if (!_isTimeTransformed) {
+    if (!isTimeTransformed) {
       throw new IllegalArgumentException(
           "Attempted temporal IFFT on data that is not in the frequency domain.");      
     }
     
     //System.out.println("IFFT over T");
-    int[] inputShape = new int[] {_fftShape[0],_inputShape[1],_inputShape[2]};
-    temporalIFFT(_f1,inputShape);
+    int[] nonEmptyShape = new int[] {fftShape[0],inputShape[1],inputShape[2]};
+    temporalIFFT(fft1,nonEmptyShape);
 
     // Reshape to real numbers and remove inner padding
-    da.reshape(1, new int[] { _inputShape[0], _inputShape[1], _padShape[2] });
+    da.reshape(1, new int[] { inputShape[0], inputShape[1], padShape[2] });
 
     // Re-establish the outer padding
-    da.setShape(new int[] { _inputShape[0], _inputShape[1], _inputShape[2] });
+    da.setShape(new int[] { inputShape[0], inputShape[1], inputShape[2] });
 
     // Return with data in T,X,Y order
-    _isTimeTransformed = false;
+    isTimeTransformed = false;
   }
 
   private void temporalIFFT(IFFT fft,int[] inputShape) {
-    float[] fftBuffer = createFFTBuffer(_fftShape);
+    float[] fftBuffer = createFFTBuffer(fftShape);
     int[] position = new int[] { 0, 0, 0 };
     for (int k = 0; k < da.getLocalLength(2); k++) {
       position[2] = da.localToGlobal(2, k);
@@ -676,11 +680,11 @@ public class SeisFft3dNew {
    * @param sampleRates sample rates in T,X,Y order (T is in sec, not msec)
    */
   public void setTXYSampleRates(double[] sampleRates) {
-    if (_timeDomainSampleRate == null)
-      _timeDomainSampleRate = new double[3];
-    _timeDomainSampleRate[0] = sampleRates[0];
-    _timeDomainSampleRate[1] = sampleRates[1];
-    _timeDomainSampleRate[2] = sampleRates[2];
+    if (timeDomainSampleRate == null)
+      timeDomainSampleRate = new double[3];
+    timeDomainSampleRate[0] = sampleRates[0];
+    timeDomainSampleRate[1] = sampleRates[1];
+    timeDomainSampleRate[2] = sampleRates[2];
   }
 
   /**
@@ -692,22 +696,22 @@ public class SeisFft3dNew {
    *          negative)
    */
   public void getKyKxFCoordinatesForPosition(int[] position, double[] buf) {
-    if (_timeDomainSampleRate == null)
+    if (timeDomainSampleRate == null)
       throw new IllegalStateException(
           "You need to call setTXYSampleRates() before calling this method.");
 
     int pos0 = position[0]; // Ky position
     int pos1 = position[1]; // Kx position
     int pos2 = position[2]; // F position
-    if (pos0 > _fftLengths[2] / 2)
-      pos0 = pos0 - _fftLengths[2];
-    if (pos1 > _fftLengths[1] / 2)
-      pos1 = pos1 - _fftLengths[1];
+    if (pos0 > fftLengths[2] / 2)
+      pos0 = pos0 - fftLengths[2];
+    if (pos1 > fftLengths[1] / 2)
+      pos1 = pos1 - fftLengths[1];
     // NOTE: Do not unwrap pos2 (frequency) axis.
 
-    buf[0] = pos0 / (_timeDomainSampleRate[2] * _fftLengths[2]);
-    buf[1] = pos1 / (_timeDomainSampleRate[1] * _fftLengths[1]);
-    buf[2] = pos2 / (_timeDomainSampleRate[0] * _fftLengths[0]);
+    buf[0] = pos0 / (timeDomainSampleRate[2] * fftLengths[2]);
+    buf[1] = pos1 / (timeDomainSampleRate[1] * fftLengths[1]);
+    buf[2] = pos2 / (timeDomainSampleRate[0] * fftLengths[0]);
   }
 }
 
