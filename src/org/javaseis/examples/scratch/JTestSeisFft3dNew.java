@@ -87,7 +87,6 @@ public class JTestSeisFft3dNew {
       LOGGER.info(JssiRegistry.getDefaultImplementation(IFFT.class).toString());
     } catch (InstantiationException e) {
       LOGGER.log(Level.INFO,e.getMessage(),e);
-      e.printStackTrace();
     }
 
     SeisFft3dNew fft3d = new SeisFft3dNew(pc, len, pad);
@@ -115,7 +114,8 @@ public class JTestSeisFft3dNew {
    * Calls the individual round-trip tests.
    */
   public void testAll() {
-    if(CHATTY) System.out.println();
+    if(CHATTY) 
+      LOGGER.info("");
 
     for(int itest=0; itest<NTESTS; itest++) {
 
