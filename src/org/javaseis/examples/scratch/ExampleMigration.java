@@ -75,6 +75,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
   public void serialInit(ToolContext toolContext) {
     serialTime.start();
     ParameterService parms = toolContext.getParameterService();
+    //TODO this method should check that toolContext contains enough
+    // information to do a basic extrapolation.
+    // Run main for more information. (ex: inputGrid returns null)
     GridDefinition inputGrid = toolContext.getInputGrid();
     imageGrid = computeImageGrid(inputGrid,parms);
     pc = toolContext.getParallelContext();
