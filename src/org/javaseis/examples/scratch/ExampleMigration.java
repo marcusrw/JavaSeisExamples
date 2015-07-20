@@ -376,7 +376,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
       double F = coords[2];
 
       //skip if we're over the data threshold.
-      if (F > fMax) continue;
+      //TODO put this back when you have a proper band limited source.
+      //if (F > fMax) continue;
 
       double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
       double exponent = 0;
@@ -477,6 +478,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int[] DALengths = rcvr.getArray().getShape().clone();
     LOGGER.info(Arrays.toString(DALengths));
 
+    /*
     double fNY = 1/(2*0.002);
     double delf = fNY/DALengths[0];
     int realMaxF = DALengths[0];
@@ -487,6 +489,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     rcvrDA.setShape(DALengths);
     shotDA.setShape(DALengths);
     LOGGER.info(Arrays.toString(DALengths));
+    */
 
 
 
