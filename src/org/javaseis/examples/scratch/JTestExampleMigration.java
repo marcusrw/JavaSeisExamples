@@ -35,7 +35,7 @@ public class JTestExampleMigration {
     parms.setParameter("PADT","50");
     parms.setParameter("PADX","50");
     parms.setParameter("PADY","50");
-    parms.setParameter("DEBUG","TRUE");    
+    //parms.setParameter("DEBUG","TRUE");    
     
     //parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
