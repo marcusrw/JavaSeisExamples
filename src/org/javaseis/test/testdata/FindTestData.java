@@ -26,7 +26,7 @@ public class FindTestData {
       "/",
       System.getProperty("user.home") + File.separator + "javaseis",
       System.getProperty("java.io.tmpdir"),
-      "/home/seisspace/data"
+      "/home/seisspace/data/testarea"
   };
 
   public FindTestData(ParameterService parms)
