@@ -41,6 +41,12 @@ public class FindTestData {
 
   public FindTestData(String inputFilePath) throws FileNotFoundException {
     initializeParameterServiceAndFindInput(inputFilePath);
+
+    //default output location is a.js if no output location is specified
+    //output file must exist some where 
+    String outputFilePath = "/tmp/a.js";
+    setParameterIfUnset(parms,"outputFilePath",outputFilePath);
+    
   }
 
   public FindTestData(String inputFilePath,
@@ -52,7 +58,7 @@ public class FindTestData {
   private void initializeParameterServiceAndFindInput(
       String inputFilePath) throws FileNotFoundException {
     parms = new ParameterService(new String[0]);
-    setParameterIfUnset(parms,INPUT_FILE_PATH,inputFilePath);
+    setParameterIfUnset(parms,INPUT_FILE_PATH,inputFilePath); 
     findAndSetDataFolder(parms,inputFilePath);
   }
 
