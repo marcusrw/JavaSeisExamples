@@ -19,7 +19,8 @@ public class ExampleMigrationRunner {
 
   private static ParameterService parms;
 
-  public static void main(String[] args) throws FileNotFoundException {
+  @Test
+  public void test() throws FileNotFoundException {
     String inputFileName = "100a-rawsynthpwaves.js";
     String outputFileName = "test10m.js";
 
@@ -28,15 +29,16 @@ public class ExampleMigrationRunner {
     //set basic user inputs
     parms.setParameter("ZMIN","0");
     parms.setParameter("ZMAX","2000");
-    parms.setParameter("DELZ","10");
-    parms.setParameter("PADT","0");
-    parms.setParameter("PADX","0");
-    parms.setParameter("PADY","0");
+    parms.setParameter("DELZ","50");
+    parms.setParameter("PADT","10");
+    parms.setParameter("PADX","10");
+    parms.setParameter("PADY","10");
     parms.setParameter("DEBUG","TRUE");    
 
     //parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
-    if (Boolean.parseBoolean(parms.getParameter("DEBUG"))) {
+    boolean debugIsOn = Boolean.parseBoolean(parms.getParameter("DEBUG"));
+    if (debugIsOn) {
       setOutputAsInput(parms);
       DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
     }

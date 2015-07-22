@@ -21,6 +21,7 @@ import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.IntervalTimer;
 import org.javaseis.volume.ISeismicVolume;
+import org.junit.Assert;
 
 /**
  * @author Marcus Wilson 2015
@@ -98,12 +99,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
   //ZMin - represents the min depth
   //ZMax - represents the max depth
   public long computeDepthAxis(float ZMin, float DeltaZ, float ZMax){
-	  if ( DeltaZ <= 0 || (ZMax - ZMin) < DeltaZ)
-		  return 1;
-	  else
-		  return (long) Math.floor((ZMax - ZMin)/DeltaZ) + 1;
+    if ( DeltaZ <= 0 || (ZMax - ZMin) < DeltaZ)
+      return 1;
+    else
+      return (long) Math.floor((ZMax - ZMin)/DeltaZ) + 1;
   }
-  
+
   private GridDefinition computeImageGrid(GridDefinition inputGrid,
       ParameterService parms) {
 
@@ -353,7 +354,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
     throw new IllegalArgumentException("Unable to find source location.");
   }
-  
+
   //
   private void extrapolate(float V, double delz, int zindx) {
     transformFromSpaceToWavenumber();
@@ -401,12 +402,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
       if (Kz2 > eps) {
         //TODO fix these if statements so we get proper filtering
         // for depth z = 0.
-        /*
+
         recOutSample2 = complexMultiply(
             recInSample,complexExponential(-exponent));
         souOutSample2 = complexMultiply(
             souInSample,complexExponential(exponent));
-         */
+
         recOutSample[0] = (float) (recInSample[0]*Math.cos(-exponent)
             - recInSample[1]*Math.sin(-exponent));
         recOutSample[1] = (float) (recInSample[1]*Math.cos(-exponent)
@@ -415,27 +416,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
             - souInSample[1]*Math.sin(exponent));
         souOutSample[1] = (float) (souInSample[1]*Math.cos(exponent)
             + souInSample[0]*Math.sin(exponent));
-        /*
-        if (!Arrays.equals(recOutSample,recOutSample2)) {
-          System.out.println(Arrays.toString(recOutSample));
-          System.out.println(Arrays.toString(recOutSample2));
-          System.out.println((recOutSample[0]-recOutSample2[0])/recOutSample[0]);
-          System.out.println((recOutSample[1]-recOutSample2[1])/recOutSample[1]);
 
-          throw new ArithmeticException("Results of complex multiplication were different"
-              + " for recOutSample");
-        }
-        if (!Arrays.equals(souOutSample,souOutSample2)) {
-          System.out.println(Arrays.toString(souOutSample));
-          System.out.println(Arrays.toString(souOutSample2));
-          System.out.println((souOutSample[0]-souOutSample2[0])/souOutSample[0]);
-          System.out.println((souOutSample[1]-souOutSample2[1])/souOutSample[1]);
-
-          throw new ArithmeticException("Results of complex multiplication were different"
-              + " for souOutSample");
-        }
-         */
-
+        float FLOAT_EPSILON = 1.19e-7F;
+        Assert.assertArrayEquals("recOutSample and recOutSample2 differ",
+            recOutSample,new float[] {0,0},FLOAT_EPSILON);
+        Assert.assertArrayEquals("souOutSample and souOutSample2 differ",
+            souOutSample,souOutSample2,FLOAT_EPSILON);
 
       } else {
         exponent = 2*Math.PI*Math.abs(delz)*Math.sqrt(Math.abs(Kz2));
@@ -503,7 +489,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     rcvrDA.setShape(DALengths);
     shotDA.setShape(DALengths);
     LOGGER.info(Arrays.toString(DALengths));
-    */
+     */
 
 
 
