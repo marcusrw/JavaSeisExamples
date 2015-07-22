@@ -1,6 +1,5 @@
 package org.javaseis.tool;
 
-import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 import org.javaseis.grid.GridDefinition;
@@ -212,14 +211,18 @@ public class StandAloneVolumeTool implements IVolumeTool {
 
   @Override
   public void serialInit(ToolContext toolContext) {
-    // TODO Auto-generated method stub
-
+    System.out.println("Executing StandAloneVolumeTool.serialInit() " 
+        + "on task number " + toolContext.getParallelContext().rank()
+        + "\nYou should override this method with serial initialization "
+        + "steps, and/or to suppress this message.");
   }
 
   @Override
   public void parallelInit(ToolContext toolContext) {
-    // TODO Auto-generated method stub
-
+    System.out.println("Executing StandAloneVolumeTool.parallelInit() " 
+        + "on task number " + toolContext.getParallelContext().rank()
+        + "\nYou should override this method with parallel initialization "
+        + "steps, and/or to suppress this message.");
   }
 
   @Override
@@ -228,7 +231,7 @@ public class StandAloneVolumeTool implements IVolumeTool {
     System.out.println("Executing StandAloneVolumeTool.processVolume() " 
         + "on task number " + toolContext.getParallelContext().rank()
         + "\nYou should override this method if you want "
-        + "your tool to do anything useful.\n");
+        + "your tool to do anything useful, or output any data\n");
     return false;
   }
 
@@ -237,19 +240,24 @@ public class StandAloneVolumeTool implements IVolumeTool {
     System.out.println("Executing StandAloneVolumeTool.outputVolume() " 
         + "on task number " + toolContext.getParallelContext().rank()
         + "\nYou should override this method if you want "
-        + "your tool to do any post processing on the output.\n");
+        + "your tool to do any post processing on the output, such as stacking."
+        + "\n");
     return false;
   }
 
   @Override
   public void parallelFinish(ToolContext toolContext) {
-    // TODO Auto-generated method stub
-
+    System.out.println("Executing StandAloneVolumeTool.parallelFinish() " 
+        + "on task number " + toolContext.getParallelContext().rank()
+        + "\nYou should override this method with parallel cleanup "
+        + "steps, and/or to suppress this message.");
   }
 
   @Override
   public void serialFinish(ToolContext toolContext) {
-    // TODO Auto-generated method stub
-
+    System.out.println("Executing StandAloneVolumeTool.parallelFinish() " 
+        + "on task number " + toolContext.getParallelContext().rank()
+        + "\nYou should override this method with serial cleanup "
+        + "steps, and/or to suppress this message.");
   }
 }
