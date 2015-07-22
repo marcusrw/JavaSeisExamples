@@ -22,7 +22,7 @@ public class SeismicVolume implements ISeismicVolume {
   //TODO  This calls for a rename.  volumeGrid and localGrid sound like they
   //      describe the same thing.  I think the only reason this guy is here
   //      is so you can call his methods (since ISeismicVolume extends
-  //      IRegularGrid.  There should be a better way to do this.
+  //      IRegularGrid.  There should be a better way to do this. - Marcus
   IRegularGrid volumeGrid;
 
   BinGrid binGrid;
@@ -39,7 +39,7 @@ public class SeismicVolume implements ISeismicVolume {
 
   //TODO  I hate the way this is implemented.  I want this to be final
   //      and declared during construction.  Does that mean I need a second
-  //      copy of each constructor that takes it as an argument?
+  //      copy of each constructor that takes it as an argument? - Marcus
   int[] globalVolumePosition;
 
   IParallelContext pc;
