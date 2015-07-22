@@ -517,11 +517,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     dapi = new DistributedArrayPositionIterator(rcvrDA,position,
         direction,scope);
 
-    System.out.println("Check: "
-        + Arrays.toString(DALengths)
-        + Arrays.toString(rcvrDA.getShape())
-        + Arrays.toString(shotDA.getShape()));
-
     float[] imageSample = new float[imageDA.getElementCount()];
     while (dapi.hasNext()) {
       position = dapi.next();

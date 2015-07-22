@@ -38,9 +38,10 @@ public class ShotMigIO {
       IParallelContext pc = this.getParallelContext();
       String tmpdir = System.getProperty("java.io.tmpdir");
       pc.serialPrint("Create FileSystemIOService using " + tmpdir);
-      IDistributedIOService pio = new FileSystemIOService(pc, tmpdir);
       int[] testShape = new int[] { 201, 201, 201, 9, 5 };
+      IDistributedIOService pio;
       try {
+        pio = new FileSystemIOService(pc, tmpdir);
         pio.create("temp.js", testShape);
         pio.open("temp.js");
       } catch (SeisException ex) {
