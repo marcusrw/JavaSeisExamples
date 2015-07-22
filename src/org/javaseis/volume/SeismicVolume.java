@@ -5,6 +5,7 @@ import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 
+import beta.javaseis.array.ITraceIterator;
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.parallel.IParallelContext;
@@ -254,5 +255,10 @@ public class SeismicVolume implements ISeismicVolume {
   @Override
   public ElementType getElementType() {
     return elementType;
+  }
+
+  @Override
+  public ITraceIterator getTraceIterator() {
+   return volumeGrid.getTraceIterator();
   }
 }

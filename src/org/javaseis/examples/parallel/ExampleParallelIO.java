@@ -37,9 +37,10 @@ public class ExampleParallelIO {
       IParallelContext pc = this.getParallelContext();
       String tmpdir = System.getProperty("java.io.tmpdir");
       pc.serialPrint("Create FileSystemIOService using " + tmpdir);
-      IDistributedIOService pio = new FileSystemIOService(pc, tmpdir);
+      IDistributedIOService pio;
       int[] testShape = new int[] { 201, 201, 201, 9, 5 };
       try {
+        pio = new FileSystemIOService(pc, tmpdir);
         if (pio.exists("temp.js")) {
           pio.delete("temp.js");
         }

@@ -50,9 +50,9 @@ public class StandAloneVolumeTool implements IVolumeTool {
     // Open input file if it is requested
     inputFileSystem = parms.getParameter("inputFileSystem", "null");
     if (inputFileSystem != "null") {
-      ipio = new FileSystemIOService(upc, inputFileSystem);
       inputFilePath = parms.getParameter("inputFilePath");
       try {
+        ipio = new FileSystemIOService(upc, inputFileSystem);
         ipio.open(inputFilePath);
         toolContext.setInputGrid(ipio.getGridDefinition());
         ipio.close();
@@ -75,12 +75,12 @@ public class StandAloneVolumeTool implements IVolumeTool {
     // If no output specified, don't use
     if (outputGrid != null && outputFileSystem != "null") {
       output = true;
-      opio = new FileSystemIOService(upc, outputFileSystem);
       outputFilePath = parms.getParameter("outputFilePath");
       String outputMode = parms.getParameter("outputMode", "create");
       // For create, make the file and then close it
       if (outputMode == "create") {
         try {
+          opio = new FileSystemIOService(upc, outputFileSystem);
           opio.create(outputFilePath, outputGrid);
           opio.close();
         } catch (SeisException ex) {
@@ -134,11 +134,11 @@ public class StandAloneVolumeTool implements IVolumeTool {
       toolContext.setParallelContext(pc);
       // Open the input and output file systems - should have been checked by
       // main
-      ipio = new FileSystemIOService(pc, inputFileSystem);
-      if (output) {
-        opio = new FileSystemIOService(pc, outputFileSystem);
-      }
       try {
+        ipio = new FileSystemIOService(pc, inputFileSystem);
+        if (output) {
+          opio = new FileSystemIOService(pc, outputFileSystem);
+        }
         ipio.open(inputFilePath);
         if (output) {
           opio.open(outputFilePath);
