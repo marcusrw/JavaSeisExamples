@@ -40,8 +40,6 @@ public class ExampleMigrationRunner {
       setOutputAsInput(parms);
       DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
     }
-
-
   }
 
   private static void setOutputAsInput(ParameterService parms) {
@@ -50,22 +48,4 @@ public class ExampleMigrationRunner {
     parms.setParameter("inputFilePath",outputFilePath);
     parms.setParameter("inputFileSystem",outputFileSystem);
   }
-
-  private void loadDataset(String datasetname) {
-    try {
-      parms = new FindTestData(datasetname).getParameterService();
-      DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
-    } catch (FileNotFoundException e) {
-      LOGGER.log(Level.INFO,"Unable to open test dataset",e);
-      Assert.fail(e.getMessage());
-    }
-  }
-
-  @Test
-  public void toolExecutes() {
-    //TODO randomly generate a single random volume for this test.
-    //loadDataset("100a-rawsynthpwaves.js");
-    loadDataset("test100m.js");
-  }
-
 }
