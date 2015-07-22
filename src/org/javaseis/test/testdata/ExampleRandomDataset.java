@@ -157,7 +157,9 @@ public class ExampleRandomDataset {
   }
 
   private AxisLabel[] defaultAxisLabels() {
-    return AxisLabel.getDefault(DEFAULT_NUM_DIMENSIONS);
+    //return AxisLabel.getDefault(DEFAULT_NUM_DIMENSIONS);
+	//TODO: Need to be changed from Undefined to actual 
+	return new AxisLabel[] {AxisLabel.TIME, AxisLabel.INLINE, AxisLabel.CROSSLINE, AxisLabel.SOURCE, AxisLabel.UNDEFINED};
   }
 
   private Units[] defaultUnits() {

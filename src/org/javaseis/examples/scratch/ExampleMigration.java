@@ -93,6 +93,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
   }
 
+  //Returns Depth Axis Length
+  //DeltaZ - represents the iteration interval
+  //ZMin - represents the min depth
+  //ZMax - represents the max depth
+  public long computeDepthAxis(float ZMin, float DeltaZ, float ZMax){
+	  if ( DeltaZ <= 0 || (ZMax - ZMin) < DeltaZ)
+		  return 1;
+	  else
+		  return (long) Math.floor((ZMax - ZMin)/DeltaZ) + 1;
+  }
+  
   private GridDefinition computeImageGrid(GridDefinition inputGrid,
       ParameterService parms) {
 
@@ -108,12 +119,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     LOGGER.info("FFT Axis padding: " + Arrays.toString(PAD) + "\n");
 
-    long depthAxisLength;
-    if (!(delz > 0) || (zmax - zmin) < delz)
-      depthAxisLength = 1;
-    else
-      depthAxisLength = (long) Math.floor((zmax-zmin)/delz);
+    long depthAxisLength = -1;
+    depthAxisLength = computeDepthAxis(zmin, delz, zmax);
 
+    //Interate over the axes
     for (int axis = 0 ; axis < imageAxes.length ; axis++) {
       if (axis == 0) {
         imageAxes[axis] = new AxisDefinition(
@@ -333,17 +342,19 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int volumeArrayIndex;
     GridDefinition globalGrid = input.getGlobalGrid();
     String[] axisLabels = globalGrid.getAxisLabelsStrings();
-    for (int k = 0 ; k < axisLabels.length ; k++) {
+    for (int k = 0 ; k < axisLabels.length; k++) {
       if (axisLabels[k] == "SOURCE") {
         volumeArrayIndex = input.getVolumePosition()[k];
-        LOGGER.info("Source location: "
-            + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
+        //TODO: NOT RIGHT
+        volumeArrayIndex %= 4;
+        LOGGER.info("Source location: " + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
         return sourceLocations[volumeArrayIndex];
       }
     }
     throw new IllegalArgumentException("Unable to find source location.");
   }
-
+  
+  //
   private void extrapolate(float V, double delz, int zindx) {
     transformFromSpaceToWavenumber();
     extrapTime.start();
