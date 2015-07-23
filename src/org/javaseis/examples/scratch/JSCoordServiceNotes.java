@@ -19,7 +19,7 @@ public class JSCoordServiceNotes {
 
   @Test
   public void test() {
-    String testfile = "/home/wilsonmr/javaseis/segshotno1.js";
+    String testfile = "/home/wilsonmr/javaseis/segsaltmodel.js";
     Seisio sio;
     JSCoordinateService jscs;
     try {
@@ -38,24 +38,40 @@ public class JSCoordServiceNotes {
       GridDefinition grid = sio.getGridDefinition();
       Assert.assertNotNull(grid);
       System.out.println(grid.toString());
-      int xdim = 1;
-      int ydim = 1;
+      int xdim = 2;  //3rd array index
+      int ydim = 1;  //2nd array index
       BinGrid bingrid = new BinGrid(grid,xdim,ydim);
       Assert.assertNotNull(bingrid);
+      //TODO  Note that the coordinates come out of jscs.getSrcRcvrXYZ in the 
+      //      same order you put them in here.  It shouldn't work that way.
+      //      jscs.getSrcRcvrXYZ should return the receiver coordinates,
+      //      regardless of how you put them in.
+      //TODO  Write a test that showcases this behaviour.  (ie make coordprops
+      //      twice in different order, and show that SrcXYZ changes for the
+      //      same trace.
+      
+      //TODO  I'm not sure which is x and which is y here.
       String[] coordprops = new String[]
-          {"REC_XD","REC_YD","REC_ELEV","SOU_XD","SOU_YD","SOU_ELEV"};
+          {"SOU_XD","SOU_YD","SOU_ELEV","REC_XD","REC_YD","REC_ELEV"};
+      System.out.println("Fail here?");
       jscs = new JSCoordinateService(sio,bingrid,
           CoordinateType.SHOTRCVR,coordprops);
+      System.out.println("No!");
       Assert.assertEquals(grid,jscs.getDataGrid());
 
       int[] pos = new int[] {0,0,0,0};
       printSrcRcvrXYZ(jscs, pos); 
+
+      pos = new int[] {1,0,0,0};
+      printSrcRcvrXYZ(jscs, pos);
 
       pos = new int[] {0,1,0,0};
       printSrcRcvrXYZ(jscs, pos);
 
       pos = new int[] {0,0,1,0};
       printSrcRcvrXYZ(jscs, pos);
+      
+      
 
 
     } catch (SeisException e) {
