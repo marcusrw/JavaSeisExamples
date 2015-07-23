@@ -1,6 +1,9 @@
 package org.javaseis.examples.scratch;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import beta.javaseis.distributed.DistributedArray;
@@ -9,17 +12,24 @@ import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import org.javaseis.examples.scratch.SeisFft3dNew;
 
 import beta.javaseis.parallel.IParallelContext;
+import beta.javaseis.services.CoordinateType;
+import beta.javaseis.services.JSCoordinateService;
 
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
+import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
+import org.javaseis.io.Seisio;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;
+import org.javaseis.properties.PropertyDescription;
+import org.javaseis.properties.TraceProperties;
 import org.javaseis.properties.Units;
 import org.javaseis.services.ParameterService;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.IntervalTimer;
+import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 import org.junit.Assert;
 
@@ -45,10 +55,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private DataDomain[] transformDomains;
   private AxisDefinition[] transformAxes;
   private GridDefinition imageGrid;
+
   //TODO only for visual checks.  Delete later.
   private GridDefinition transformGrid;
   private SingleVolumeDAViewer display;
-  private boolean DEBUG;
+  private boolean debug;
 
   private IntervalTimer serialTime = new IntervalTimer();
   private IntervalTimer parallelTime = new IntervalTimer();
@@ -57,9 +68,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private IntervalTimer extrapTime = new IntervalTimer();
   private IntervalTimer imageTime = new IntervalTimer();
 
-  private float[] PAD;
+  private float[] pad;
   private float eps;
-  private final double fMax = 60;
+  private double fMax = Double.POSITIVE_INFINITY;
+  private static final float FLOAT_EPSILON = 1.19e-7F;
 
 
   public ExampleMigration() {
@@ -88,8 +100,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
   }
 
   private void checkForDebugMode(ParameterService parms) {
-    DEBUG = Boolean.parseBoolean(parms.getParameter("DEBUG","FALSE"));
-    if (DEBUG) {
+    debug = Boolean.parseBoolean(parms.getParameter("DEBUG","FALSE"));
+    if (debug) {
       LOGGER.info("RUNNING IN DEBUG MODE");
     }
   }
@@ -98,11 +110,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
   //DeltaZ - represents the iteration interval
   //ZMin - represents the min depth
   //ZMax - represents the max depth
-  public long computeDepthAxis(float ZMin, float DeltaZ, float ZMax){
-    if ( DeltaZ <= 0 || (ZMax - ZMin) < DeltaZ)
+  public long computeDepthAxis(float zMin, float deltaZ, float zMax){
+    if ( deltaZ <= 0 || (zMax - zMin) < deltaZ)
       return 1;
     else
-      return (long) Math.floor((ZMax - ZMin)/DeltaZ) + 1;
+      return (long) Math.floor((zMax - zMin)/deltaZ) + 1;
   }
 
   private GridDefinition computeImageGrid(GridDefinition inputGrid,
@@ -113,12 +125,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
     float zmin = Float.parseFloat(parms.getParameter("ZMIN","0"));
     float zmax = Float.parseFloat(parms.getParameter("ZMAX","2000"));
     float delz = Float.parseFloat(parms.getParameter("DELZ","50"));
-    float PADT = Float.parseFloat(parms.getParameter("PADT","10"));
-    float PADX = Float.parseFloat(parms.getParameter("PADX","10"));
-    float PADY = Float.parseFloat(parms.getParameter("PADY","10"));
-    PAD = new float[] {PADT,PADX,PADY};
+    float padT = Float.parseFloat(parms.getParameter("PADT","10"));
+    float padX = Float.parseFloat(parms.getParameter("PADX","10"));
+    float padY = Float.parseFloat(parms.getParameter("PADY","10"));
+    pad = new float[] {padT,padX,padY};
 
-    LOGGER.info("FFT Axis padding: " + Arrays.toString(PAD) + "\n");
+    LOGGER.info("FFT Axis padding: " + Arrays.toString(pad) + "\n");
 
     long depthAxisLength = -1;
     depthAxisLength = computeDepthAxis(zmin, delz, zmax);
@@ -155,9 +167,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
       inputVolumeLengths[k] = (int)inputAxisLengths[k];
     }
     rcvr = new SeisFft3dNew(pc,inputVolumeLengths,
-        PAD,DEFAULT_FFT_ORIENTATION);
+        pad,DEFAULT_FFT_ORIENTATION);
 
-    //determine shape of output
+    //determine shape in KyKxF domain
     for (int k = 0 ; k < 3 ; k++) {
       transformAxisLengths[k] = rcvr.getFftShape()[k];
     }
@@ -194,6 +206,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
       case "wavenumber":
         inputAxisDomains[k] = new DataDomain("space");
         break;
+      default:
+        break; //don't change anything if the domain is anything else
       }
     }
     return inputAxisDomains;
@@ -204,8 +218,67 @@ public class ExampleMigration extends StandAloneVolumeTool {
     parallelTime.start();
     pc = toolContext.getParallelContext();
     LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
+
+    //The only difference should be the physical origins and deltas
+    //are different.
+    GridDefinition fixedGrid = updateVolumeGridDefinition(toolContext);
+    toolContext.setInputGrid(fixedGrid);
+
     LOGGER.info("Input Grid Definition:\n" + toolContext.getInputGrid() + "\n");
     LOGGER.info("Output Grid Definition:\n" + toolContext.getOutputGrid() + "\n");
+  }
+
+  private GridDefinition updateVolumeGridDefinition(ToolContext toolContext) {
+    //open the JScoordinate service, figure out the physical origins/deltas
+    //for the receiver positions, check them against the current grid, 
+    //put out a log message if they're wrong, and change them.
+
+    try {
+      JSCoordinateService jscs = openTraceHeadersFile(toolContext);
+    } catch (SeisException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e); 
+    }
+    
+    int[] volumeGridPosition = toolContext.getInputVolume().getVolumePosition();
+    System.out.println(Arrays.toString(volumeGridPosition));
+    
+    
+    
+    return toolContext.getInputGrid();
+  }
+
+  private JSCoordinateService openTraceHeadersFile(ToolContext toolContext)
+      throws SeisException {
+    String inputFilePath
+    = toolContext.getParameterService().getParameter("inputFileSystem","null")
+    + File.separator
+    +toolContext.getParameterService().getParameter("inputFilePath","null");
+
+    Seisio sio;
+    JSCoordinateService jscs;
+
+    try {
+      sio = new Seisio(inputFilePath);
+      sio.open("r");
+      sio.usesProperties(true);
+      TraceProperties tp = sio.getTraceProperties();
+      PropertyDescription[] tpd = tp.getTraceProperties();
+      GridDefinition grid = sio.getGridDefinition();
+      int xdim = 1;  //2nd array index
+      int ydim = 2;  //3rd array index
+      BinGrid bingrid = new BinGrid(grid,xdim,ydim);
+      Assert.assertNotNull(bingrid);     
+      String[] coordprops = new String[]
+          {"SOU_XD","SOU_YD","SOU_ELEV","REC_XD","REC_YD","REC_ELEV"};
+      //The JSCS source/javadoc should explain that ORDER MATTERS HERE.
+      return new JSCoordinateService(sio,bingrid,
+          CoordinateType.SHOTRCVR,coordprops);
+
+    } catch (SeisException e) {
+      LOGGER.log(Level.SEVERE,e.getMessage(),e);
+      LOGGER.severe("Something is very wrong if you're seeing this.");
+      throw e;
+    }
   }
 
   @Override
@@ -216,16 +289,20 @@ public class ExampleMigration extends StandAloneVolumeTool {
     singleVolumeTime.start();
 
     //Only extrapolate the first volume if we're in debug mode.
-    if (DEBUG && input.getVolumePosition()[3] > 0)
+    if (debug && input.getVolumePosition()[3] > 0)
       return false;
 
     createSeis3dFfts(input);
     transformFromTimeToFrequency();
-    locateSourceAndGenerateShotDA(input);
+    generateShotDistributedArray(input);
 
+    SourceVolume src = new SourceVolume(toolContext,input);
+    if (!src.isFinished()) {
+      throw new RuntimeException("Stop here just because");
+    }
     eps = 1E-12F;
     eps = 0F;
-    float V;
+    float velocity;
 
     //depth axis information
     double zmin = outputVolume.getLocalGrid().getAxisPhysicalOrigin(0);
@@ -237,9 +314,13 @@ public class ExampleMigration extends StandAloneVolumeTool {
     for (int zindx = 0 ; zindx < numz ; zindx++) {
       double depth = zmin+delz*zindx;
       LOGGER.info("Depth: " + depth);
-      V = getVelocityModel(depth);     
-      extrapolate(V, delz, zindx);
-      imagingCondition(outputVolume,zindx);
+      velocity = getVelocityModel(depth);
+
+      //this extrapolator is v(z) only.
+      transformFromSpaceToWavenumber();
+      extrapolate(velocity, delz, zindx,fMax);
+      transformFromWavenumberToSpace();
+      imagingCondition(outputVolume,zindx,fMax);
     }
 
     singleVolumeTime.stop();
@@ -247,25 +328,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return true;
   }
 
-  private float getVelocityModel(double depth) {
-    float V;
-    if (depth <= 1000)
-      V = 2000;
-    else 
-      V = 3800;
-    return V;
-  }
-
-  private void locateSourceAndGenerateShotDA(ISeismicVolume input) {
-    float[] sourceXYZ = locateSourceXYZ(input);
-    assert sourceXYZ.length == 3;
-    generateSourceSignature(sourceXYZ);
-  }
-
   private void createSeis3dFfts(ISeismicVolume input) {
     int[] inputShape = input.getLengths();
-    rcvr = new SeisFft3dNew(pc,inputShape,PAD,DEFAULT_FFT_ORIENTATION);
-    shot = new SeisFft3dNew(pc,inputShape,PAD,DEFAULT_FFT_ORIENTATION);
+    rcvr = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
+    shot = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
 
     //copy the receiver data into the rcvr object
     rcvr.getArray().copy(input.getDistributedArray());
@@ -293,36 +359,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
         +"milliseconds.  I don't know how to deal with that.");
   }
 
-  private void transformFromTimeToFrequency() {
-    transformTime.start();
-    assert !rcvr.isTimeTransformed();
-    assert !shot.isTimeTransformed();
-    rcvr.forwardTemporal();
-    shot.forwardTemporal();
-    assert rcvr.isTimeTransformed();
-    assert shot.isTimeTransformed();
-
-    transformTime.stop();
-  }
-
-  private void generateSourceSignature(float[] sourceXYZ) {
-    if (sourceXYZ.length != 3)
-      throw new IllegalArgumentException("Wrong number of elements for sourceXYZ");
-    if (sourceXYZ[2] > 0)
-      throw new UnsupportedOperationException("Sources at Depths besides zero not yet implemented");
-
-    sourceGenTime.start();
-    int sourceX = (int) Math.floor(sourceXYZ[0]);
-    while (sourceX < sourceXYZ[0] + 1) {
-      int sourceY = (int) Math.floor(sourceXYZ[1]);
-      while (sourceY < sourceXYZ[1] + 1) {
-        float weight = Math.max(0, 1-euclideanDistance(sourceX,sourceY,sourceXYZ));
-        putWhiteSpectrum(shot,sourceX,sourceY,weight);
-        sourceY++;
-      }
-      sourceX++;
-    }
-    sourceGenTime.stop();
+  private void generateShotDistributedArray(ISeismicVolume input) {
+    float[] sourceXYZ = locateSourceXYZ(input);
+    assert sourceXYZ.length == 3;
+    generateSourceSignature(sourceXYZ);
   }
 
   private float[] locateSourceXYZ(ISeismicVolume input) {
@@ -348,16 +388,84 @@ public class ExampleMigration extends StandAloneVolumeTool {
         volumeArrayIndex = input.getVolumePosition()[k];
         //TODO: NOT RIGHT
         volumeArrayIndex %= 4;
-        LOGGER.info("Source location: " + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
+        LOGGER.info("Source location: "
+            + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
         return sourceLocations[volumeArrayIndex];
       }
     }
     throw new IllegalArgumentException("Unable to find source location.");
   }
 
-  //
-  private void extrapolate(float V, double delz, int zindx) {
-    transformFromSpaceToWavenumber();
+  private void generateSourceSignature(float[] sourceXYZ) {
+    if (sourceXYZ.length != 3)
+      throw new IllegalArgumentException(
+          "Wrong number of elements for sourceXYZ");
+
+    if (sourceXYZ[2] > 0)
+      throw new UnsupportedOperationException(
+          "Sources at Depths besides zero not yet implemented");
+
+    sourceGenTime.start();
+    int sourceX = (int) Math.floor(sourceXYZ[0]);
+    while (sourceX < sourceXYZ[0] + 1) {
+      int sourceY = (int) Math.floor(sourceXYZ[1]);
+      while (sourceY < sourceXYZ[1] + 1) {
+        float weight = 
+            Math.max(0, 1-euclideanDistance(sourceX,sourceY,sourceXYZ));
+        putWhiteSpectrum(shot,sourceX,sourceY,weight);
+        sourceY++;
+      }
+      sourceX++;
+    }
+    sourceGenTime.stop();
+  }
+
+  /**
+   * @param sourceX - Target X index in the grid
+   * @param sourceY - Target Y index in the grid
+   * @param sourceXYZ - Actual Source position in the grid
+   * @return The  Euclidean distance between the current array index
+   *           and the input source.
+   */
+  private float euclideanDistance(float sourceX,
+      float sourceY,float[] sourceXYZ) {
+
+    float dx2 = (sourceX - sourceXYZ[0])*(sourceX - sourceXYZ[0]);
+    float dy2 = (sourceY - sourceXYZ[1])*(sourceY - sourceXYZ[1]);
+    return (float)Math.sqrt(dx2+dy2);
+  }
+
+  private void putWhiteSpectrum(SeisFft3dNew source,int sourceX,
+      int sourceY,float amplitude) {
+
+    int[] position = new int[] {0,sourceX,sourceY};
+    int[] volumeShape = source.getArray().getShape();
+    float[] sample = new float[] {amplitude,0}; //amplitude+0i complex
+    DistributedArray sourceDA = source.getArray();
+    while (position[0] < volumeShape[0]) {
+      sourceDA.putSample(sample, position);
+      position[0]++;
+    }
+  }
+
+  private float getVelocityModel(double depth) {
+    float V;
+    if (depth <= 1000)
+      V = 2000;
+    else 
+      V = 3800;
+    return V;
+  }
+
+  private void transformFromTimeToFrequency() {
+    transformTime.start();
+    rcvr.forwardTemporal();
+    shot.forwardTemporal();
+    transformTime.stop();
+  }
+
+  //Constant velocity phase shift
+  private void extrapolate(float velocity, double delz,int zindx,double fMax) {
     extrapTime.start();
 
     DistributedArray rcvrDA = rcvr.getArray();
@@ -382,19 +490,18 @@ public class ExampleMigration extends StandAloneVolumeTool {
             rcvrDA,position,direction,scope);
     while (dapi.hasNext()) {
       position = dapi.next();
-      //LOGGER.info("Position in " + Arrays.toString(position));
       rcvrDA.getSample(recInSample, position);
       shotDA.getSample(souInSample, position);
       rcvr.getKyKxFCoordinatesForPosition(position, coords);
-      double Ky = coords[0];
-      double Kx = coords[1];
-      double F = coords[2];
+      double kX = coords[0];
+      double kY = coords[1];
+      double frequency = coords[2];
 
       //skip if we're over the data threshold.
       //TODO put this back when you have a proper band limited source.
       //if (F > fMax) continue;
 
-      double Kz2 = (F/V)*(F/V) - Kx*Kx - Ky*Ky;
+      double Kz2 = (frequency/velocity)*(frequency/velocity) - kY*kY - kX*kX;
       double exponent = 0;
       if (Kz2 > eps && zindx > 0) {
         exponent = (-2*Math.PI*delz * Math.sqrt(Kz2));
@@ -417,9 +524,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
         souOutSample[1] = (float) (souInSample[1]*Math.cos(exponent)
             + souInSample[0]*Math.sin(exponent));
 
-        float FLOAT_EPSILON = 1.19e-7F;
         Assert.assertArrayEquals("recOutSample and recOutSample2 differ",
-            recOutSample,new float[] {0,0},FLOAT_EPSILON);
+            recOutSample,recOutSample2,FLOAT_EPSILON);
         Assert.assertArrayEquals("souOutSample and souOutSample2 differ",
             souOutSample,souOutSample2,FLOAT_EPSILON);
 
@@ -430,39 +536,29 @@ public class ExampleMigration extends StandAloneVolumeTool {
         souOutSample[0] = (float) (souInSample[0]*Math.exp(-exponent));
         souOutSample[1] = (float) (souInSample[1]*Math.exp(-exponent));
       }
-      //LOGGER.info("Position out: " + Arrays.toString(position));
       rcvrDA.putSample(recOutSample, position);
       shotDA.putSample(souOutSample, position);
     }
     extrapTime.stop();
-    transformFromWavenumberToSpace();
   }
 
   private void transformFromSpaceToWavenumber() {
     transformTime.start();
-    assert !rcvr.isSpaceTransformed();
-    assert !shot.isSpaceTransformed();
     rcvr.forwardSpatial2D();
     shot.forwardSpatial2D();
-    assert rcvr.isSpaceTransformed();
-    assert shot.isSpaceTransformed();
     transformTime.stop();
 
   }
 
   private void transformFromWavenumberToSpace() {
     transformTime.start();
-    assert rcvr.isSpaceTransformed();
-    assert shot.isSpaceTransformed();
     rcvr.inverseSpatial2D();
     shot.inverseSpatial2D();
-    assert !rcvr.isSpaceTransformed();
-    assert !shot.isSpaceTransformed();
     transformTime.stop();
   }
 
-  private void imagingCondition(ISeismicVolume outputVolume,int zindx) {
-    //Now image here
+  private void imagingCondition(ISeismicVolume outputVolume,
+      int zindx,double fMax) {
     imageTime.start();
 
     DistributedArray rcvrDA = rcvr.getArray();
@@ -475,8 +571,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     // so that it doesn't waste time accumulating a bunch of zeros.
 
 
-    int[] DALengths = rcvr.getArray().getShape().clone();
-    LOGGER.info(Arrays.toString(DALengths));
+    int[] fullShape = rcvr.getArray().getShape().clone();
+    LOGGER.info(Arrays.toString(fullShape));
 
     /*
     double fNY = 1/(2*0.002);
@@ -495,7 +591,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //buffers
     int[] position = new int[rcvrDA.getDimensions()];
-    double[] coords = new double[3];
     int direction = 1; //forward
     int scope = 0; //samples
 
@@ -506,11 +601,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     float[] imageSample = new float[imageDA.getElementCount()];
     while (dapi.hasNext()) {
       position = dapi.next();
-      //System.out.println("Position: " + Arrays.toString(position)
-      //    + " out of " + Arrays.toString(DALengths));
-      //rcvr.getKyKxFCoordinatesForPosition(
-      //    new int[] {position[2],position[1],position[0]}, coords);
-      //System.out.println("Coords: " + Arrays.toString(coords));
       int[] outputPosition = position.clone();
       outputPosition[0] = zindx;
       rcvr.getArray().getSample(recInSample2, position);
@@ -537,17 +627,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
         + imageDA.getTotalSampleCount()
         + "\n\n");
 
-
-
     imageTime.stop();
-  }
-
-  private float[] doubleToFloat(double[] doubleArray) {
-    float[] floatArray = new float[doubleArray.length];
-    for (int k = 0 ; k < doubleArray.length ; k++ ) {
-      floatArray[k] = (float) doubleArray[k];
-    }
-    return floatArray;
   }
 
   private float[] complexMultiply(float[] c1, float[] c2) {
@@ -564,30 +644,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private void logTimerOutput(String timerName,IntervalTimer timer) {
     LOGGER.info(String.format("%s: %.2f.",timerName,timer.total()));
-  }
-
-  /**
-   * @param sourceX - Target X index in the grid
-   * @param sourceY - Target Y index in the grid
-   * @param sourceXYZ - Actual Source position in the grid
-   * @return The  Euclidean distance between the current array index
-   *           and the input source.
-   */
-  private float euclideanDistance(float sourceX, float sourceY, float[] sourceXYZ) {
-    float dx2 = (sourceX - sourceXYZ[0])*(sourceX - sourceXYZ[0]);
-    float dy2 = (sourceY - sourceXYZ[1])*(sourceY - sourceXYZ[1]);
-    return (float)Math.sqrt(dx2+dy2);
-  }
-
-  private void putWhiteSpectrum(SeisFft3dNew source,int sourceX,int sourceY,float amplitude) {
-    int[] position = new int[] {0,sourceX,sourceY};
-    int[] volumeShape = source.getArray().getShape();
-    float[] sample = new float[] {amplitude,0}; //amplitude+0i complex
-    DistributedArray sourceDA = source.getArray();
-    while (position[0] < volumeShape[0]) {
-      sourceDA.putSample(sample, position);
-      position[0]++;
-    }
   }
 
   @Override

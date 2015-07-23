@@ -21,7 +21,8 @@ public class ExampleMigrationRunner {
 
   @Test
   public void test() throws FileNotFoundException {
-    String inputFileName = "100a-rawsynthpwaves.js";
+    //String inputFileName = "100a-rawsynthpwaves.js";
+    String inputFileName = "segshotno1.js";
     String outputFileName = "test10m.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
