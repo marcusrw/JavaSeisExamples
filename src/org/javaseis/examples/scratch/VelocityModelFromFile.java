@@ -16,6 +16,12 @@ public class VelocityModelFromFile {
     //close the seisio and possibly other stuff
   }
   
+  //TODO  return value should be something else, a double array maybe, or just
+  //      an average value if you just want v(z).
+  public void readSlice(double depth) {
+    
+  }
+  
   
 
 }
