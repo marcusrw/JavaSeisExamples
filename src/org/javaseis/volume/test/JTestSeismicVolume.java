@@ -82,6 +82,12 @@ public class JTestSeismicVolume {
       Assert.fail(e.getMessage());
     }
   }
+  
+  //TODO why is the BinGrid even in there?
+  @Test
+  public void simpleConstructorMakesBinGridProperly() {
+    SeismicVolume volume = new SeismicVolume(pc,exampleGrid);
+  }
 
   @Test
   public void testMiddleConstructorSucceeds() {

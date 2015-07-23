@@ -37,7 +37,7 @@ public class SeismicVolume implements ISeismicVolume {
 
   int[] volumeShape;
 
-  //TODO  I hate the way this is implemented.  I want this to be final
+  //TODO  I don't like the way this is implemented.  I want this to be final
   //      and declared during construction.  Does that mean I need a second
   //      copy of each constructor that takes it as an argument? - Marcus
   int[] globalVolumePosition;
