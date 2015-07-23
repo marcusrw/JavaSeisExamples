@@ -242,7 +242,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int[] volumeGridPosition = toolContext.getInputVolume().getVolumePosition();
     System.out.println(Arrays.toString(volumeGridPosition));
     
+    //update the grid
     
+    //check here that receiverX = pOx+xindx+pDx, and receiverY = p0y + yindx+pDy
     
     return toolContext.getInputGrid();
   }
