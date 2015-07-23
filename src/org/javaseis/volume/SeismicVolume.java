@@ -17,12 +17,9 @@ public class SeismicVolume implements ISeismicVolume {
 
   private static final int VOLUME_NUM_DIMENSIONS = 3;
 
-  GridDefinition globalGrid, localGrid;
+  GridDefinition globalGridDef, localGridDef;
 
-  //TODO  This calls for a rename.  volumeGrid and localGrid sound like they
-  //      describe the same thing.  I think the only reason this guy is here
-  //      is so you can call his methods (since ISeismicVolume extends
-  //      IRegularGrid.  There should be a better way to do this. - Marcus
+  //TODO does it make sense for a class to contain AND extend another class?
   IRegularGrid volumeGrid;
 
   BinGrid binGrid;
@@ -50,7 +47,7 @@ public class SeismicVolume implements ISeismicVolume {
     setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
     setLocalGridAndVolume();
     binGrid = createDefaultBinGrid();
-    volumeGrid = new RegularGrid(volume,localGrid,binGrid);
+    volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
     elementType = ElementType.FLOAT;
     elementCount = 1;
     decompType = Decomposition.BLOCK;
@@ -68,7 +65,7 @@ public class SeismicVolume implements ISeismicVolume {
     setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
     setLocalGridAndVolume();
     binGrid = binGridIn;
-    volumeGrid = new RegularGrid(volume,localGrid,binGrid);
+    volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
     elementType = ElementType.FLOAT;
     elementCount = 1;
     decompType = Decomposition.BLOCK;
@@ -83,7 +80,7 @@ public class SeismicVolume implements ISeismicVolume {
     setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
     setLocalGridAndVolume();
     binGrid = binGridIn;
-    volumeGrid = new RegularGrid(volume,localGrid,binGrid);
+    volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
     elementType = volumeElementType;
     elementCount = volumeElementCount;
     decompType = volumeDecompType;
@@ -92,17 +89,17 @@ public class SeismicVolume implements ISeismicVolume {
   private void setParallelContextAndGlobalGrid(
       IParallelContext parallelContext, GridDefinition globalGridDefinition) {
     pc = parallelContext;
-    globalGrid = globalGridDefinition;
+    globalGridDef = globalGridDefinition;
   }
 
   private void setLocalGridAndVolume() {
     AxisDefinition[] axis = new AxisDefinition[VOLUME_NUM_DIMENSIONS];
     int[] volumeShape = new int[VOLUME_NUM_DIMENSIONS];
     for (int i = 0; i < VOLUME_NUM_DIMENSIONS; i++) {
-      axis[i] = globalGrid.getAxis(i);
+      axis[i] = globalGridDef.getAxis(i);
       volumeShape[i] = (int) axis[i].getLength();
     }
-    localGrid = new GridDefinition(axis.length, axis);
+    localGridDef = new GridDefinition(axis.length, axis);
     volume = new DistributedArray(pc, volumeShape);
   }
 
@@ -150,7 +147,7 @@ public class SeismicVolume implements ISeismicVolume {
   public double[] getDeltas() {
     return volumeGrid.getDeltas();
   }
-  
+
   /**
    * @return The index of the first position of the local volume
    * within the larger globalGrid.
@@ -159,7 +156,7 @@ public class SeismicVolume implements ISeismicVolume {
   public int[] getVolumePosition() {
     return globalVolumePosition;
   }
-  
+
   public void setVolumePosition(int[] globalVolumePosition) {
     this.globalVolumePosition = globalVolumePosition;
   }
@@ -226,7 +223,7 @@ public class SeismicVolume implements ISeismicVolume {
 
   @Override
   public void copyVolume(ISeismicVolume source) {
-    if (!localGrid.matches(source.getLocalGrid()))
+    if (!localGridDef.matches(source.getLocalGrid()))
       throw new IllegalArgumentException(
           "Source volume and this volume do not match");
     this.getDistributedArray().copy(source.getDistributedArray());
@@ -234,17 +231,17 @@ public class SeismicVolume implements ISeismicVolume {
 
   @Override
   public GridDefinition getGlobalGrid() {
-    return globalGrid;
+    return globalGridDef;
   }
 
   @Override
   public GridDefinition getLocalGrid() {
-    return localGrid;
+    return localGridDef;
   } 
 
   @Override
   public boolean matches(ISeismicVolume seismicVolume) {
-    return globalGrid.matches(seismicVolume.getGlobalGrid());
+    return globalGridDef.matches(seismicVolume.getGlobalGrid());
   }
 
   @Override
@@ -259,6 +256,6 @@ public class SeismicVolume implements ISeismicVolume {
 
   @Override
   public ITraceIterator getTraceIterator() {
-   return volumeGrid.getTraceIterator();
+    return volumeGrid.getTraceIterator();
   }
 }
