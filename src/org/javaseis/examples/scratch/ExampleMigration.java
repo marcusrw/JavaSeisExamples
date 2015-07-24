@@ -242,12 +242,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
     transformFromTimeToFrequency();
     generateShotDistributedArray(input);
 
-    
+
     SourceVolume src = new SourceVolume(toolContext,input);
     if (!src.isFinished()) {
       return false;
     }
-     
+
     eps = 1E-12F;
     eps = 0F;
     float velocity;
@@ -259,10 +259,31 @@ public class ExampleMigration extends StandAloneVolumeTool {
     LOGGER.info(String.format("zmin: %6.1f, delz: %6.1f, numz: %4d",
         zmin,delz,numz));
 
+    //TODO initialize velocity model input
+    /*
+       vmff = new VelocityModelFromFile(toolContext);
+       vmff.open();
+       vmff.orientSeismicVolume(inputGrid);
+
+     */
+
     for (int zindx = 0 ; zindx < numz ; zindx++) {
       double depth = zmin+delz*zindx;
       LOGGER.info("Depth: " + depth);
       velocity = getVelocityModel(depth);
+      
+      //TODO  Test that getVelocityModelXYZ returns the correct physical location
+      //      for every position index.  Use the distributedArrayPositionIterator
+      //      if you set scope = 1, that iterates over traces (ie surface locations)
+      //      I THINK.
+
+      //TODO Will be:
+      /*
+       velocity = readAverageVelocity(depth);
+
+       velocity =  
+
+       */
 
       //this extrapolator is v(z) only.
       transformFromSpaceToWavenumber();
@@ -270,6 +291,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
       transformFromWavenumberToSpace();
       imagingCondition(outputVolume,zindx,fMax);
     }
+    
+    /*
+       vmff.close();
+     */
 
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time",singleVolumeTime);

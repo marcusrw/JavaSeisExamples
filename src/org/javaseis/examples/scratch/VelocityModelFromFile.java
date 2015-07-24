@@ -54,8 +54,8 @@ public class VelocityModelFromFile {
    * so we know where to pull velocities from.
    * @param seismicVolume - The input seismic volume (eg. a shot record)
    */
-  public void orientSeismicVolume(ISeismicVolume seismicVolume) {
-    volumeGrid = seismicVolume.getLocalGrid();
+  public void orientSeismicVolume(GridDefinition seismicVolumeGrid) {
+    volumeGrid = seismicVolumeGrid;
   }
 
   public void close() {
@@ -88,6 +88,14 @@ public class VelocityModelFromFile {
     // TODO Auto-generated method stub
     return null;
   }
+  
+  //Temporary testing method.
+  //TODO implement.  Basic call to map between shot index and model index.
+  private double[] getVelocityModelXYZ(int[] seisVolumePositionIndex) {
+    return new double[1];
+  }
+  
+  
 
   public double[][] getEntireDepthSlice(double depth) {
     return getWindowedDepthSlice(getVelocityModelPhysicalOrigins(),
