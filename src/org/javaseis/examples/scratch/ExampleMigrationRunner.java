@@ -30,11 +30,11 @@ public class ExampleMigrationRunner {
     //set basic user inputs
     parms.setParameter("ZMIN","0");
     parms.setParameter("ZMAX","2000");
-    parms.setParameter("DELZ","50");
+    parms.setParameter("DELZ","2000");
     parms.setParameter("PADT","10");
     parms.setParameter("PADX","10");
     parms.setParameter("PADY","10");
-    parms.setParameter("DEBUG","TRUE");    
+    parms.setParameter("DEBUG","FALSE");    
 
     //parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
