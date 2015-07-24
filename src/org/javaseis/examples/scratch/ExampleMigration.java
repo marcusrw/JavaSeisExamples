@@ -222,59 +222,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     LOGGER.info("Output Grid Definition:\n" + toolContext.getOutputGrid() + "\n");
   }
 
-  private GridDefinition updateVolumeGridDefinition(ToolContext toolContext) {
-    //open the JScoordinate service, figure out the physical origins/deltas
-    //for the receiver positions, check them against the current grid, 
-    //put out a log message if they're wrong, and change them.
-
-    try {
-      JSCoordinateService jscs = openTraceHeadersFile(toolContext);
-    } catch (SeisException e) {
-      LOGGER.log(Level.INFO,e.getMessage(),e); 
-    }
-    
-    int[] volumeGridPosition = toolContext.getInputVolume().getVolumePosition();
-    System.out.println(Arrays.toString(volumeGridPosition));
-    
-    //TODO update the grid, show a log message if anything changes.
-        
-    return toolContext.getInputGrid();
-  }
-
-  private JSCoordinateService openTraceHeadersFile(ToolContext toolContext)
-      throws SeisException {
-    String inputFilePath
-    = toolContext.getParameterService().getParameter("inputFileSystem","null")
-    + File.separator
-    +toolContext.getParameterService().getParameter("inputFilePath","null");
-
-    Seisio sio;
-    JSCoordinateService jscs;
-
-    try {
-      sio = new Seisio(inputFilePath);
-      sio.open("r");
-      sio.usesProperties(true);
-      TraceProperties tp = sio.getTraceProperties();
-      PropertyDescription[] tpd = tp.getTraceProperties();
-      GridDefinition grid = sio.getGridDefinition();
-      int xdim = 1;  //2nd array index
-      int ydim = 2;  //3rd array index
-      BinGrid bingrid = new BinGrid(grid,xdim,ydim);
-      Assert.assertNotNull(bingrid);     
-      String[] coordprops = new String[]
-          {"SOU_XD","SOU_YD","SOU_ELEV","REC_XD","REC_YD","REC_ELEV"};
-      //The JSCS source/javadoc should explain that ORDER MATTERS HERE.
-      return new JSCoordinateService(sio,bingrid,
-          CoordinateType.SHOTRCVR,coordprops);
-
-    } catch (SeisException e) {
-      LOGGER.log(Level.SEVERE,e.getMessage(),e);
-      LOGGER.severe("Something is very wrong if you're seeing this.");
-      throw e;
-    }
-  }
-
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume outputVolume) {
@@ -285,8 +232,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //Only extrapolate the first volume if we're in debug mode.
     if (debug && input.getVolumePosition()[3] > 0)
       return false;
-    
-    checkVolumeGridDefinition(toolContext);
+
+    checkVolumeGridDefinition(toolContext,input);
 
     createSeis3dFfts(input);
     transformFromTimeToFrequency();
@@ -324,15 +271,71 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return true;
   }
 
-  private void checkVolumeGridDefinition(ToolContext toolContext) {
+  private void checkVolumeGridDefinition(ToolContext toolContext,
+      ISeismicVolume input) {
     //The only difference should be the physical origins and deltas
     //are different.
-    GridDefinition fixedGrid = updateVolumeGridDefinition(toolContext);
+    GridDefinition fixedGrid = updateVolumeGridDefinition(toolContext,input);
     //fixedGrid.getAxisPhysicalDelta(index);
     // TODO check here that receiverX = pOx+xindx+pDx,
     // and receiverY = p0y + yindx+pDy
 
     toolContext.setInputGrid(fixedGrid);
+  }
+
+  private GridDefinition updateVolumeGridDefinition(ToolContext toolContext,
+      ISeismicVolume input) {
+    //open the JScoordinate service, figure out the physical origins/deltas
+    //for the receiver positions, check them against the current grid, 
+    //put out a log message if they're wrong, and change them.
+
+    try {
+      JSCoordinateService jscs = openTraceHeadersFile(toolContext,input);
+    } catch (SeisException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e); 
+    }
+
+    int[] volumeGridPosition = input.getVolumePosition();
+    System.out.println(Arrays.toString(volumeGridPosition));
+
+    //TODO update the grid, show a log message if anything changes.
+
+    return input.getGlobalGrid();
+  }
+
+  private JSCoordinateService openTraceHeadersFile(ToolContext toolContext,
+      ISeismicVolume input)
+          throws SeisException {
+    String inputFilePath
+    = toolContext.getParameterService().getParameter("inputFileSystem","null")
+    + File.separator
+    +toolContext.getParameterService().getParameter("inputFilePath","null");
+
+    Seisio sio;
+    JSCoordinateService jscs;
+
+    try {
+      sio = new Seisio(inputFilePath);
+      sio.open("r");
+      sio.usesProperties(true);
+      TraceProperties tp = sio.getTraceProperties();
+      PropertyDescription[] tpd = tp.getTraceProperties();
+      GridDefinition grid = sio.getGridDefinition();
+      int xdim = 1;  //2nd array index
+      int ydim = 2;  //3rd array index
+      BinGrid bingrid = new BinGrid(grid,xdim,ydim);
+      Assert.assertNotNull(bingrid);     
+      String[] coordprops = new String[]
+          {"SOU_XD","SOU_YD","SOU_ELEV","REC_XD","REC_YD","REC_ELEV"};
+      //The JSCS source/javadoc should explain that ORDER MATTERS HERE.
+      return new JSCoordinateService(sio,bingrid,
+          CoordinateType.SHOTRCVR,coordprops);
+
+    } catch (SeisException e) {
+      LOGGER.log(Level.SEVERE,e.getMessage(),e);
+      LOGGER.severe("Something is very wrong if you're seeing this.");
+      throw e;
+    }
   }
 
   private void createSeis3dFfts(ISeismicVolume input) {
