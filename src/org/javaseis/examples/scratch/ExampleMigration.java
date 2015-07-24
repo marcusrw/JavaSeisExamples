@@ -218,12 +218,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     parallelTime.start();
     pc = toolContext.getParallelContext();
     LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
-
-    //The only difference should be the physical origins and deltas
-    //are different.
-    GridDefinition fixedGrid = updateVolumeGridDefinition(toolContext);
-    toolContext.setInputGrid(fixedGrid);
-
     LOGGER.info("Input Grid Definition:\n" + toolContext.getInputGrid() + "\n");
     LOGGER.info("Output Grid Definition:\n" + toolContext.getOutputGrid() + "\n");
   }
@@ -242,10 +236,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int[] volumeGridPosition = toolContext.getInputVolume().getVolumePosition();
     System.out.println(Arrays.toString(volumeGridPosition));
     
-    //update the grid
-    
-    //check here that receiverX = pOx+xindx+pDx, and receiverY = p0y + yindx+pDy
-    
+    //TODO update the grid, show a log message if anything changes.
+        
     return toolContext.getInputGrid();
   }
 
@@ -293,6 +285,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //Only extrapolate the first volume if we're in debug mode.
     if (debug && input.getVolumePosition()[3] > 0)
       return false;
+    
+    checkVolumeGridDefinition(toolContext);
 
     createSeis3dFfts(input);
     transformFromTimeToFrequency();
@@ -328,6 +322,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time",singleVolumeTime);
     return true;
+  }
+
+  private void checkVolumeGridDefinition(ToolContext toolContext) {
+    //The only difference should be the physical origins and deltas
+    //are different.
+    GridDefinition fixedGrid = updateVolumeGridDefinition(toolContext);
+    //fixedGrid.getAxisPhysicalDelta(index);
+    // TODO check here that receiverX = pOx+xindx+pDx,
+    // and receiverY = p0y + yindx+pDy
+
+    toolContext.setInputGrid(fixedGrid);
   }
 
   private void createSeis3dFfts(ISeismicVolume input) {
