@@ -80,20 +80,24 @@ public class VelocityModelFromFile {
   }
 
   private long[] getVolumeGridLengths() {
-    // TODO Auto-generated method stub
-    return null;
+    return volumeGrid.getAxisLengths();
   }
 
   private double[] getVolumeGridOrigins() {
-    // TODO Auto-generated method stub
-    return null;
+    return volumeGrid.getAxisPhysicalOrigins();
+  }
+  
+  private double[] getVolumeGridDeltas() {
+    return volumeGrid.getAxisPhysicalDeltas();
   }
   
   //Temporary testing method.
   //TODO implement.  Basic call to map between shot index and model index.
-  private double[] getVelocityModelXYZ(int[] seisVolumePositionIndex) {
+  public double[] getVelocityModelXYZ(int[] seisVolumePositionIndex) {
     return new double[1];
   }
+  
+  
   
   
 
