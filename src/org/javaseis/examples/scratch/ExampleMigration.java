@@ -72,6 +72,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private float eps;
   private double fMax = Double.POSITIVE_INFINITY;
   private static final float FLOAT_EPSILON = 1.19e-7F;
+private double[] sxyzs;
+private GridDefinition inputGrid;
 
 
   public ExampleMigration() {
@@ -275,12 +277,26 @@ public class ExampleMigration extends StandAloneVolumeTool {
       ISeismicVolume input) {
     //The only difference should be the physical origins and deltas
     //are different.
-    GridDefinition fixedGrid = updateVolumeGridDefinition(toolContext,input);
+	 
+	  
+	  
+	  
+    inputGrid = updateVolumeGridDefinition(toolContext,input);
+    
+    //fixedGrid.getAxisPhysicalDelta(0);
     //fixedGrid.getAxisPhysicalDelta(index);
     // TODO check here that receiverX = pOx+xindx+pDx,
     // and receiverY = p0y + yindx+pDy
 
-    toolContext.setInputGrid(fixedGrid);
+    /*for (int i = 1; i < fixedGrid.getNumDimensions(); i++){
+    	for (int j = 0; j < fixedGrid.getAxis(i).getLength(); j++){
+    		double[] rxyz = new double[3];
+    		//jscs.getReceiverXYZ
+    	}
+    }*/
+    
+    toolContext.setInputGrid(inputGrid);
+    //input.se
   }
 
   private GridDefinition updateVolumeGridDefinition(ToolContext toolContext,
@@ -289,21 +305,136 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //for the receiver positions, check them against the current grid, 
     //put out a log message if they're wrong, and change them.
 
+	JSCoordinateService jscs = null;  
+	  
     try {
-      JSCoordinateService jscs = openTraceHeadersFile(toolContext,input);
+      jscs = openTraceHeadersFile(toolContext,input);
     } catch (SeisException e) {
       LOGGER.log(Level.INFO,e.getMessage(),e); 
     }
 
-    int[] volumeGridPosition = input.getVolumePosition();
-    System.out.println(Arrays.toString(volumeGridPosition));
+    //int[] volumeGridPosition = input.getVolumePosition();
+    //System.out.println(Arrays.toString(volumeGridPosition));
 
+    GridDefinition inputGrid = input.getGlobalGrid();
+    
     //TODO update the grid, show a log message if anything changes.
+    long[] inputAxisLengths = inputGrid.getAxisLengths();
+    
+    int [] VolPos = input.getVolumePosition();
+    long[] volumeShape = input.getLocalGrid().getAxisLengths();
+    
+    int[] pos = Arrays.copyOf(VolPos, VolPos.length);
 
-    return input.getGlobalGrid();
+    //int[] pos = {0,0,0,0};
+    
+    double[] srxyz = new double[6];
+    sxyzs = new double[3];
+    double[] rxyz = new double[3];
+    double[] rxyz2 = new double[3];
+    double[] rxyz3 = new double[3];
+    //double[] sxyz = new double[3];
+    
+    int[] pos2 = new int[4]; 
+    
+    AxisDefinition[] physicalOAxisArray = new AxisDefinition[inputAxisLengths.length];
+    
+    
+    /*for (int xindx = 0 ; xindx < volumeShape[1] - 1 ; xindx++) {
+        pos[1] = xindx;
+        for (int yindx = 1 ; yindx < volumeShape[2]-1; yindx++) {
+         pos[2] = yindx;
+         
+         jscs.getReceiverXYZ(pos, rxyz2);
+         
+         pos2[0] = 0;
+         pos2[1] = xindx;
+         pos2[2] = yindx;
+         pos2[3] = 0;
+         
+         
+         jscs.getReceiverXYZ(pos2, rxyz3);
+         
+         for (int k = 0 ; k < rxyz2.length ; k++) {
+             rxyz2[k] -= rxyz3[k];
+             //System.out.println(rxyz2[0]);
+         }
+         
+        }
+     }*/
+    
+    jscs.getReceiverXYZ(pos, rxyz);
+    jscs.getReceiverXYZ(new int[] {0,1,1,0},rxyz2);
+    jscs.getSourceXYZ(new int[] {0,0,0,0}, sxyzs);
+    for (int k = 0 ; k < rxyz2.length ; k++) {
+      rxyz2[k] -= rxyz[k];
+    }
+    
+    
+    
+    System.out.println(volumeShape.length);
+    System.out.println(volumeShape[1]);
+    System.out.println(rxyz2[0] + " " + rxyz2[1] + " " + rxyz[2]);
+    
+    for (int k = 0; k < inputAxisLengths.length ; k++) {
+        AxisDefinition inputAxis = inputGrid.getAxis(k);
+        physicalOAxisArray[k] = new AxisDefinition(inputAxis.getLabel(),
+            inputAxis.getUnits(),
+            inputAxis.getDomain(),
+            inputAxisLengths.length,	//need to change axis length
+            inputAxis.getLogicalOrigin(),
+            inputAxis.getLogicalDelta(),
+            //inputAxis.getPhysicalOrigin(),
+            CalculateNewPhysicalOrigin(inputAxis, k, rxyz),
+            //inputAxis.getPhysicalDelta());
+            CalculateNewDeltaOrigin(inputAxis, k, rxyz2));
+      }
+    
+    //return new GridDefinition(inputGrid.getNumDimensions(),transformAxes);
+    
+    GridDefinition modifiedGrid = new GridDefinition(inputGrid.getNumDimensions(),physicalOAxisArray);
+    
+    double[] physicalOrigins = modifiedGrid.getAxisPhysicalOrigins();
+    double[] deltaA = modifiedGrid.getAxisPhysicalDeltas();
+
+    System.out.println("Physical Origins from data: " + Arrays.toString(rxyz));
+    System.out.println("Physical Origins from grid: " + Arrays.toString(physicalOrigins));
+    
+    System.out.println("Physical Origins from data: " + Arrays.toString(rxyz2));
+    System.out.println("Physical Deltas from grid: " + Arrays.toString(deltaA));
+    
+    return new GridDefinition(inputGrid.getNumDimensions(),physicalOAxisArray);
+    //return input.getGlobalGrid();
   }
 
-  private JSCoordinateService openTraceHeadersFile(ToolContext toolContext,
+  private double CalculateNewDeltaOrigin(AxisDefinition axis, int k, double[] data) {
+    if (k == 2){
+		return data[0];
+	}
+	else if (k == 1){
+		return data[1];
+	}
+	else{
+		return axis.getPhysicalDelta();
+		//return 0;
+	}
+}
+
+//Calculate the new Physical Origin based on the 
+  private double CalculateNewPhysicalOrigin(AxisDefinition axis, int k, double [] data) {
+	if (k == 2){
+		return data[0];
+	}
+	else if (k == 1){
+		return data[1];
+	}
+	else{
+		return axis.getPhysicalOrigin();
+		//0
+	}
+}
+
+private JSCoordinateService openTraceHeadersFile(ToolContext toolContext,
       ISeismicVolume input)
           throws SeisException {
     String inputFilePath
