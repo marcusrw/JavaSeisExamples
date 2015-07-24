@@ -76,7 +76,17 @@ public class VelocityModelFromFile {
    */
   public double[][] readSlice(double depth) {
     if (volumeGrid == null) return getEntireDepthSlice(depth);
-    return getWindowedDepthSlice
+    return getWindowedDepthSlice(getVolumeGridOrigins(),getVolumeGridLengths());
+  }
+
+  private long[] getVolumeGridLengths() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  private double[] getVolumeGridOrigins() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   public double[][] getEntireDepthSlice(double depth) {
