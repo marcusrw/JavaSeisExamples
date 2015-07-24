@@ -34,7 +34,7 @@ public class StandAloneVolumeTool implements IVolumeTool {
   public static IDistributedIOService ipio, opio;
 
   public static String inputFileSystem, inputFilePath, outputFileSystem,
-      outputFilePath;
+  outputFilePath;
 
   public static boolean output = false;
 
@@ -155,11 +155,21 @@ public class StandAloneVolumeTool implements IVolumeTool {
       // Create the input and output seismic volumes
       ISeismicVolume inputVolume = new SeismicVolume(pc,
           ipio.getGridDefinition());
+      //TODO toolContext.setInputVolume(inputVolume);
+      //There is some class tangle here.  The toolcontext contains
+      //the input/output volumes but they're never set, and the grid
+      //definition, which the volumes already contain.  It's a challenge
+      //to keep all of these items properly updated.
+      //I believe this problem is related to the trouble with having
+      //public static methods shared unnecessarily between tasks.
       ipio.setDistributedArray(inputVolume.getDistributedArray());
       ISeismicVolume outputVolume = inputVolume;
       if (output) {
         outputVolume = new SeismicVolume(pc,
             opio.getGridDefinition());
+        //TODO  same as above.  This output volume is only settable here,
+        //      and is never needed.
+        //toolContext.setOutputVolume(outputVolume);
         opio.setDistributedArray(outputVolume.getDistributedArray());
       }
       // Loop over input volumes
