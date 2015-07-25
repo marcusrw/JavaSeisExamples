@@ -3,31 +3,40 @@ package org.javaseis.examples.scratch;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 
+import org.javaseis.array.ElementType;
 import org.javaseis.grid.GridDefinition;
-import org.javaseis.io.Seisio;
-import org.javaseis.volume.ISeismicVolume;
 import org.javaseis.util.SeisException;
 
+import beta.javaseis.distributed.Decomposition;
+import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.FileSystemIOService;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
+import beta.javaseis.util.Convert;
 
 public class VelocityModelFromFile {
 
+  //TODO  add helpful exceptions explaining what to do when these haven't
+  //      been initialized yet (ie, tell the user to use .open or .orient
+  //      to make it work.
   FileSystemIOService vModelPIO = null;
   GridDefinition vmodelGrid = null;
   GridDefinition volumeGrid = null;
+  DistributedArray vModelData = null;
 
+  IParallelContext pc;
   String folder;
   String file;
 
+  private static final int VOLUME_NUM_AXES = 3;
+  private static final int[] AXIS_ORDER = new int[] {2,1,0};
 
-  //Start a seisio handle to read velocity slices in from a file.
-
-
+  //TODO TEST IDEA: Pass in a model and seismic volume with different grid
+  //                spacings.  You expect an ArithmeticException.
 
   public VelocityModelFromFile(IParallelContext pc,String folder,String file) throws FileNotFoundException {
     try {
+      this.pc = pc;
       this.folder = folder;
       this.file = file;
       vModelPIO = new FileSystemIOService(pc,folder);
@@ -48,7 +57,6 @@ public class VelocityModelFromFile {
     vmodelGrid = vModelPIO.getGridDefinition();
   }
 
-
   /**
    * Orient the input seismic volume within the larger velocity model,
    * so we know where to pull velocities from.
@@ -56,6 +64,28 @@ public class VelocityModelFromFile {
    */
   public void orientSeismicVolume(GridDefinition seismicVolumeGrid) {
     volumeGrid = seismicVolumeGrid;
+    constructDistributedArrayForVelocityModel();
+    loadVelocityModelIntoArray();
+  }
+
+  private void constructDistributedArrayForVelocityModel() {
+    int[] daShape = Convert.longToInt(
+        Arrays.copyOf(volumeGrid.getAxisLengths(),VOLUME_NUM_AXES));
+
+    int[] decompTypes = new int[]
+        {Decomposition.BLOCK,
+        Decomposition.BLOCK,
+        Decomposition.BLOCK
+        };
+
+    vModelData = new DistributedArray(pc,ElementType.FLOAT,
+        daShape,decompTypes);
+  }
+
+  //TODO finish
+  private void loadVelocityModelIntoArray() {
+    throw new UnsupportedOperationException("This is the 2nd last method that "
+        + "still needs to be implemented");
   }
 
   public void close() {
@@ -67,6 +97,84 @@ public class VelocityModelFromFile {
     }
   }
 
+  private long[] getVolumeGridLengths() {
+    return volumeGrid.getAxisLengths();
+  }
+
+  private double[] getVolumeGridOrigins() {
+    return volumeGrid.getAxisPhysicalOrigins();
+  }
+
+  private double[] getVolumeGridDeltas() {
+    return volumeGrid.getAxisPhysicalDeltas();
+  }
+
+  public long[] getVModelGridLengths() {
+    return vmodelGrid.getAxisLengths();
+  }
+
+  private double[] getVModelGridOrigins() {
+    return vmodelGrid.getAxisPhysicalOrigins();
+  }
+
+  private double[] getVModelGridDeltas() {
+    return vmodelGrid.getAxisPhysicalDeltas();
+  }
+
+  //Temporary testing method, maybe
+  public double[] getVelocityModelXYZ(int[] seisVolumePositionIndexInDepth) {
+    int[] vvindx = mapSeimicVolumeIndexToVelocityVolumeIndex(
+        seisVolumePositionIndexInDepth);
+    return modelXYZForIndex(vvindx);
+  }
+
+  //Temporary, for testing, maybe
+  private double[] modelXYZForIndex(int[] vModelPositionIndex) {
+
+    double[] vmodelGridOrigins = getVModelGridOrigins();
+    double[] vmodelGridDeltas = getVModelGridDeltas();
+
+    double[] modelXYZ = new double[VOLUME_NUM_AXES];
+    for (int k = 0 ; k < modelXYZ.length ; k++) {
+      int gridIndex = AXIS_ORDER[k];
+      modelXYZ[k] = vmodelGridOrigins[gridIndex]
+          + vmodelGridDeltas[gridIndex]*vModelPositionIndex[k];
+    }
+
+    return modelXYZ;
+  }
+
+  private int[] mapSeimicVolumeIndexToVelocityVolumeIndex(
+      int[] volPosInDepth) {
+
+    assert volPosInDepth.length >= VOLUME_NUM_AXES;
+
+    double[] volGridOrigins = getVolumeGridOrigins();
+    double[] volGridDeltas = getVolumeGridDeltas();
+
+    double[] vmodelGridOrigins = getVModelGridOrigins();
+    double[] vmodelGridDeltas = getVModelGridDeltas();
+
+    int[] vModelIndex = new int[VOLUME_NUM_AXES];
+    for (int k = 0 ; k < vModelIndex.length; k++) {
+      double physicalPosition = volGridOrigins[k]
+          + volPosInDepth[k]*volGridDeltas[k];
+      double vModelIndexD =
+          (physicalPosition - vmodelGridOrigins[k])/vmodelGridDeltas[k];
+      if (!doubleIsAnInteger(vModelIndexD)) {
+        throw new ArithmeticException("Array index value doesn't evaluate to a "
+            + "mathematical integer.  Some interpolation is called for here, "
+            + "(Not implemented)");
+      }
+      vModelIndex[k] = (int)vModelIndexD;
+    }
+    return vModelIndex;
+  }
+
+  private boolean doubleIsAnInteger(double number) {
+    return number == Math.rint(number);
+  }
+
   /**
    * @param depth - The physical depth in the model.  This method will return
    *                the slice that is closest to that depth.
@@ -75,35 +183,15 @@ public class VelocityModelFromFile {
    *                passes through.
    */
   public double[][] readSlice(double depth) {
-    if (volumeGrid == null) return getEntireDepthSlice(depth);
+    if (volumeGrid == null) {
+      orientSeismicVolume(vmodelGrid);
+    }
     return getWindowedDepthSlice(getVolumeGridOrigins(),getVolumeGridLengths());
   }
 
-  private long[] getVolumeGridLengths() {
-    return volumeGrid.getAxisLengths();
-  }
-
-  private double[] getVolumeGridOrigins() {
-    return volumeGrid.getAxisPhysicalOrigins();
-  }
-  
-  private double[] getVolumeGridDeltas() {
-    return volumeGrid.getAxisPhysicalDeltas();
-  }
-  
-  //Temporary testing method.
-  //TODO implement.  Basic call to map between shot index and model index.
-  public double[] getVelocityModelXYZ(int[] seisVolumePositionIndex) {
-    return new double[1];
-  }
-  
-  
-  
-  
-
   public double[][] getEntireDepthSlice(double depth) {
-    return getWindowedDepthSlice(getVelocityModelPhysicalOrigins(),
-        getVelocityModelAxisLengths());
+    return getWindowedDepthSlice(getVModelGridOrigins(),
+        getVModelGridLengths());
   }
 
   /**
@@ -116,9 +204,9 @@ public class VelocityModelFromFile {
    */
   public double[][] getWindowedDepthSlice(double[] windowOrigin,
       long[] windowLength) {
-    //TODO Implement
-
-    return new double[1][1];
+    //TODO Implement last.
+    throw new UnsupportedOperationException("Last thing that needs "
+        + "to be implemented");
   }
 
   public double readAverageVelocity(double depth) {
@@ -138,18 +226,6 @@ public class VelocityModelFromFile {
     return sum/numElements;
   }
 
-  public double[] getVelocityModelPhysicalOrigins() {
-    return vmodelGrid.getAxisPhysicalOrigins();
-  }
-
-  public double[] getVelocityModelPhysicalDeltas() {
-    return vmodelGrid.getAxisPhysicalDeltas();
-  }
-
-  public long[] getVelocityModelAxisLengths() {
-    return vmodelGrid.getAxisLengths();
-  }
-
   public static void main(String[] args) {
     IParallelContext pc = new UniprocessorContext();
     VelocityModelFromFile vmff = null;
@@ -162,13 +238,10 @@ public class VelocityModelFromFile {
     }
 
     vmff.open("r");
-    double[] origins = vmff.getVelocityModelPhysicalOrigins();
-    double[] deltas = vmff.getVelocityModelPhysicalDeltas();
+    double[] origins = vmff.getVModelGridOrigins();
+    double[] deltas = vmff.getVModelGridDeltas();
     System.out.println("Origins: " + Arrays.toString(origins));
     System.out.println("Deltas: " + Arrays.toString(deltas));
     vmff.close();
   }
-
-
-
 }
