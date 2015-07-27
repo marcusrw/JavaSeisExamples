@@ -12,8 +12,10 @@ import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import org.javaseis.examples.scratch.SeisFft3dNew;
 
 import beta.javaseis.parallel.IParallelContext;
+import beta.javaseis.plot.PlotArray2D;
 import beta.javaseis.services.CoordinateType;
 import beta.javaseis.services.JSCoordinateService;
+import beta.javaseis.util.Convert;
 
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.BinGrid;
@@ -243,11 +245,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
     generateShotDistributedArray(input);
 
 
-    SourceVolume src = new SourceVolume(toolContext,input);
+    //SourceVolume src = new SourceVolume(toolContext,input);
     //TODO: fix this commented out for testing
-    if (!src.isFinished()) {
-      //return false;
-    }
+    //if (!src.isFinished()) {
+    //return false;
+    //}
 
     eps = 1E-12F;
     eps = 0F;
@@ -261,128 +263,136 @@ public class ExampleMigration extends StandAloneVolumeTool {
         zmin,delz,numz));
 
     //TODO initialize velocity model input
-    /*
-       vmff = new VelocityModelFromFile(toolContext);
-       vmff.open();
-       vmff.orientSeismicVolume(inputGrid);
-
-     */
+    VelocityModelFromFile vmff = getVelocityModelObject();
 
     for (int zindx = 0 ; zindx < numz ; zindx++) {
       double depth = zmin+delz*zindx;
       LOGGER.info("Depth: " + depth);
       velocity = getVelocityModel(depth);
-      
-      //TODO  Test that getVelocityModelXYZ returns the correct physical location
-      //      for every position index.  Use the distributedArrayPositionIterator
-      //      if you set scope = 1, that iterates over traces (ie surface locations)
-      //      I THINK.
 
       JSCoordinateService jscs = null;
       try {
-    	jscs = openTraceHeadersFile(toolContext,input);
+        jscs = openTraceHeadersFile(toolContext,input);
       } catch (SeisException e){
-    	  LOGGER.log(Level.INFO,e.getMessage(),e); 
+        LOGGER.log(Level.INFO,e.getMessage(),e); 
       }
-      
-      
-      System.out.println("[processVolume]: ----- Called DEBUG TEST: -----");
-      
-      
-      //Get the values from the distributed array and compare the jscs values
-      
-      //Grab Input ISeismicVolume -> DistributedArray
-      DistributedArray inputDistArr = input.getDistributedArray();
-      
-      //index of trace [sample, trace, frame, volume]
-      int [] globalPosIndex = new int[input.getNumDimensions()+1];
-      
-      //Iterate over the traces of the ISeismicVolume in the forward direction (1)
-      DistributedArrayPositionIterator itrInputArr = 
-    		  new DistributedArrayPositionIterator(inputDistArr, globalPosIndex, 
-    				  DistributedArrayPositionIterator.FORWARD);
-      
-      while (itrInputArr.hasNext()) {
-    	  globalPosIndex = itrInputArr.next();
-    	  
-    	  //TODO: Change this to the volume that you are calling instead of the 0th
-    	  //Current volume that you are iterating over.
-    	  globalPosIndex[3] = 0;
-    	
-    	  //rXYZ2 hold the receiver location for a given trace location [0,?,?,0]
-    	  double [] rXYZ = new double[3];
-    	  jscs.getReceiverXYZ(globalPosIndex, rXYZ);
-    	  
-    	  System.out.println("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
-    			  " recXYZ jscs: " + Arrays.toString(rXYZ));
-    	  
-    	  
-    	  ///TEST CODE///
-    	  //Compare the jscs coords to the coord based on pOrigin + indx * pDelta
-    	  
-    	  //rXYZ value from the Grid instead of jscs
-    	  double [] rXYZ2 = new double[3];
-    	  
-    	  //Check if both indexes are in range
-    	  double xmax = globalPosIndex[1];
-    	  double ymax = globalPosIndex[2];
-    	  
-    	  //Calculate position in Xline
-    	  int currentAxis = 1;
-    	  double minPhysO = inputGrid.getAxisPhysicalOrigin(currentAxis);
-    	  double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
-    	  double xval = 0;
-    	  for (int ii = 0; ii <= xmax; ii++){
-    		  //compute the proper position based on physOrigin + ii * physDelta
-    		  xval = minPhysO  + ii * axisPhysDelta;
-    	  }
-    	  
-    	  //Calculate position in Iline
-    	  double yval = 0;
-    	  currentAxis = 2;
-    	  minPhysO = inputGrid.getAxisPhysicalOrigin(currentAxis);
-    	  axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
-    	  for (int jj = 0; jj <= ymax; jj++){
-    		  yval = minPhysO + jj * axisPhysDelta;
-    	  }
-    	  
-    	  //Set rXYZ2 Grids Calculations 
-    	  rXYZ2[0] = yval;
-    	  rXYZ2[1] = xval;
-    	  rXYZ2[2] = depth;
-    	  
-    	  System.out.println("[processVolume]: Values From Grid:" + Arrays.toString(rXYZ2));
-    	  
-    	  
-    	  //Construct a new array for calling GetVelocityModelXYZ
-    	  double [] rDXYZ = new double[4];
-    	  rDXYZ[0] = depth;    //Current Depth
-    	  rDXYZ[1] = rXYZ[0]; //Current Y
-    	  rDXYZ[2] = rXYZ[1]; //Current X
-    	  rDXYZ[3] = rXYZ[2]; //Current Z
-    	  
-    	  System.out.println("[processVolume]: Passed to getVeloModel: " + Arrays.toString(rDXYZ));
-    	  
-    	  //TODO: getVelocityModelXYZ not created yet
-    	  //double [] retRecCoord = getVelocityModelXYZ(rDXYZ);
-    	  
-    	  //Check if the returned coordinates from getVelocityModelXYZ is
-    	  //equal to rXYZ2
-    	  
-    	  //Assert.assertTrue(Arrays.equals(rXYZ2, retRecCoord));
-    	  
-    	      	  
-    	  //TODO:Test - remove this code!!
-    	  /*try {
+
+      //TODO externalize this test if possible
+      {
+        LOGGER.fine("[processVolume]: ----- Called DEBUG TEST: -----");
+
+        //Get the values from the distributed array and compare the jscs values
+
+        //Grab Input ISeismicVolume -> DistributedArray
+        DistributedArray inputDistArr = input.getDistributedArray();
+
+        //index of trace [sample, trace, frame, volume]
+        int [] globalPosIndex = new int[inputGrid.getNumDimensions()];
+
+        //Iterate over the traces of the ISeismicVolume in the forward direction (1)
+        DistributedArrayPositionIterator itrInputArr = 
+            new DistributedArrayPositionIterator(inputDistArr, globalPosIndex, 
+                DistributedArrayPositionIterator.FORWARD);
+
+        while (itrInputArr.hasNext()) {
+          globalPosIndex = itrInputArr.next();
+
+          //TODO: Change this to the volume that you are calling instead of the 0th
+          //Current volume that you are iterating over.
+          globalPosIndex[3] = 0;
+
+          //rXYZ2 hold the receiver location for a given trace location [0,?,?,0]
+          double [] rXYZ = new double[3];
+          jscs.getReceiverXYZ(globalPosIndex, rXYZ);
+
+          System.out.println("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
+              " recXYZ jscs: " + Arrays.toString(rXYZ));
+
+
+          ///TEST CODE///
+          //Compare the jscs coords to the coord based on pOrigin + indx * pDelta
+
+          //rXYZ value from the Grid instead of jscs
+          double [] rXYZ2 = new double[3];
+
+          //Check if both indexes are in range
+          double xmax = globalPosIndex[1];
+          double ymax = globalPosIndex[2];
+
+          //Calculate position in Xline
+          int currentAxis = 1;
+          double minPhysO = inputGrid.getAxisPhysicalOrigin(currentAxis);
+          double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
+          double xval = 0;
+          for (int ii = 0; ii <= xmax; ii++){
+            //compute the proper position based on physOrigin + ii * physDelta
+            xval = minPhysO  + ii * axisPhysDelta;
+          }
+
+          //Calculate position in Iline
+          double yval = 0;
+          currentAxis = 2;
+          minPhysO = inputGrid.getAxisPhysicalOrigin(currentAxis);
+          axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
+          for (int jj = 0; jj <= ymax; jj++){
+            yval = minPhysO + jj * axisPhysDelta;
+          }
+
+          //Set rXYZ2 Grids Calculations 
+          rXYZ2[0] = xval;
+          rXYZ2[1] = yval;
+          rXYZ2[2] = depth;
+
+          System.out.println("[processVolume]: Values From Grid:" + Arrays.toString(rXYZ2));
+
+
+          //Construct a new array for calling GetVelocityModelXYZ
+          double [] rDXYZ = new double[4];
+          rDXYZ[0] = depth;    //Current Depth
+          rDXYZ[1] = rXYZ[0]; //Current Y
+          rDXYZ[2] = rXYZ[1]; //Current X
+          rDXYZ[3] = rXYZ[2]; //Current Z
+
+          System.out.println("[processVolume]: Passed to getVeloModel: " + Arrays.toString(rDXYZ));   
+
+
+          //TODO: getVelocityModelXYZ not created yet
+          System.out.println("Physical Location in VModel for Position: "
+              + Arrays.toString(globalPosIndex) + " is " + 
+              Arrays.toString(vmff.getVelocityModelXYZ(globalPosIndex)));
+          //double [] retRecCoord = getVelocityModelXYZ(rDXYZ);
+
+          //Check if the returned coordinates from getVelocityModelXYZ is
+          //equal to rXYZ2
+
+          //Assert.assertTrue(Arrays.equals(rXYZ2, retRecCoord));
+
+
+          //TODO:Test - remove this code!!
+          /*try {
     		    Thread.sleep(250);                
     	  } catch(InterruptedException ex) {
     		    Thread.currentThread().interrupt();
     	  }*/
-    	  //end
+          //end
+        }
+        System.out.println("[processVolume]: ----- DEBUG TEST ENDED -----");
       }
-      
-      System.out.println("[processVolume]: ----- DEBUG TEST ENDED -----");
-      
+
+
+      double[][] depthSlice = vmff.readSlice(depth);
+      float[][] floatSlice = new float[depthSlice.length][depthSlice[0].length];
+      for (int k = 0 ; k < depthSlice.length ; k++) {
+        floatSlice[k] = Convert.DoubleToFloat(depthSlice[k]);
+      }
+
+      //visualize
+      PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
+      sliceDisplay.display();
+
+      //TODO open it before the loop starts and close it after it ends.
+      vmff.close();
+
       //TODO Will be:
       /*
        velocity = readAverageVelocity(depth);
@@ -397,7 +407,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       transformFromWavenumberToSpace();
       imagingCondition(outputVolume,zindx,fMax);
     }
-    
+
     /*
        vmff.close();
      */
@@ -405,6 +415,21 @@ public class ExampleMigration extends StandAloneVolumeTool {
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time",singleVolumeTime);
     return true;
+  }
+
+  private VelocityModelFromFile getVelocityModelObject() {
+    VelocityModelFromFile vmff = null;
+    String folder = "/home/wilsonmr/javaseis";
+    String file = "segsaltmodel.js";
+    try {
+      vmff = new VelocityModelFromFile(pc,folder,file);
+    } catch (FileNotFoundException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
+    vmff.open("r");
+    vmff.orientSeismicVolume(inputGrid);
+    return vmff;
   }
 
   private void checkVolumeGridDefinition(ToolContext toolContext,
@@ -435,81 +460,88 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private GridDefinition updateVolumeGridDefinition(ToolContext toolContext,
       ISeismicVolume input) {
-	//open the JScoordinate service, figure out the physical origins/deltas
-	    //for the receiver positions, check them against the current grid, 
-	    //put out a log message if they're wrong, and change them.
-		  
-		  JSCoordinateService jscs = null;  
+    //open the JScoordinate service, figure out the physical origins/deltas
+    //for the receiver positions, check them against the current grid, 
+    //put out a log message if they're wrong, and change them.
 
-		    try {
-		      jscs = openTraceHeadersFile(toolContext,input);
-		    } catch (SeisException e) {
-		      LOGGER.log(Level.INFO,e.getMessage(),e); 
-		    }
+    JSCoordinateService jscs = null;  
 
-		    GridDefinition inputGrid = input.getGlobalGrid();
+    try {
+      jscs = openTraceHeadersFile(toolContext,input);
+    } catch (SeisException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e); 
+    }
 
-		    //TODO update the grid, show a log message if anything changes.
-		    long[] inputAxisLengths = inputGrid.getAxisLengths();
+    GridDefinition inputGrid = input.getGlobalGrid();
 
-		    int [] VolPos = input.getVolumePosition();
-		    System.out.println("[updateVolumeGridDefinition] VolumePos: " + Arrays.toString(VolPos));
-		    
-		    int[] pos = Arrays.copyOf(VolPos, VolPos.length);
+    //TODO update the grid, show a log message if anything changes.
+    long[] inputAxisLengths = inputGrid.getAxisLengths();
 
-		    //double[] srxyz = new double[6];
-		    sourceXYZ = new double[3];
-		    double[] rxyz = new double[3];
-		    double[] rxyz2 = new double[3];
-		    //double[] sxyz = new double[3];
+    int [] VolPos = input.getVolumePosition();
+    System.out.println("[updateVolumeGridDefinition] VolumePos: " + Arrays.toString(VolPos));
 
-		    AxisDefinition[] physicalOAxisArray =
-		        new AxisDefinition[inputAxisLengths.length];
+    int[] pos = Arrays.copyOf(VolPos, VolPos.length);
 
-		    jscs.getReceiverXYZ(pos, rxyz);
-		    System.out.println("[updateVolumeGridDefinition] rec1 Pos: " + Arrays.toString(rxyz));
-		    jscs.getReceiverXYZ(new int[] {0,1,1,0},rxyz2);
-		    System.out.println("[updateVolumeGridDefinition] rec2 Pos: " + Arrays.toString(rxyz2));
-		    jscs.getSourceXYZ(new int[] {0,0,0,0}, sourceXYZ);
-		    System.out.println("[updateVolumeGridDefinition] sourceXYZ Pos: " + Arrays.toString(rxyz2));
-		    
-		    for (int k = 0 ; k < rxyz2.length ; k++) {
-		      rxyz2[k] -= rxyz[k];
-		    }
+    //double[] srxyz = new double[6];
+    sourceXYZ = new double[3];
+    double[] rxyz = new double[3];
+    double[] rxyz2 = new double[3];
+    //double[] sxyz = new double[3];
 
-		    System.out.println("[updateVolumeGridDefinition] New PhysO: " + Arrays.toString(rxyz));
-		    System.out.println("[updateVolumeGridDefinition] New Deltas: " + Arrays.toString(rxyz2));
-		    System.out.println("[updateVolumeGridDefinition] Axis Lengths: " + Arrays.toString(inputAxisLengths));
-		    
-		    for (int k = 0; k < inputAxisLengths.length ; k++) {
-		      AxisDefinition inputAxis = inputGrid.getAxis(k);
-		      physicalOAxisArray[k] = new AxisDefinition(inputAxis.getLabel(),
-		          inputAxis.getUnits(),
-		          inputAxis.getDomain(),
-		          inputAxisLengths.length,
-		          inputAxis.getLogicalOrigin(),
-		          inputAxis.getLogicalDelta(),
-		          //inputAxis.getPhysicalOrigin(),
-		          CalculateNewPhysicalOrigin(inputAxis, k, rxyz),
-		          //inputAxis.getPhysicalDelta());
-		          CalculateNewDeltaOrigin(inputAxis, k, rxyz2));
-		    }
+    AxisDefinition[] physicalOAxisArray =
+        new AxisDefinition[inputAxisLengths.length];
 
-		    //For debugging
-		    GridDefinition modifiedGrid = new GridDefinition(inputGrid.getNumDimensions(),physicalOAxisArray);
+    jscs.getReceiverXYZ(pos, rxyz);
+    System.out.println("[updateVolumeGridDefinition] rec1 Pos: " + Arrays.toString(rxyz));
+    jscs.getReceiverXYZ(new int[] {0,1,1,0},rxyz2);
+    System.out.println("[updateVolumeGridDefinition] rec2 Pos: " + Arrays.toString(rxyz2));
+    jscs.getSourceXYZ(new int[] {0,0,0,0}, sourceXYZ);
+    System.out.println("[updateVolumeGridDefinition] sourceXYZ Pos: " + Arrays.toString(rxyz2));
 
-		    double[] physicalOrigins = modifiedGrid.getAxisPhysicalOrigins();
-		    double[] deltaA = modifiedGrid.getAxisPhysicalDeltas();
+    for (int k = 0 ; k < rxyz2.length ; k++) {
+      rxyz2[k] -= rxyz[k];
+    }
 
-		    System.out.println("[updateVolumeGridDefinition] Physical Origins from data: " + Arrays.toString(rxyz));
-		    System.out.println("[updateVolumeGridDefinition] Physical Origins from grid: " + Arrays.toString(physicalOrigins));
+    System.out.println("[updateVolumeGridDefinition] New PhysO: " + Arrays.toString(rxyz));
+    System.out.println("[updateVolumeGridDefinition] New Deltas: " + Arrays.toString(rxyz2));
+    System.out.println("[updateVolumeGridDefinition] Axis Lengths: " + Arrays.toString(inputAxisLengths));
 
-		    System.out.println("[updateVolumeGridDefinition] Physical Origins from data: " + Arrays.toString(rxyz2));
-		    System.out.println("[updateVolumeGridDefinition] Physical Deltas from grid: " + Arrays.toString(deltaA));
-		    //DBG end
-	    
-	    
-	    return modifiedGrid;
+    for (int k = 0; k < inputAxisLengths.length ; k++) {
+      AxisDefinition inputAxis = inputGrid.getAxis(k);
+      physicalOAxisArray[k] = new AxisDefinition(inputAxis.getLabel(),
+          inputAxis.getUnits(),
+          inputAxis.getDomain(),
+          inputAxis.getLength(),
+          inputAxis.getLogicalOrigin(),
+          inputAxis.getLogicalDelta(),
+          //inputAxis.getPhysicalOrigin(),
+          CalculateNewPhysicalOrigin(inputAxis, k, rxyz),
+          //inputAxis.getPhysicalDelta());
+          CalculateNewDeltaOrigin(inputAxis, k, rxyz2));
+    }
+
+    //For debugging
+    GridDefinition modifiedGrid = new GridDefinition(inputGrid.getNumDimensions(),physicalOAxisArray);
+    System.out.println(modifiedGrid.toString());
+    /*try {
+      Thread.sleep(10000);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }*/
+
+    double[] physicalOrigins = modifiedGrid.getAxisPhysicalOrigins();
+    double[] deltaA = modifiedGrid.getAxisPhysicalDeltas();
+
+    System.out.println("[updateVolumeGridDefinition] Physical Origins from data: " + Arrays.toString(rxyz));
+    System.out.println("[updateVolumeGridDefinition] Physical Origins from grid: " + Arrays.toString(physicalOrigins));
+
+    System.out.println("[updateVolumeGridDefinition] Physical Origins from data: " + Arrays.toString(rxyz2));
+    System.out.println("[updateVolumeGridDefinition] Physical Deltas from grid: " + Arrays.toString(deltaA));
+    //DBG end
+
+
+    return modifiedGrid;
   }
 
   private double CalculateNewDeltaOrigin(AxisDefinition axis, int k, double[] data) {
@@ -614,6 +646,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private float[] locateSourceXYZ(ISeismicVolume input) {
     LOGGER.info("Volume Index: "
         + Arrays.toString(input.getVolumePosition()) + "\n");
+    //TODO this is hard-coded right now.
     //Find the Source Location, assume we have SOU_XYZ
     //For now we're just going to use the globalGrid and our prior knowledge
     //then refactor it into an auto/manual source field generator.
