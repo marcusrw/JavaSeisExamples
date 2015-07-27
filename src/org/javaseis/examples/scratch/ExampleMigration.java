@@ -2,6 +2,7 @@ package org.javaseis.examples.scratch;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -670,41 +671,110 @@ public class ExampleMigration extends StandAloneVolumeTool {
   }
 
   private float[] locateSourceXYZ(ISeismicVolume input) {
-    LOGGER.info("Volume Index: "
-        + Arrays.toString(input.getVolumePosition()) + "\n");
-    //TODO this is hard-coded right now.
-    //Find the Source Location, assume we have SOU_XYZ
-    //For now we're just going to use the globalGrid and our prior knowledge
-    //then refactor it into an auto/manual source field generator.
+	    LOGGER.info("Volume Index: "
+	        + Arrays.toString(input.getVolumePosition()) + "\n");
+	    //TODO this is hard-coded right now.
+	    //Find the Source Location, assume we have SOU_XYZ
+	    //For now we're just going to use the globalGrid and our prior knowledge
+	    //then refactor it into an auto/manual source field generator.
 
-    float[][] sourceLocations = new float[][]
-        /*
-        {
-        {14.5F,14.5F,0},
-        {34.5F,14.5F,0},
-        {14.5F,34.5F,0},
-        {34.5F,34.5F,0}
-        };
-         */
-        {
-        {100F,100F,0F},
-        };
+	    //float[][] sourceLocations = new float[][] {{100F,100F,0F}};
+	        /*{
+	        {14.5F,14.5F,0},
+	        {34.5F,14.5F,0},
+	        {14.5F,34.5F,0},
+	        {34.5F,34.5F,0}
+	        };*/
+	    JSCoordinateService jscs = null;
+	    try {
+	        jscs = openTraceHeadersFile(toolContext,input);
+	      } catch (SeisException e){
+	        LOGGER.log(Level.INFO,e.getMessage(),e); 
+	      }
+	    
+	    //Get the Distributed Array
+	    DistributedArray inputDistArr = input.getDistributedArray();
+	    
+	    //Get the current volume
+	    int[] globalPosIndex = input.getVolumePosition();
+	    int[] volumePosIndex = new int[3];
+	    
+	    //Iterate over the Volume - Scope = 3
+	    DistributedArrayPositionIterator itrInputArr = 
+	            new DistributedArrayPositionIterator(inputDistArr, volumePosIndex, 
+	                DistributedArrayPositionIterator.FORWARD, 3);
+	    
+	    //Store our source Locations
+	    ArrayList<Double []> sourceLocationTemp = new ArrayList<Double []>();
+	    
+	    while (itrInputArr.hasNext()) {
+	        volumePosIndex = itrInputArr.next();
 
-    int volumeArrayIndex;
-    GridDefinition globalGrid = input.getGlobalGrid();
-    String[] axisLabels = globalGrid.getAxisLabelsStrings();
-    for (int k = 0 ; k < axisLabels.length; k++) {
-      if (axisLabels[k] == "SOURCE") {
-        volumeArrayIndex = input.getVolumePosition()[k];
-        //TODO: NOT RIGHT
-        volumeArrayIndex %= 1;
-        LOGGER.info("Source location: "
-            + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
-        return sourceLocations[volumeArrayIndex];
-      }
-    }
-    throw new IllegalArgumentException("Unable to find source location.");
-  }
+	        globalPosIndex[0] = 0;
+	        for (int k = 1 ; k < 3 ; k++) {
+	          globalPosIndex[k] = volumePosIndex[k];
+	        }
+	        
+	        //Get the source positions
+	        double [] sXYZ = new double[3];
+	        jscs.getSourceXYZ(globalPosIndex, sXYZ);
+	        
+	        //Do math to get the Source Index
+	        //First the X then the Y
+	        int currentAxis = 2;
+	        double minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
+	        double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
+	        
+	        double sX = (sXYZ[0] - minPhys0)/axisPhysDelta;
+	        
+	        currentAxis = 1;
+	        minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
+	        axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
+	        
+	        double sY = (sXYZ[1] - minPhys0)/axisPhysDelta;
+	        
+	        double sZ = 0;
+	        
+	        //System.out.println("source location calc: " + sX + " " + sY + " " + sZ);
+	        
+	        //construct a Double Array for the arrayList
+	        Double [] InnerArray = new Double[] {sX,sY,sZ};
+	        sourceLocationTemp.add(InnerArray);  
+	    }
+	    
+	    //Get the stuff in the Arraylist sourceLocationTemp
+	    
+	    //Declare a new array of the right size to house our elements
+	    float [][] sourceLocations = new float[sourceLocationTemp.size()][3];
+
+	    //Fill sourceLocation array 
+	    for (int i = 0; i < sourceLocations.length; i++){
+	    	//number of sourceLocations
+	    	Double[] DXYZ_OBJ = sourceLocationTemp.get(i);
+	    	for (int j = 0; j < sourceLocations[i].length; j++){
+	    		//copy the sourceXYZ into the sourceLocations array at a given i index
+	    		sourceLocations[i][j] = DXYZ_OBJ[j].floatValue();
+	    	}
+	    	
+	    }
+	    
+	    //sourceLocations set
+
+	    int volumeArrayIndex;
+	    GridDefinition globalGrid = input.getGlobalGrid();
+	    String[] axisLabels = globalGrid.getAxisLabelsStrings();
+	    for (int k = 0 ; k < axisLabels.length; k++) {
+	      if (axisLabels[k] == "SOURCE") {
+	        volumeArrayIndex = input.getVolumePosition()[k];
+	        //TODO: NOT RIGHT
+	        volumeArrayIndex %= 1;
+	        LOGGER.info("Source location: "
+	            + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
+	        return sourceLocations[volumeArrayIndex];
+	      }
+	    }
+	    throw new IllegalArgumentException("Unable to find source location.");
+	  }
 
   private void generateSourceSignature(float[] sourceXYZ) {
     if (sourceXYZ.length != 3)
