@@ -9,6 +9,7 @@ import org.javaseis.util.SeisException;
 
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
+import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.FileSystemIOService;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
@@ -20,9 +21,9 @@ public class VelocityModelFromFile {
   //      been initialized yet (ie, tell the user to use .open or .orient
   //      to make it work.
   FileSystemIOService vModelPIO = null;
+  DistributedArray vModelData = null;
   GridDefinition vmodelGrid = null;
   GridDefinition volumeGrid = null;
-  DistributedArray vModelData = null;
 
   IParallelContext pc;
   String folder;
@@ -39,6 +40,7 @@ public class VelocityModelFromFile {
       this.pc = pc;
       this.folder = folder;
       this.file = file;
+      System.out.println(folder);
       vModelPIO = new FileSystemIOService(pc,folder);
     } catch (SeisException e) {
       //TODO handle this better
@@ -82,10 +84,15 @@ public class VelocityModelFromFile {
         daShape,decompTypes);
   }
 
-  //TODO finish
   private void loadVelocityModelIntoArray() {
-    throw new UnsupportedOperationException("This is the 2nd last method that "
-        + "still needs to be implemented");
+    vModelPIO.setDistributedArray(vModelData);
+    try {
+      //read the volume
+      vModelPIO.read();
+    } catch (SeisException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   public void close() {
@@ -229,19 +236,29 @@ public class VelocityModelFromFile {
   public static void main(String[] args) {
     IParallelContext pc = new UniprocessorContext();
     VelocityModelFromFile vmff = null;
+    String folder = "/home/seisspace/data/testarea";
+    String file = "segsaltmodel.js";
     try {
       vmff = new VelocityModelFromFile(pc,
-          "/home/wilsonmr/javaseis","inputpwaves.VID");
+          folder,file);
     } catch (FileNotFoundException e) {
       System.out.println("Reading dataset failed.");
       e.printStackTrace();
     }
 
     vmff.open("r");
+    vmff.orientSeismicVolume(vmff.vmodelGrid);
     double[] origins = vmff.getVModelGridOrigins();
     double[] deltas = vmff.getVModelGridDeltas();
     System.out.println("Origins: " + Arrays.toString(origins));
     System.out.println("Deltas: " + Arrays.toString(deltas));
+    
+    DistributedArrayMosaicPlot.showAsModalDialog(vmff.vModelData,"title2344");
+    
+    //TODO:  Test getting a window out of the middle
+    //double[] windowOrigin = new double[] {
+    //vmff.getWindowedDepthSlice(windowOrigin, windowLength)
+    
     vmff.close();
   }
 }

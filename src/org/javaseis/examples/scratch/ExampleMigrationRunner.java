@@ -7,7 +7,6 @@ import java.util.logging.Logger;
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
-import org.junit.Assert;
 import org.junit.Test;
 
 
