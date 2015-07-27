@@ -172,9 +172,9 @@ public class VelocityModelFromFile {
   }
 
   private int[] mapSeimicVolumeIndexToVelocityVolumeIndex(
-      int[] volPosInDepth) {
+      int[] volIndexInDepth) {
 
-    assert volPosInDepth.length >= VOLUME_NUM_AXES;
+    assert volIndexInDepth.length >= VOLUME_NUM_AXES;
 
     double[] volGridOrigins = getVolumeGridOrigins();
     double[] volGridDeltas = getVolumeGridDeltas();
@@ -182,13 +182,21 @@ public class VelocityModelFromFile {
     double[] vmodelGridOrigins = getVModelGridOrigins();
     double[] vmodelGridDeltas = getVModelGridDeltas();
 
+    //TODO Hack
+    volGridDeltas[0] = vmodelGridDeltas[0];
+
     int[] vModelIndex = new int[VOLUME_NUM_AXES];
     for (int k = 0 ; k < vModelIndex.length; k++) {
       double physicalPosition = volGridOrigins[k]
-          + volPosInDepth[k]*volGridDeltas[k];
+          + volIndexInDepth[k]*volGridDeltas[k];
       double vModelIndexD =
           (physicalPosition - vmodelGridOrigins[k])/vmodelGridDeltas[k];
       if (!doubleIsAnInteger(vModelIndexD)) {
+        System.out.println("Input volume Position (volIndexInDepth): "
+            + Arrays.toString(volIndexInDepth));
+        System.out.println("Physical Position: " + physicalPosition);
+        System.out.println("Estimated index: " + vModelIndexD);
+        System.out.println("Closest Integer: " + Math.rint(vModelIndexD));        
         throw new ArithmeticException("Array index value doesn't evaluate to a "
             + "mathematical integer.  Some interpolation is called for here, "
             + "(Not implemented)");

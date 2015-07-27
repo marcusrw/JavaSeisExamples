@@ -21,6 +21,7 @@ public class ExampleMigrationRunner {
   @Test
   public void test() throws FileNotFoundException {
     //String inputFileName = "100a-rawsynthpwaves.js";
+    //String inputFileName = "segshotno1.js";
     String inputFileName = "segshotno1.js";
     String outputFileName = "test10m.js";
     String vModelFileName = "segsaltmodel.js";
@@ -28,8 +29,8 @@ public class ExampleMigrationRunner {
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
     //set basic user inputs
     parms.setParameter("ZMIN","0");
-    parms.setParameter("ZMAX","0");
-    parms.setParameter("DELZ","50");
+    parms.setParameter("ZMAX","200");
+    parms.setParameter("DELZ","100");
     parms.setParameter("PADT","10");
     parms.setParameter("PADX","10");
     parms.setParameter("PADY","10");
