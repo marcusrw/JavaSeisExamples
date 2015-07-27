@@ -22,7 +22,7 @@ public class ExampleMigrationRunner {
   public void test() throws FileNotFoundException {
     //String inputFileName = "100a-rawsynthpwaves.js";
     //String inputFileName = "segshotno1.js";
-    String inputFileName = "segshotno1.js";
+    String inputFileName = "seg45shot.js";
     String outputFileName = "test10m.js";
     String vModelFileName = "segsaltmodel.js";
 

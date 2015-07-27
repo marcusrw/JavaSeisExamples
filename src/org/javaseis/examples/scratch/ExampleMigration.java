@@ -78,6 +78,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private static final float FLOAT_EPSILON = 1.19e-7F;
   private double[] sourceXYZ;
   private GridDefinition inputGrid;
+  
+  private int Xindex = 2;
+  private int Yindex = 1;
 
 
   public ExampleMigration() {
@@ -324,7 +327,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
           //Calculate position in Xline
 
-          int currentAxis = 1; //Trace axis (Y we believe)
+          int currentAxis = Yindex; //Trace axis (Y we believe)
           double minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
           double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
           double yval = minPhys0 + yIndex*axisPhysDelta;
@@ -338,7 +341,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
 
           //Calculate position in Iline
-          currentAxis = 2;
+          currentAxis = Xindex;
           minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
           axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
           double xval = minPhys0 + xIndex*axisPhysDelta;
@@ -352,15 +355,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
           rXYZ2[0] = xval;
           rXYZ2[1] = yval;
           rXYZ2[2] = depth;
-
           System.out.println("[processVolume]: Values From Grid (rXYZ2):" + Arrays.toString(rXYZ2));
-
-          for (int k = 0 ; k < 2 ; k++) {
-            if (rXYZ2[k] - rXYZ[k] > 0.5) {
-              throw new ArithmeticException("The origin/delta position doesn't match the getRXYZ position");
-            }
-          }
-
 
           //Construct a new array for calling GetVelocityModelXYZ
           /*
@@ -373,11 +368,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
           //System.out.println("[processVolume]: Passed to getVeloModel: " + Arrays.toString(rDXYZ));   
 
-
           double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
           System.out.println("Physical Location in VModel for Position: "
               + Arrays.toString(globalPosIndex) + " is " + 
               Arrays.toString(vmff.getVelocityModelXYZ(globalPosIndex)));
+
+          for (int k = 0 ; k < 2 ; k++) {
+            if (rXYZ2[k] - rXYZ[k] > 0.5) {
+              throw new ArithmeticException("The origin/delta position doesn't match the getRXYZ position");
+            }
+          }
+
           for (int k = 0 ; k < vmodXYZ.length ; k++) {
             if (vmodXYZ[0] - rXYZ[0] > 0.5) {
               throw new ArithmeticException(
