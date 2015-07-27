@@ -23,9 +23,9 @@ public class ExampleMigrationRunner {
     //String inputFileName = "100a-rawsynthpwaves.js";
     String inputFileName = "segshotno1.js";
     String outputFileName = "test10m.js";
+    String vModelFileName = "segsaltmodel.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
-
     //set basic user inputs
     parms.setParameter("ZMIN","0");
     parms.setParameter("ZMAX","0");
@@ -33,7 +33,8 @@ public class ExampleMigrationRunner {
     parms.setParameter("PADT","10");
     parms.setParameter("PADX","10");
     parms.setParameter("PADY","10");
-    parms.setParameter("DEBUG","FALSE");    
+    parms.setParameter("DEBUG","FALSE");
+    parms.setParameter("vModelFilePath","vModelFileName");
 
     //parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
