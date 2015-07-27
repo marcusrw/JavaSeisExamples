@@ -357,9 +357,16 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
 
           //TODO: getVelocityModelXYZ not created yet
+          double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
           System.out.println("Physical Location in VModel for Position: "
               + Arrays.toString(globalPosIndex) + " is " + 
               Arrays.toString(vmff.getVelocityModelXYZ(globalPosIndex)));
+          for (int k = 0 ; k < vmodXYZ.length ; k++) {
+            if (vmodXYZ[0] - rXYZ[0] > 0.5) {
+              throw new ArithmeticException(
+                  "Seismic and VModel locations don't agree here.");
+            }
+          }
           //double [] retRecCoord = getVelocityModelXYZ(rDXYZ);
 
           //Check if the returned coordinates from getVelocityModelXYZ is
@@ -390,9 +397,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
       PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
       sliceDisplay.display();
 
-      //TODO open it before the loop starts and close it after it ends.
-      vmff.close();
-
       //TODO Will be:
       /*
        velocity = readAverageVelocity(depth);
@@ -408,10 +412,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       imagingCondition(outputVolume,zindx,fMax);
     }
 
-    /*
-       vmff.close();
-     */
-
+    vmff.close();
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time",singleVolumeTime);
     return true;
