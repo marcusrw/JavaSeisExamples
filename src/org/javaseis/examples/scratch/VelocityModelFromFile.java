@@ -5,6 +5,9 @@ import java.util.Arrays;
 
 import org.javaseis.array.ElementType;
 import org.javaseis.grid.GridDefinition;
+import org.javaseis.services.ParameterService;
+import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 
 import beta.javaseis.distributed.Decomposition;
@@ -37,11 +40,15 @@ public class VelocityModelFromFile {
   //                spacings.  You expect an ArithmeticException.
 
   public VelocityModelFromFile(IParallelContext pc,String folder,String file) throws FileNotFoundException {
+    startFileSystemIOService(pc, folder, file);
+  }
+
+  private void startFileSystemIOService(IParallelContext pc, String folder,
+      String file) throws FileNotFoundException {
     try {
       this.pc = pc;
       this.folder = folder;
       this.file = file;
-      System.out.println(folder);
       vModelPIO = new FileSystemIOService(pc,folder);
     } catch (SeisException e) {
       //TODO handle this better
@@ -49,6 +56,14 @@ public class VelocityModelFromFile {
       throw new FileNotFoundException(e.getMessage());
     }
   }
+
+  public VelocityModelFromFile(ToolContext toolContext) throws FileNotFoundException {
+    pc = toolContext.getParallelContext();
+    ParameterService parms = toolContext.getParameterService();
+    folder = parms.getParameter("inputFileSystem");
+    file =  parms.getParameter("vModelFilePath");
+    startFileSystemIOService(pc, folder, file);
+  }  
 
   public void open(String openMode) {
     try {
@@ -283,11 +298,21 @@ public class VelocityModelFromFile {
   }
 
   public static void main(String[] args) {
-    IParallelContext pc = new UniprocessorContext();
-    VelocityModelFromFile vmff = null;
-    String folder = "/home/wilsonmr/javaseis";
     String file = "segsaltmodel.js";
+    ParameterService parms = null;
     try {
+      parms = new FindTestData(file).getParameterService();
+    } catch (FileNotFoundException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
+    IParallelContext pc = new UniprocessorContext();
+    ToolContext toolContext = new ToolContext(parms);
+    toolContext.setParallelContext(pc);
+
+    VelocityModelFromFile vmff = null;
+    try {
+      String folder = parms.getParameter("inputFileSystem","null");
       vmff = new VelocityModelFromFile(pc,
           folder,file);
     } catch (FileNotFoundException e) {

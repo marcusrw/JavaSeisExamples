@@ -351,7 +351,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
           rDXYZ[0] = depth;    //Current Depth
           rDXYZ[1] = rXYZ[0]; //Current Y
           rDXYZ[2] = rXYZ[1]; //Current X
-          rDXYZ[3] = rXYZ[2]; //Current Z
+          //rDXYZ[3] = rXYZ[2]; //Current Z
 
           System.out.println("[processVolume]: Passed to getVeloModel: " + Arrays.toString(rDXYZ));   
 
@@ -423,7 +423,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     String folder = "/home/wilsonmr/javaseis";
     String file = "segsaltmodel.js";
     try {
-      vmff = new VelocityModelFromFile(pc,folder,file);
+      vmff = new VelocityModelFromFile(toolContext);
+      //vmff = new VelocityModelFromFile(pc,folder,file);
     } catch (FileNotFoundException e1) {
       // TODO Auto-generated catch block
       e1.printStackTrace();
@@ -581,14 +582,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
     +toolContext.getParameterService().getParameter("inputFilePath","null");
 
     Seisio sio;
-    JSCoordinateService jscs;
 
     try {
       sio = new Seisio(inputFilePath);
       sio.open("r");
       sio.usesProperties(true);
-      TraceProperties tp = sio.getTraceProperties();
-      PropertyDescription[] tpd = tp.getTraceProperties();
       GridDefinition grid = sio.getGridDefinition();
       int xdim = 1;  //2nd array index
       int ydim = 2;  //3rd array index

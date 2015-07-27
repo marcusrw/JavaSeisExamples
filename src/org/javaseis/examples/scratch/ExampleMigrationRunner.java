@@ -34,7 +34,7 @@ public class ExampleMigrationRunner {
     parms.setParameter("PADX","10");
     parms.setParameter("PADY","10");
     parms.setParameter("DEBUG","FALSE");
-    parms.setParameter("vModelFilePath","vModelFileName");
+    parms.setParameter("vModelFilePath",vModelFileName);
 
     //parms.setParameter("threadCount", "1");
     ExampleMigration.exec(parms,new ExampleMigration());
