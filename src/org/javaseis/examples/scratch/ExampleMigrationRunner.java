@@ -1,7 +1,6 @@
 package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.javaseis.examples.plot.DistributedArrayViewer;
@@ -23,17 +22,18 @@ public class ExampleMigrationRunner {
     //String inputFileName = "100a-rawsynthpwaves.js";
     //String inputFileName = "segshotno1.js";
     String inputFileName = "seg45shot.js";
-    String outputFileName = "test10m.js";
+    String outputFileName = "test20m.js";
     String vModelFileName = "segsaltmodel.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
     //set basic user inputs
     parms.setParameter("ZMIN","0");
-    parms.setParameter("ZMAX","0");
-    parms.setParameter("DELZ","100");
+    parms.setParameter("ZMAX","4000");
+    parms.setParameter("DELZ","2000");
     parms.setParameter("PADT","10");
     parms.setParameter("PADX","10");
     parms.setParameter("PADY","10");
+    parms.setParameter("FMAX","60");
     parms.setParameter("DEBUG","FALSE");
     parms.setParameter("vModelFilePath",vModelFileName);
 

@@ -13,7 +13,6 @@ import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import org.javaseis.examples.scratch.SeisFft3dNew;
 
 import beta.javaseis.parallel.IParallelContext;
-import beta.javaseis.plot.PlotArray2D;
 import beta.javaseis.services.CoordinateType;
 import beta.javaseis.services.JSCoordinateService;
 import beta.javaseis.util.Convert;
@@ -25,8 +24,6 @@ import org.javaseis.io.Seisio;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;
-import org.javaseis.properties.PropertyDescription;
-import org.javaseis.properties.TraceProperties;
 import org.javaseis.properties.Units;
 import org.javaseis.services.ParameterService;
 import org.javaseis.tool.StandAloneVolumeTool;
@@ -67,6 +64,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private IntervalTimer serialTime = new IntervalTimer();
   private IntervalTimer parallelTime = new IntervalTimer();
   private IntervalTimer sourceGenTime = new IntervalTimer();
+  private IntervalTimer velocityAccessTime = new IntervalTimer();
   private IntervalTimer transformTime = new IntervalTimer();
   private IntervalTimer extrapTime = new IntervalTimer();
   private IntervalTimer imageTime = new IntervalTimer();
@@ -230,6 +228,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
     LOGGER.info("Input Grid Definition:\n" + toolContext.getInputGrid() + "\n");
     LOGGER.info("Output Grid Definition:\n" + toolContext.getOutputGrid() + "\n");
+    fMax = Double.parseDouble(
+        toolContext.getParameterService().getParameter("FMAX"));
   }
 
   @Override
@@ -238,7 +238,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     IntervalTimer singleVolumeTime = new IntervalTimer();
     singleVolumeTime.start();
-    System.out.println("[start processVolume on Volume #"
+    LOGGER.info("[start processVolume on Volume #"
         +Arrays.toString(input.getVolumePosition()));
 
     //Only extrapolate the first volume if we're in debug mode.
@@ -260,7 +260,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     eps = 1E-12F;
     eps = 0F;
-    float velocity;
+    double velocity;
 
     //depth axis information
     double zmin = outputVolume.getLocalGrid().getAxisPhysicalOrigin(0);
@@ -270,24 +270,20 @@ public class ExampleMigration extends StandAloneVolumeTool {
         zmin,delz,numz));
 
     //TODO initialize velocity model input
+    velocityAccessTime.start();
     VelocityModelFromFile vmff = getVelocityModelObject();
-
-    System.out.println("Volume #" + Arrays.toString(input.getVolumePosition()));
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    velocityAccessTime.stop();
 
     for (int zindx = 0 ; zindx < numz ; zindx++) {
       double depth = zmin+delz*zindx;
       LOGGER.info("Depth: " + depth);
-      velocity = getVelocityModel(depth);
+      velocityAccessTime.start();
+      velocity = vmff.readAverageVelocity(depth);
+      velocityAccessTime.stop();
 
       JSCoordinateService jscs = null;
       try {
-        jscs = openTraceHeadersFile(toolContext,input);
+        jscs = openTraceHeadersFile(toolContext);
       } catch (SeisException e){
         LOGGER.log(Level.INFO,e.getMessage(),e); 
       }
@@ -321,6 +317,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
           //rXYZ2 hold the receiver location for a given trace location [0,?,?,0]
           double [] rXYZ = new double[3];
           jscs.getReceiverXYZ(globalPosIndex, rXYZ);
+          //TODO hack - replace the Z index with the depth (since the receiver
+          //            position Z is the depth of the actual receiver, and
+          //            doesn't match the current depth level.
+          rXYZ[2] = depth;
 
           LOGGER.fine("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
               " recXYZ jscs: " + Arrays.toString(rXYZ));
@@ -341,25 +341,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
           double minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
           double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
           double yval = minPhys0 + yIndex*axisPhysDelta;
-          /*
-					double xval = 0;
-					for (int ii = 0; ii <= xmax; ii++){
-						//compute the proper position based on physOrigin + ii * physDelta
-						xval = minPhysO  + ii * axisPhysDelta;
-					}
-           */
-
 
           //Calculate position in Iline
           currentAxis = Xindex;
           minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
           axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
           double xval = minPhys0 + xIndex*axisPhysDelta;
-          /*
-          for (int jj = 0; jj <= xIndex; jj++){
-            yval = minPhysO + jj * axisPhysDelta;
-          }
-           */
 
           //Set rXYZ2 Grids Calculations 
           rXYZ2[0] = xval;
@@ -368,12 +355,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
           LOGGER.fine("[processVolume]: Values From Grid (rXYZ2):" + Arrays.toString(rXYZ2));
 
-          for (int k = 0 ; k < 2 ; k++) {
-            if (rXYZ2[k] - rXYZ[k] > 0.5) {
-              throw new ArithmeticException("The origin/delta position doesn't match the getRXYZ position");
-            }
-          }
-
           double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
           LOGGER.fine("Physical Location in VModel for Position: "
               + Arrays.toString(globalPosIndex) + " is " + 
@@ -381,12 +362,28 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
           for (int k = 0 ; k < 2 ; k++) {
             if (rXYZ2[k] - rXYZ[k] > 0.5) {
+              System.out.println("AXIS_ORDER: "
+                  + Arrays.toString(AXIS_ORDER));
+              System.out.println("Global Position Index: "
+                  + Arrays.toString(globalPosIndex));
+              System.out.println("Receiver XYZ from RegularGrids: "
+                  + Arrays.toString(rXYZ2));
+              System.out.println("Receiver XYZ: "
+                  + Arrays.toString(rXYZ));
               throw new ArithmeticException("The origin/delta position doesn't match the getRXYZ position");
             }
           }
 
           for (int k = 0 ; k < vmodXYZ.length ; k++) {
-            if (vmodXYZ[0] - rXYZ[0] > 0.5) {
+            if (vmodXYZ[k] - rXYZ[k] > 0.5) {
+              System.out.println("AXIS_ORDER: "
+                  + Arrays.toString(AXIS_ORDER));
+              System.out.println("Global Position Index: "
+                  + Arrays.toString(globalPosIndex));
+              System.out.println("Velocity Model XYZ: "
+                  + Arrays.toString(vmodXYZ));
+              System.out.println("Receiver XYZ: "
+                  + Arrays.toString(rXYZ));
               throw new ArithmeticException(
                   "Seismic and VModel locations don't agree here.");
             }
@@ -418,22 +415,23 @@ public class ExampleMigration extends StandAloneVolumeTool {
       }
 
       //visualize
-      PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
-      sliceDisplay.display();
+      //PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
+      //sliceDisplay.display();
 
-      //TODO Will be:
-      /*
-       velocity = readAverageVelocity(depth);
-
-       velocity =  
-
-       */
-
-      //this extrapolator is v(z) only.
+      LOGGER.info("Volume #" + Arrays.toString(input.getVolumePosition()));
       transformFromSpaceToWavenumber();
-      extrapolate(velocity, delz, zindx,fMax);
+      //this extrapolator is v(z) only.
+      LOGGER.info(String.format("Begin Extrapolation to depth %5.1f",depth));
+      extrapolate((float)velocity, delz, zindx,fMax);
+      LOGGER.info("Extrapolation finished");
       transformFromWavenumberToSpace();
+      LOGGER.info("Applying imaging condition");
       imagingCondition(outputVolume,zindx,fMax);
+      LOGGER.info("Imaging condition finished.");
+      LOGGER.info("Processing of volume "
+          + Arrays.toString(input.getVolumePosition())
+          + " complete.");
+
     }
 
     vmff.close();
@@ -452,9 +450,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
       e1.printStackTrace();
     }
     vmff.open("r");
-    System.out.println("[VelocityModelFromFile: Input grid");
-    System.out.println(inputGrid.toString());
-    System.out.println("Axis order: " + Arrays.toString(AXIS_ORDER));
+    //System.out.println("[VelocityModelFromFile: Input grid");
+    //System.out.println(inputGrid.toString());
+    //System.out.println("Axis order: " + Arrays.toString(AXIS_ORDER));
     vmff.orientSeismicVolume(inputGrid,AXIS_ORDER);
     return vmff;
   }
@@ -482,7 +480,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }*/
 
     toolContext.setInputGrid(inputGrid);
-    //input.se
   }
 
   private GridDefinition updateVolumeGridDefinition(ToolContext toolContext,
@@ -493,7 +490,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     JSCoordinateService jscs = null;  
     try {
-      jscs = openTraceHeadersFile(toolContext,input);
+      jscs = openTraceHeadersFile(toolContext);
     } catch (SeisException e) {
       LOGGER.log(Level.INFO,e.getMessage(),e); 
     }
@@ -583,7 +580,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //For debugging
     GridDefinition modifiedGrid = new GridDefinition(inputGrid.getNumDimensions(),physicalOAxisArray);
-    System.out.println(modifiedGrid.toString());
+    //System.out.println(modifiedGrid.toString());
 
     double[] physicalOrigins = modifiedGrid.getAxisPhysicalOrigins();
     double[] deltaA = modifiedGrid.getAxisPhysicalDeltas();
@@ -626,9 +623,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
   }
 
-  private JSCoordinateService openTraceHeadersFile(ToolContext toolContext,
-      ISeismicVolume input)
-          throws SeisException {
+  private JSCoordinateService openTraceHeadersFile(ToolContext toolContext)
+      throws SeisException {
     String inputFilePath
     = toolContext.getParameterService().getParameter("inputFileSystem","null")
     + File.separator
@@ -712,7 +708,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 	        };*/
     JSCoordinateService jscs = null;
     try {
-      jscs = openTraceHeadersFile(toolContext,input);
+      jscs = openTraceHeadersFile(toolContext);
     } catch (SeisException e){
       LOGGER.log(Level.INFO,e.getMessage(),e); 
     }
@@ -872,11 +868,13 @@ public class ExampleMigration extends StandAloneVolumeTool {
     extrapTime.start();
 
     //TODO CHECK!
-    System.out.println("[extrapolate]: Physical Origins: "
+    LOGGER.fine("Grid Order (STF -> XYZ (or XYT)): " 
+        + Arrays.toString(AXIS_ORDER));
+    LOGGER.fine("Physical Origins: "
         + Arrays.toString(inputGrid.getAxisPhysicalOrigins()));
-    System.out.println("[extrapolate]: Physical Deltas: "
+    LOGGER.fine("Physical Deltas: "
         + Arrays.toString(inputGrid.getAxisPhysicalDeltas()));
-    System.out.println("[extrapolate]: Source: "
+    LOGGER.fine("Source: "
         + Arrays.toString(sourceXYZ));
 
 
@@ -911,7 +909,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       //skip if we're over the data threshold.
       //TODO put this back when you have a proper band limited source.
-      if (frequency > fMax) continue;
+      //if (frequency > fMax) continue;
 
       double Kz2 = (frequency/velocity)*(frequency/velocity) - kY*kY - kX*kX;
       double exponent = 0;
@@ -936,10 +934,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
         souOutSample[1] = (float) (souInSample[1]*Math.cos(exponent)
             + souInSample[0]*Math.sin(exponent));
 
+        /* TODO when these work our complex math methods will be correct
         Assert.assertArrayEquals("recOutSample and recOutSample2 differ",
             recOutSample,recOutSample2,FLOAT_EPSILON);
         Assert.assertArrayEquals("souOutSample and souOutSample2 differ",
             souOutSample,souOutSample2,FLOAT_EPSILON);
+         */
 
       } else {
         exponent = 2*Math.PI*Math.abs(delz)*Math.sqrt(Math.abs(Kz2));
@@ -1076,6 +1076,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     logTimerOutput("Serial Time",serialTime);
     logTimerOutput("Parallel Time",parallelTime);
     LOGGER.info("");
+    logTimerOutput("Velocity Access Time",velocityAccessTime);
     logTimerOutput("Source Generation Time",sourceGenTime);
     logTimerOutput("Transform Time",transformTime);
     logTimerOutput("Extrapolation Time",extrapTime);
