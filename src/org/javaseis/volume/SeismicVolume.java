@@ -5,6 +5,7 @@ import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 
+import beta.javaseis.array.ITraceIterator;
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.parallel.IParallelContext;
@@ -36,66 +37,60 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
   IParallelContext pc;
 
   public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition) {
-    pc = parallelContext;
-    globalGrid = globalGridDefinition;
-    AxisDefinition[] axis = new AxisDefinition[3];
-    int[] volumeShape = new int[3];
-    for (int i = 0; i < 3; i++) {
-      axis[i] = globalGrid.getAxis(i);
-      volumeShape[i] = (int) axis[i].getLength();
-    }
-    localGrid = new GridDefinition(3, axis);
-    volume = new DistributedArray(pc, volumeShape);
-    binGrid = BinGrid.simpleBinGrid(volumeShape[1], volumeShape[2]);
-    //TODO need a volumeGrid that knows where it is in the global grid.
-    volumeGrid = new RegularGrid(volume,localGrid,binGrid);
-    elementType = ElementType.FLOAT;
-    elementCount = 1;
-    decompType = Decomposition.BLOCK;
+    this(parallelContext, globalGridDefinition, BinGrid.simpleBinGrid(
+        (int) globalGridDefinition.getAxisLength(1), (int) globalGridDefinition.getAxisLength(1)),
+        ElementType.FLOAT, 1, Decomposition.BLOCK, 0);
+  }
+
+  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition, long maxlength) {
+    this(parallelContext, globalGridDefinition, BinGrid.simpleBinGrid(
+        (int) globalGridDefinition.getAxisLength(1), (int) globalGridDefinition.getAxisLength(1)),
+        ElementType.FLOAT, 1, Decomposition.BLOCK, maxlength);
   }
 
   public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
       BinGrid binGridIn) {
-    pc = parallelContext;
-    AxisDefinition[] axis = new AxisDefinition[3];
-    int[] volumeShape = new int[3];
-    for (int i = 0; i < 3; i++) {
-      axis[i] = globalGridDefinition.getAxis(i);
-      volumeShape[i] = (int) axis[i].getLength();
-    }
-    localGrid = new GridDefinition(3, axis);
-    binGrid = binGridIn;
-    elementType = ElementType.FLOAT;
-    elementCount = 1;
-    decompType = Decomposition.BLOCK;
+    this(parallelContext, globalGridDefinition, binGridIn, ElementType.FLOAT, 1, Decomposition.BLOCK, 0);
   }
-  
+
   public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
-      BinGrid binGridIn, ElementType volumeElementType, int volumeElementCount, int volumeDecompType ) {
+      BinGrid binGridIn, long maxlength) {
+    this(parallelContext, globalGridDefinition, binGridIn, ElementType.FLOAT, 1, Decomposition.BLOCK,
+        maxlength);
+  }
+
+  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
+      BinGrid binGridIn, ElementType volumeElementType, int volumeElementCount, int volumeDecompType,
+      long maxLength) {
     pc = parallelContext;
     AxisDefinition[] axis = new AxisDefinition[3];
-    int[] volumeShape = new int[3];
+    volumeShape = new int[3];
+    long length = 1;
     for (int i = 0; i < 3; i++) {
       axis[i] = globalGridDefinition.getAxis(i);
       volumeShape[i] = (int) axis[i].getLength();
+      length *= volumeShape[i];
     }
+    maxLength = Math.max(maxLength, length);
     localGrid = new GridDefinition(3, axis);
     binGrid = binGridIn;
     elementType = volumeElementType;
     elementCount = volumeElementCount;
     decompType = volumeDecompType;
+    allocate(maxLength);
   }
 
+  @Override
   public void allocate(long maxLength) {
-    volume = new DistributedArray(pc, elementType.getClass(), 3, elementCount, volumeShape, decompType,
-        maxLength);
+    volume = new DistributedArray(pc, float.class, 3, elementCount, volumeShape, decompType, maxLength);
     volume.allocate();
+    volumeGrid = new RegularGrid(volume);
   }
-  
+
   @Override
   public long shapeLength() {
     long length = elementCount;
-    for (int i=0; i<3; i++) {
+    for (int i = 0; i < 3; i++) {
       length *= volumeShape[i];
     }
     return length;
@@ -202,7 +197,7 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
   public GridDefinition getGlobalGrid() {
     return globalGrid;
   }
-  
+
   @Override
   public GridDefinition getLocalGrid() {
     return localGrid;
@@ -223,5 +218,10 @@ public class SeismicVolume implements ISeismicVolume, IRegularGrid {
   @Override
   public ElementType getElementType() {
     return elementType;
+  }
+
+  @Override
+  public ITraceIterator getTraceIterator() {
+    return volumeGrid.getTraceIterator();
   }
 }

@@ -1,13 +1,12 @@
 package org.javaseis.examples.tool;
 
-import java.util.Arrays;
-
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.IntervalTimer;
+import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 
 import beta.javaseis.parallel.IParallelContext;
@@ -30,7 +29,12 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
     //TODO if you set threadCount to 2, half of the data will be missing
     // the task fails outright if you set it higher than 2.
     setParameterIfUnset(parms,"threadCount","1");
-    exec(parms, new ExtractPWaveData());
+    try {
+      exec(parms, new ExtractPWaveData());
+    } catch (SeisException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   private static void setParameterIfUnset(ParameterService parameterService,
@@ -67,13 +71,13 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
         System.out.println("Input Data is multicomponent, "
             + "but the components differ within volumes");
       }
-      toolContext.setOutputGrid(new GridDefinition(toolContext.getInputGrid()));
+      toolContext.outputGrid = new GridDefinition(toolContext.outputGrid);
     }
   }
 
   private int findComponentAxis(ToolContext toolContext) {
 
-    String[] AxisLabels = toolContext.getInputGrid().getAxisLabelsStrings();
+    String[] AxisLabels = toolContext.inputGrid.getAxisLabelsStrings();
     int componentAxis = -1;
     for (int axis = 0 ; axis < AxisLabels.length ; axis++) {
       if (AxisLabels[axis].equals("GEO_COMP")) {
@@ -90,14 +94,14 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   private void removeComponentAxisFromOutputGrid(ToolContext toolContext) {
     int componentAxis = findComponentAxis(toolContext);
 
-    GridDefinition inputGrid = toolContext.getInputGrid();
-    int outputNumDimensions = toolContext.getInputGrid().getNumDimensions() - 1;
+    GridDefinition inputGrid = toolContext.inputGrid;
+    int outputNumDimensions = toolContext.inputGrid.getNumDimensions() - 1;
 
     AxisDefinition[] outputAxes = new AxisDefinition[outputNumDimensions];
     for (int dim = 0 ; dim < outputNumDimensions ; dim++) {
       outputAxes[dim] = determineOutputAxis(inputGrid,dim,componentAxis);
     }
-    toolContext.setOutputGrid(new GridDefinition(outputAxes.length,outputAxes));
+    toolContext.outputGrid = new GridDefinition(outputAxes.length,outputAxes);
   }
 
   private AxisDefinition determineOutputAxis(
@@ -111,8 +115,8 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   public void parallelInit(ToolContext toolContext) {
     volumeCount = 0;
     pc = toolContext.getParallelContext();
-    pc.masterPrint("Input Grid Definition:\n" + toolContext.getInputGrid());
-    pc.masterPrint("Output Grid Definition:\n" + toolContext.getOutputGrid());
+    pc.masterPrint("Input Grid Definition:\n" + toolContext.inputGrid);
+    pc.masterPrint("Output Grid Definition:\n" + toolContext.outputGrid);
     compTime = new IntervalTimer();
     totalTime = new IntervalTimer();
     totalTime.start();
@@ -121,10 +125,10 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input, ISeismicVolume output) {
     compTime.start();
-    
+
     /*{
     //TODO extract these musings into a coherent set of tests
-      
+
       //Get the global grid position of the position {0,0,0} in the local grid
       double[] volumePosition = new double[toolContext.inputGrid.getNumDimensions()];
       int[] pos = new int[] {0,0,0};
@@ -138,17 +142,17 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
       GridDefinition inputGlobalGrid = input.getGlobalGrid();
       System.out.println(inputGlobalGrid.getNumDimensions()); //looks right
       System.out.println(Arrays.toString(inputGlobalGrid.getAxisLengths())); //looks right
-      
+
       GridDefinition outputGlobalGrid = output.getGlobalGrid();
       System.out.println(outputGlobalGrid.getNumDimensions()); //looks right
       System.out.println(Arrays.toString(outputGlobalGrid.getAxisLengths())); //looks right
-      
+
       int[] position = new int[] {43,2,4,2,3};
       //This shouldn't always be true
       System.out.println(input.isPositionLocal(position));
-      //This should return true exactly when we're looking at the volume corresponding
-      //to the volume from {t,x,y,2,3}, and false otherwise.
-      
+      //This should return true exactly when we're looking at the volume
+      //corresponding to the volume from {t,x,y,2,3}, and false otherwise.
+
       System.out.println(output.isPositionLocal(position));
       //I would expect this to fail because the position is not the right size for the
       //output grid.
@@ -157,9 +161,10 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
     //TODO
     //Idea: copy every volume where the GEO_COMP index is equal to
     //      pwaveComponentNumber-1.
-    //      It would be better if I could figure out the 4th index, then use that to
-    //      compute the value of GEO_COMP using origin + index*delta, but I can't make
-    //      that work right now, so I'm just going to use the counter
+    //      It would be better if I could figure out the 4th index,
+    //      then use that to compute the value of GEO_COMP using
+    //      origin + index*delta, but I can't make that work right now,
+    //      so I'm just going to use the counter
     long numComponents = input.getGlobalGrid().getAxisLengths()[componentAxis];
     if (volumeCount % numComponents == pwaveComponentNumber - 1) { 
       System.out.println("Saving P-waves from volume " + volumeCount++);
@@ -181,6 +186,12 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   @Override
   public void parallelFinish(ToolContext toolContext) {
     totalTime.stop();
-    pc.masterPrint("Computation Time: " + compTime.total() + "\nTotal Time: " + totalTime.total());
+    pc.masterPrint("Computation Time: " + compTime.total()
+        + "\nTotal Time: " + totalTime.total());
+  }
+
+  @Override
+  public void serialFinish(ToolContext toolContext) {
+    //does nothing
   }
 }
