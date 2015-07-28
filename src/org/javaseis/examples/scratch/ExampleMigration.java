@@ -79,6 +79,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private double[] sourceXYZ;
   private GridDefinition inputGrid;
 
+  //TODO cleanup
+  private int Xindex = 2;
+  private int Yindex = 1;
+  private int[] AXIS_ORDER = new int[3];
 
   public ExampleMigration() {
   }
@@ -234,6 +238,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     IntervalTimer singleVolumeTime = new IntervalTimer();
     singleVolumeTime.start();
+    System.out.println("[start processVolume on Volume #"
+        +Arrays.toString(input.getVolumePosition()));
 
     //Only extrapolate the first volume if we're in debug mode.
     if (debug && input.getVolumePosition()[3] > 0)
@@ -266,6 +272,14 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //TODO initialize velocity model input
     VelocityModelFromFile vmff = getVelocityModelObject();
 
+    System.out.println("Volume #" + Arrays.toString(input.getVolumePosition()));
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
     for (int zindx = 0 ; zindx < numz ; zindx++) {
       double depth = zmin+delz*zindx;
       LOGGER.info("Depth: " + depth);
@@ -280,7 +294,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       //TODO externalize this test if possible
       {
-        LOGGER.fine("[processVolume]: ----- Called DEBUG TEST: -----");
+        LOGGER.info("[processVolume]: ----- Called DEBUG TEST: -----");
 
         //Get the values from the distributed array and compare the jscs values
 
@@ -308,9 +322,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
           double [] rXYZ = new double[3];
           jscs.getReceiverXYZ(globalPosIndex, rXYZ);
 
-          System.out.println("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
+          LOGGER.fine("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
               " recXYZ jscs: " + Arrays.toString(rXYZ));
-
 
           ///TEST CODE///
           //Compare the jscs coords to the coord based on pOrigin + indx * pDelta
@@ -319,12 +332,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
           double [] rXYZ2 = new double[3];
 
           //Check if both indexes are in range
-          double yIndex = globalPosIndex[1];
-          double xIndex = globalPosIndex[2];
+          double yIndex = globalPosIndex[Yindex];
+          double xIndex = globalPosIndex[Xindex];
 
           //Calculate position in Xline
 
-          int currentAxis = 1; //Trace axis (Y we believe)
+          int currentAxis = Yindex; //Trace axis (Y we believe)
           double minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
           double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
           double yval = minPhys0 + yIndex*axisPhysDelta;
@@ -338,7 +351,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
 
           //Calculate position in Iline
-          currentAxis = 2;
+          currentAxis = Xindex;
           minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
           axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
           double xval = minPhys0 + xIndex*axisPhysDelta;
@@ -353,7 +366,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
           rXYZ2[1] = yval;
           rXYZ2[2] = depth;
 
-          System.out.println("[processVolume]: Values From Grid (rXYZ2):" + Arrays.toString(rXYZ2));
+          LOGGER.fine("[processVolume]: Values From Grid (rXYZ2):" + Arrays.toString(rXYZ2));
 
           for (int k = 0 ; k < 2 ; k++) {
             if (rXYZ2[k] - rXYZ[k] > 0.5) {
@@ -362,20 +375,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
           }
 
 
-          //Construct a new array for calling GetVelocityModelXYZ
-          /*
-          double [] rDXYZ = new double[4];
-          rDXYZ[0] = depth;    //Current Depth
-          rDXYZ[1] = rXYZ[0]; //Current Y
-          rDXYZ[2] = rXYZ[1]; //Current X
-          //rDXYZ[3] = rXYZ[2]; //Current Z
-           */
-
-          //System.out.println("[processVolume]: Passed to getVeloModel: " + Arrays.toString(rDXYZ));   
-
-
           double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
-          System.out.println("Physical Location in VModel for Position: "
+          LOGGER.fine("Physical Location in VModel for Position: "
               + Arrays.toString(globalPosIndex) + " is " + 
               Arrays.toString(vmff.getVelocityModelXYZ(globalPosIndex)));
           for (int k = 0 ; k < vmodXYZ.length ; k++) {
@@ -400,7 +401,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     	  }*/
           //end
         }
-        System.out.println("[processVolume]: ----- DEBUG TEST ENDED -----");
+        LOGGER.info("[processVolume]: ----- DEBUG TEST ENDED -----");
       }
 
 
@@ -437,9 +438,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private VelocityModelFromFile getVelocityModelObject() {
     VelocityModelFromFile vmff = null;
-    ParameterService parms = toolContext.getParameterService();
-    String folder = parms.getParameter("inputFileSystem","null");
-    String file = "segsaltmodel.js";
     try {
       vmff = new VelocityModelFromFile(toolContext);
       //vmff = new VelocityModelFromFile(pc,folder,file);
@@ -448,7 +446,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
       e1.printStackTrace();
     }
     vmff.open("r");
-    vmff.orientSeismicVolume(inputGrid);
+    System.out.println("[VelocityModelFromFile: Input grid");
+    System.out.println(inputGrid.toString());
+    System.out.println("Axis order: " + Arrays.toString(AXIS_ORDER));
+    vmff.orientSeismicVolume(inputGrid,AXIS_ORDER);
     return vmff;
   }
 
@@ -485,7 +486,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //put out a log message if they're wrong, and change them.
 
     JSCoordinateService jscs = null;  
-
     try {
       jscs = openTraceHeadersFile(toolContext,input);
     } catch (SeisException e) {
@@ -511,6 +511,34 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     AxisDefinition[] physicalOAxisArray =
         new AxisDefinition[inputAxisLengths.length];
+
+    jscs.getReceiverXYZ(pos, rxyz);
+
+    for (int k = 1 ; k < 3 ; k++) {
+      pos[k]++;
+      jscs.getReceiverXYZ(pos, rxyz2);
+      System.out.println("pos: " + Arrays.toString(pos));
+      System.out.println("rxyz: " + Arrays.toString(rxyz));
+      System.out.println("rxyz2: " + Arrays.toString(rxyz2));
+      if (Math.abs(rxyz[0] - rxyz2[0]) > 0.5) {
+        Xindex = k;
+        System.out.println("Xindex is " + Xindex);
+      }
+      pos[k]--;
+    }
+    for (int k = 1 ; k < 3 ; k++) {
+      pos[k]++;
+      jscs.getReceiverXYZ(pos, rxyz2);
+      System.out.println("pos: " + Arrays.toString(pos));
+      System.out.println("rxyz: " + Arrays.toString(rxyz));
+      System.out.println("rxyz2: " + Arrays.toString(rxyz2));
+      if (Math.abs(rxyz[1] - rxyz2[1]) > 0.5) {
+        Yindex = k;
+        System.out.println("Yindex is " + Yindex);
+      }
+      pos[k]--;
+    }
+    AXIS_ORDER = new int[] {Xindex,Yindex,0};
 
     jscs.getReceiverXYZ(pos, rxyz);
     System.out.println("[updateVolumeGridDefinition] rec1 Pos: " + Arrays.toString(rxyz));
@@ -550,12 +578,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //For debugging
     GridDefinition modifiedGrid = new GridDefinition(inputGrid.getNumDimensions(),physicalOAxisArray);
     System.out.println(modifiedGrid.toString());
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
 
     double[] physicalOrigins = modifiedGrid.getAxisPhysicalOrigins();
     double[] deltaA = modifiedGrid.getAxisPhysicalDeltas();
@@ -572,10 +594,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
   }
 
   private double CalculateNewDeltaOrigin(AxisDefinition axis, int k, double[] data) {
-    if (k == 2){
+    if (k == Xindex){
       return data[0];
     }
-    else if (k == 1){
+    else if (k == Yindex){
       return data[1];
     }
     else{
@@ -586,10 +608,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   //Calculate the new Physical Origin based on the 
   private double CalculateNewPhysicalOrigin(AxisDefinition axis, int k, double [] data) {
-    if (k == 2){
+    if (k == Xindex){
       return data[0];
     }
-    else if (k == 1){
+    else if (k == Yindex){
       return data[1];
     }
     else{
@@ -613,8 +635,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
       sio.open("r");
       sio.usesProperties(true);
       GridDefinition grid = sio.getGridDefinition();
-      int xdim = 1;  //2nd array index
-      int ydim = 2;  //3rd array index
+      int xdim = Yindex;  //2nd array index
+      int ydim = Xindex;  //3rd array index
       BinGrid bingrid = new BinGrid(grid,xdim,ydim);
       Assert.assertNotNull(bingrid);     
       String[] coordprops = new String[]
@@ -718,13 +740,13 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       //Do math to get the Source Index
       //First the X then the Y
-      int currentAxis = 2;
+      int currentAxis = Xindex;
       double minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
       double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
 
       double sX = (sXYZ[0] - minPhys0)/axisPhysDelta;
 
-      currentAxis = 1;
+      currentAxis = Yindex;
       minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
       axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
 
@@ -762,9 +784,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     String[] axisLabels = globalGrid.getAxisLabelsStrings();
     for (int k = 0 ; k < axisLabels.length; k++) {
       if (axisLabels[k] == "SOURCE") {
-        volumeArrayIndex = input.getVolumePosition()[k];
-        //TODO: NOT RIGHT
-        volumeArrayIndex %= 1;
+        volumeArrayIndex = 0; //TODO refactor
         LOGGER.info("Source location: "
             + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
         return sourceLocations[volumeArrayIndex];

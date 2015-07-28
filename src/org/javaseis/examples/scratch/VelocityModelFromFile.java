@@ -34,7 +34,8 @@ public class VelocityModelFromFile {
   String file;
 
   private static final int VOLUME_NUM_AXES = 3;
-  private static final int[] AXIS_ORDER = new int[] {2,1,0};
+  private int[] AXIS_ORDER = new int[] {2,1,0};
+  private int[] V_AXIS_ORDER = new int[] {2,1,0};
 
   //TODO TEST IDEA: Pass in a model and seismic volume with different grid
   //                spacings.  You expect an ArithmeticException.
@@ -81,9 +82,9 @@ public class VelocityModelFromFile {
    * @param seismicVolumeGrid - The input seismic grid definition
    *                            (eg. a shot record)
    */
-  public void orientSeismicVolume(GridDefinition seismicVolumeGrid) {
+  public void orientSeismicVolume(GridDefinition seismicVolumeGrid,int[] axisOrder) {
     volumeGrid = seismicVolumeGrid;
-    System.out.println(Arrays.toString(vmodelGrid.getAxisLengths()));
+    AXIS_ORDER = axisOrder;
     constructDistributedArrayForVelocityModel();
     loadVelocityModelIntoArray();
   }
@@ -122,7 +123,7 @@ public class VelocityModelFromFile {
     }
   }
 
-  //TODO  get rid of all these get functions and just make these attributs
+  //TODO  get rid of all these get functions and just make these attributes
   //      into fields.
   private long[] getVolumeGridLengths() {
     return volumeGrid.getAxisLengths();
@@ -219,7 +220,7 @@ public class VelocityModelFromFile {
    */
   public double[][] readSlice(double depth) {
     if (volumeGrid == null) {
-      orientSeismicVolume(vmodelGrid);
+      orientSeismicVolume(vmodelGrid,AXIS_ORDER);
     }
     return getWindowedDepthSlice(getVolumeGridOrigins(),
         Convert.longToInt(getVolumeGridLengths()),depth);
@@ -234,40 +235,58 @@ public class VelocityModelFromFile {
    * Get a rectangle out of the velocity model.  Pass in the origins and
    * deltas of your shot record to get just the part of the velocity model
    * your data passes through during migration.
-   * @param windowOrigin
-   * @param windowLength
+   * @param windowOrigin - in STFVH order
+   * @param windowLength - in STFVH order 
    * @return a slice of the velocity model
    */
   public double[][] getWindowedDepthSlice(double[] windowOrigin,
       int[] windowLength,double depth) {
-    //TODO Implement last.
+    System.out.println("Velocity Grids: ");
+    System.out.println(vmodelGrid.toString());
+    System.out.println(volumeGrid.toString());
+
     //convert origin/depth to array indices
     windowOrigin[0] = depth;
+
+    //TODO we need to know the axis orders in order to get this right.
     long[] depthIndex = convertLocationToArrayIndex(windowOrigin);
     //loop over window lengths
-    long z0 = depthIndex[0];
-    long x0 = depthIndex[1];
-    long y0 = depthIndex[2];
+    int xIndex = AXIS_ORDER[0];
+    int yIndex = AXIS_ORDER[1];
+    int zIndex = AXIS_ORDER[2];
+
+    long x0 = depthIndex[xIndex];
+    long y0 = depthIndex[yIndex];
+    long z0 = depthIndex[zIndex];
 
     //TODO maybe this should be a float array
-    double[][] depthSlice = new double[windowLength[1]][windowLength[2]];
+    double[][] depthSlice =
+        new double[windowLength[xIndex]]
+            [windowLength[yIndex]];
+
     int[] pos = new int[VOLUME_NUM_AXES];
-    pos[0] = (int)z0;
+    pos[zIndex] = (int)z0;
     float[] buffer = new float[1];
 
-    //This loop assumes the deltas are the same for the seismic and the model
+    //This loop checks the sign of the seismic deltas but not the magnitude
     //TODO check and account for that at some point.
-    for (int xindx = 0 ; xindx < windowLength[1] ; xindx++) {
-      pos[1] = (int)(x0 + xindx);
-      for (int yindx = 0 ; yindx < windowLength[2] ; yindx++) {
-        pos[2] = (int)(y0 + yindx);
+    for (int xindx = 0 ; xindx < windowLength[xIndex] ; xindx++) {
+      if (getVolumeGridDeltas()[xIndex] < 0) {
+        pos[V_AXIS_ORDER[0]] = (int)(x0 - xindx);
+      } else {
+        pos[V_AXIS_ORDER[0]] = (int)(x0 + xindx);
+      }
+      for (int yindx = 0 ; yindx < windowLength[yIndex] ; yindx++) {
+        if (getVolumeGridDeltas()[yIndex] < 0) {
+          pos[V_AXIS_ORDER[1]] = (int)(y0 - yindx);
+        } else {
+          pos[V_AXIS_ORDER[1]] = (int)(y0 + yindx);
+        }
         vModelData.getSample(buffer,pos);
         depthSlice[xindx][yindx] = buffer[0];
       }
     }
     return depthSlice;
-    // throw new UnsupportedOperationException("Last thing that needs "
-    //    + "to be implemented");
   }
 
   private long[] convertLocationToArrayIndex(double[] location) {
@@ -329,7 +348,7 @@ public class VelocityModelFromFile {
     }
 
     vmff.open("r");
-    vmff.orientSeismicVolume(vmff.vmodelGrid);
+    vmff.orientSeismicVolume(vmff.vmodelGrid,vmff.AXIS_ORDER);
     double[] windowOrigin = new double[] {2000,1000,1000};
     int[] windowLength = new int[] {1,338,338};
     double[][] depthSlice = vmff.getWindowedDepthSlice(windowOrigin,
