@@ -154,7 +154,7 @@ public class SeismicVolume implements ISeismicVolume {
    */
   @Override
   public int[] getVolumePosition() {
-    return globalVolumePosition;
+    return globalVolumePosition.clone();
   }
 
   public void setVolumePosition(int[] globalVolumePosition) {
