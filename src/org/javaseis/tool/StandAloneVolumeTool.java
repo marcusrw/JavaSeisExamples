@@ -215,6 +215,9 @@ public class StandAloneVolumeTool implements IVolumeTool {
       }
       // Call the implementor's parallel finish method to release any local
       // resources
+      
+      //TODO hack.  throw away the outputVolume
+      outputVolume = null;
       tool.parallelFinish(toolContext);
     }
   }
