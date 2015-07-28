@@ -82,81 +82,81 @@ public class JSCoordServiceNotes {
       e.printStackTrace();
     }   
   }
-  
+
   private void getVolumeEdges(JSCoordinateService jscs, ISeismicVolume input, int [] AXIS_ORDER){
-	  String path = "//tmp//vEdge.txt";
-	  //check if file exists
-	  File f = new File(path);
-	  if(f.exists() && !f.isDirectory()) {
-		  f.delete();
-	  }
-	  
-	  //File Writer
-	  PrintWriter out = null;
-	  try {
-		FileWriter fWrtr = new FileWriter(path);
-		out = new PrintWriter(fWrtr);
-	  } catch (IOException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	  }
-	  
-	  //out is our file output stream
-	  
-	  //Iterate through the DistArray get the volumes
-	  DistributedArray curArray = input.getDistributedArray();
-	  
-	  //get the start of the current volume
-	  int[] globalPosIndex = input.getVolumePosition();
-	  int[] volumePosIndex = new int[3];
-	  
-	//Iterate over the Volume - Scope = 3
-	  DistributedArrayPositionIterator itrInputArr = 
-	       new DistributedArrayPositionIterator(curArray, volumePosIndex, 
-	           DistributedArrayPositionIterator.FORWARD, 3);
-	  
-	  //source and receiver arrays
-	  double [] rXYZ = new double[3];
-	  double [] sXYZ = new double[3];
-	  
-	  while (itrInputArr.hasNext()) {
-		  globalPosIndex[0] = 0;
-		  volumePosIndex = itrInputArr.next();
-	      for (int k = 1 ; k < 3 ; k++) {
-	        globalPosIndex[k] = volumePosIndex[k];
-	      }
-		  
-		  //Get the rec & source at [0,0,0,v] 
-	      
-		  //Get the Receiver XYZ
-		  jscs.getReceiverXYZ(globalPosIndex, rXYZ);
-		  
-		  out.println("[getVolumeEdges]: Position: " + Arrays.toString(globalPosIndex)
-		  		+ " ReceiverXYZ: " + Arrays.toString(rXYZ));
-		  
-		  //Get the Source XYZ
-		  jscs.getSourceXYZ(globalPosIndex, sXYZ);
-		  out.println("[getVolumeEdges]: Position: " + Arrays.toString(globalPosIndex)
-	  		+ " SourceXYZ: " + Arrays.toString(rXYZ));
-		  
-		  //Get the receiver & source at [0, axislength - 1, axislength - 1, v]
-		  //last trace = the length of the XYaxis - 1
-		  long X = input.getGlobalGrid().getAxisLength(AXIS_ORDER[0]) - 1;
-		  long Y = input.getGlobalGrid().getAxisLength(AXIS_ORDER[1]) - 1;
-		  
-		  globalPosIndex[1] = (int) X;
-		  globalPosIndex[2] = (int) Y;
-		  
-		  //rXYZ now hold receiver at pos [0, axislength - 1, axislength - 1, v]
-		  jscs.getReceiverXYZ(globalPosIndex, rXYZ);
-		  out.println("[getVolumeEdges]: Position: " + Arrays.toString(globalPosIndex)
-	  		+ " ReceiverXYZ: " + Arrays.toString(rXYZ));
-	  }
-	  
-	  if (out != null){
-		  out.close();
-	  }
-	  
+    String path = "//tmp//vEdge.txt";
+    //check if file exists
+    File f = new File(path);
+    if(f.exists() && !f.isDirectory()) {
+      f.delete();
+    }
+
+    //File Writer
+    PrintWriter out = null;
+    try {
+      FileWriter fWrtr = new FileWriter(path);
+      out = new PrintWriter(fWrtr);
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+    //out is our file output stream
+
+    //Iterate through the DistArray get the volumes
+    DistributedArray curArray = input.getDistributedArray();
+
+    //get the start of the current volume
+    int[] globalPosIndex = input.getVolumePosition();
+    int[] volumePosIndex = new int[3];
+
+    //Iterate over the Volume - Scope = 3
+    DistributedArrayPositionIterator itrInputArr = 
+        new DistributedArrayPositionIterator(curArray, volumePosIndex, 
+            DistributedArrayPositionIterator.FORWARD, 3);
+
+    //source and receiver arrays
+    double [] rXYZ = new double[3];
+    double [] sXYZ = new double[3];
+
+    while (itrInputArr.hasNext()) {
+      globalPosIndex[0] = 0;
+      volumePosIndex = itrInputArr.next();
+      for (int k = 1 ; k < 3 ; k++) {
+        globalPosIndex[k] = volumePosIndex[k];
+      }
+
+      //Get the rec & source at [0,0,0,v] 
+
+      //Get the Receiver XYZ
+      jscs.getReceiverXYZ(globalPosIndex, rXYZ);
+
+      out.println("[getVolumeEdges]: Position: " + Arrays.toString(globalPosIndex)
+          + " ReceiverXYZ: " + Arrays.toString(rXYZ));
+
+      //Get the Source XYZ
+      jscs.getSourceXYZ(globalPosIndex, sXYZ);
+      out.println("[getVolumeEdges]: Position: " + Arrays.toString(globalPosIndex)
+          + " SourceXYZ: " + Arrays.toString(rXYZ));
+
+      //Get the receiver & source at [0, axislength - 1, axislength - 1, v]
+      //last trace = the length of the XYaxis - 1
+      long X = input.getGlobalGrid().getAxisLength(AXIS_ORDER[0]) - 1;
+      long Y = input.getGlobalGrid().getAxisLength(AXIS_ORDER[1]) - 1;
+
+      globalPosIndex[1] = (int) X;
+      globalPosIndex[2] = (int) Y;
+
+      //rXYZ now hold receiver at pos [0, axislength - 1, axislength - 1, v]
+      jscs.getReceiverXYZ(globalPosIndex, rXYZ);
+      out.println("[getVolumeEdges]: Position: " + Arrays.toString(globalPosIndex)
+          + " ReceiverXYZ: " + Arrays.toString(rXYZ));
+    }
+
+    if (out != null){
+      out.close();
+    }
+
   }
 
   private void printSrcRcvrXYZ(JSCoordinateService jscs, int[] pos) {
