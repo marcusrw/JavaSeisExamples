@@ -2,6 +2,7 @@ package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 import org.javaseis.array.ElementType;
 import org.javaseis.grid.GridDefinition;
@@ -20,6 +21,9 @@ import beta.javaseis.plot.PlotArray2D;
 import beta.javaseis.util.Convert;
 
 public class VelocityModelFromFile {
+  
+  private static final Logger LOGGER = 
+      Logger.getLogger(VelocityModelFromFile.class.getName());
 
   //TODO  add helpful exceptions explaining what to do when these haven't
   //      been initialized yet (ie, tell the user to use .open or .orient
@@ -82,7 +86,8 @@ public class VelocityModelFromFile {
    * @param seismicVolumeGrid - The input seismic grid definition
    *                            (eg. a shot record)
    */
-  public void orientSeismicVolume(GridDefinition seismicVolumeGrid,int[] axisOrder) {
+  public void orientSeismicVolume(GridDefinition seismicVolumeGrid,
+      int[] axisOrder) {
     volumeGrid = seismicVolumeGrid;
     AXIS_ORDER = axisOrder;
     constructDistributedArrayForVelocityModel();
@@ -156,6 +161,44 @@ public class VelocityModelFromFile {
     return modelXYZForIndex(vvindx);
   }
 
+  private int[] mapSeimicVolumeIndexToVelocityVolumeIndex(
+      int[] volIndexInDepth) {
+  
+    assert volIndexInDepth.length >= VOLUME_NUM_AXES;
+  
+    double[] volGridOrigins = getVolumeGridOrigins();
+    double[] volGridDeltas = getVolumeGridDeltas();
+  
+    double[] vmodelGridOrigins = getVModelGridOrigins();
+    double[] vmodelGridDeltas = getVModelGridDeltas();
+  
+    //TODO Hack - replace the 0th index with the depth index because 
+    //            the data doesn't know about the depth
+    volGridDeltas[0] = vmodelGridDeltas[0];
+  
+    int[] vModelIndex = new int[VOLUME_NUM_AXES];
+    for (int k = 0 ; k < vModelIndex.length; k++) {
+      int vIndx = V_AXIS_ORDER[k];
+      int sIndx = AXIS_ORDER[k];
+      double physicalPosition = volGridOrigins[sIndx]
+          + volIndexInDepth[sIndx]*volGridDeltas[sIndx];
+      double vModelIndexD =
+          (physicalPosition - vmodelGridOrigins[vIndx])/vmodelGridDeltas[vIndx];
+      if (!doubleIsAnInteger(vModelIndexD)) {
+        System.out.println("Input volume Position (volIndexInDepth): "
+            + Arrays.toString(volIndexInDepth));
+        System.out.println("Physical Position: " + physicalPosition);
+        System.out.println("Estimated index: " + vModelIndexD);
+        System.out.println("Closest Integer: " + Math.rint(vModelIndexD));        
+        throw new ArithmeticException("Array index value doesn't evaluate to a "
+            + "mathematical integer.  Some interpolation is called for here, "
+            + "(Not implemented)");
+      }
+      vModelIndex[k] = (int)vModelIndexD;
+    }
+    return vModelIndex;
+  }
+
   //Temporary, for testing, maybe
   private double[] modelXYZForIndex(int[] vModelPositionIndex) {
 
@@ -172,43 +215,25 @@ public class VelocityModelFromFile {
     return modelXYZ;
   }
 
-  private int[] mapSeimicVolumeIndexToVelocityVolumeIndex(
-      int[] volIndexInDepth) {
-
-    assert volIndexInDepth.length >= VOLUME_NUM_AXES;
-
-    double[] volGridOrigins = getVolumeGridOrigins();
-    double[] volGridDeltas = getVolumeGridDeltas();
-
-    double[] vmodelGridOrigins = getVModelGridOrigins();
-    double[] vmodelGridDeltas = getVModelGridDeltas();
-
-    //TODO Hack
-    volGridDeltas[0] = vmodelGridDeltas[0];
-
-    int[] vModelIndex = new int[VOLUME_NUM_AXES];
-    for (int k = 0 ; k < vModelIndex.length; k++) {
-      double physicalPosition = volGridOrigins[k]
-          + volIndexInDepth[k]*volGridDeltas[k];
-      double vModelIndexD =
-          (physicalPosition - vmodelGridOrigins[k])/vmodelGridDeltas[k];
-      if (!doubleIsAnInteger(vModelIndexD)) {
-        System.out.println("Input volume Position (volIndexInDepth): "
-            + Arrays.toString(volIndexInDepth));
-        System.out.println("Physical Position: " + physicalPosition);
-        System.out.println("Estimated index: " + vModelIndexD);
-        System.out.println("Closest Integer: " + Math.rint(vModelIndexD));        
-        throw new ArithmeticException("Array index value doesn't evaluate to a "
-            + "mathematical integer.  Some interpolation is called for here, "
-            + "(Not implemented)");
-      }
-      vModelIndex[k] = (int)vModelIndexD;
-    }
-    return vModelIndex;
-  }
-
   private boolean doubleIsAnInteger(double number) {
     return number == Math.rint(number);
+  }
+
+  public double readAverageVelocity(double depth) {
+    double[][] velocitySlice = readSlice(depth);
+    return averageVelocity(velocitySlice);
+  }
+
+  private double averageVelocity(double[][] velocitySlice) {
+    double sum = 0;
+    int numElements = 0;
+    for (int row = 0 ; row < velocitySlice.length ; row++) {
+      for (int col = 0 ; col < velocitySlice[row].length ; col++) {
+        sum += velocitySlice[row][col];
+        numElements++;
+      }
+    }
+    return sum/numElements;
   }
 
   /**
@@ -241,9 +266,9 @@ public class VelocityModelFromFile {
    */
   public double[][] getWindowedDepthSlice(double[] windowOrigin,
       int[] windowLength,double depth) {
-    System.out.println("Velocity Grids: ");
-    System.out.println(vmodelGrid.toString());
-    System.out.println(volumeGrid.toString());
+    LOGGER.fine("Velocity Grids: ");
+    LOGGER.fine(vmodelGrid.toString());
+    LOGGER.fine(volumeGrid.toString());
 
     //convert origin/depth to array indices
     windowOrigin[0] = depth;
@@ -301,27 +326,10 @@ public class VelocityModelFromFile {
       }
       posIndx[k] = (int)Math.rint(doubleIndex);
     }
-    System.out.println("Array index for position: "
+    LOGGER.fine("Array index for position: "
         + Arrays.toString(location) + " is " 
         + Arrays.toString(posIndx));
     return posIndx;
-  }
-
-  public double readAverageVelocity(double depth) {
-    double[][] velocitySlice = readSlice(depth);
-    return averageVelocity(velocitySlice);
-  }
-
-  private double averageVelocity(double[][] velocitySlice) {
-    double sum = 0;
-    int numElements = 0;
-    for (int row = 0 ; row < velocitySlice.length ; row++) {
-      for (int col = 0 ; col < velocitySlice[row].length ; col++) {
-        sum += velocitySlice[row][col];
-        numElements++;
-      }
-    }
-    return sum/numElements;
   }
 
   public static void main(String[] args) {
@@ -359,9 +367,9 @@ public class VelocityModelFromFile {
     }
 
     //visualize
-    PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
-    sliceDisplay.display();
-    DistributedArrayMosaicPlot.showAsModalDialog(vmff.vModelData,"title2344");
+    //PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
+    //sliceDisplay.display();
+    //DistributedArrayMosaicPlot.showAsModalDialog(vmff.vModelData,"title2344");
     vmff.close();
   }
 }
