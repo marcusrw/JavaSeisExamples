@@ -26,9 +26,9 @@ public class SourceVolume {
     System.out.println(Arrays.toString(receiverVolumePosition));
 
     String inputFilePath
-    = toolContext.getParameterService().getParameter("inputFileSystem","null")
+    = toolContext.parms.getParameter("inputFileSystem","null")
     + File.separator
-    +toolContext.getParameterService().getParameter("inputFilePath","null");
+    +toolContext.parms.getParameter("inputFilePath","null");
     //System.out.println(inputFilePath);
 
     Seisio sio;

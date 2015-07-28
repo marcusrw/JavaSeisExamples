@@ -41,6 +41,7 @@ public class JTestSeismicVolume {
   final int COMPLEX_NUMBERS = 2;
   final int BLOCK_DECOMP = Decomposition.BLOCK;
   final int CIRC_DECOMP = Decomposition.CIRCULAR;
+  final long MAX_LENGTH = 0;
 
   @BeforeClass
   //Create input and output datasets that have different gridDefinitions
@@ -82,7 +83,7 @@ public class JTestSeismicVolume {
       Assert.fail(e.getMessage());
     }
   }
-  
+
   //TODO why is the BinGrid even in there?
   @Test
   public void simpleConstructorMakesBinGridProperly() {
@@ -113,7 +114,8 @@ public class JTestSeismicVolume {
         binGrid,
         FLOAT_TYPE,
         REAL_NUMBERS,
-        BLOCK_DECOMP);
+        BLOCK_DECOMP,
+        MAX_LENGTH);
     Assert.assertNotNull(volume);
   }
 
@@ -124,7 +126,8 @@ public class JTestSeismicVolume {
         binGrid,
         DOUBLE_TYPE,
         COMPLEX_NUMBERS,
-        CIRC_DECOMP);
+        CIRC_DECOMP,
+        MAX_LENGTH);
     Assert.assertNotNull(volume);
   }
 }

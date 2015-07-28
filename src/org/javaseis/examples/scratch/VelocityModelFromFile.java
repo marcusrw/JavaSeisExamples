@@ -21,7 +21,7 @@ import beta.javaseis.plot.PlotArray2D;
 import beta.javaseis.util.Convert;
 
 public class VelocityModelFromFile {
-  
+
   private static final Logger LOGGER = 
       Logger.getLogger(VelocityModelFromFile.class.getName());
 
@@ -64,7 +64,7 @@ public class VelocityModelFromFile {
 
   public VelocityModelFromFile(ToolContext toolContext) throws FileNotFoundException {
     pc = toolContext.getParallelContext();
-    ParameterService parms = toolContext.getParameterService();
+    ParameterService parms = toolContext.parms;
     folder = parms.getParameter("inputFileSystem");
     file =  parms.getParameter("vModelFilePath");
     startFileSystemIOService(pc, folder, file);
@@ -163,19 +163,19 @@ public class VelocityModelFromFile {
 
   private int[] mapSeimicVolumeIndexToVelocityVolumeIndex(
       int[] volIndexInDepth) {
-  
+
     assert volIndexInDepth.length >= VOLUME_NUM_AXES;
-  
+
     double[] volGridOrigins = getVolumeGridOrigins();
     double[] volGridDeltas = getVolumeGridDeltas();
-  
+
     double[] vmodelGridOrigins = getVModelGridOrigins();
     double[] vmodelGridDeltas = getVModelGridDeltas();
-  
+
     //TODO Hack - replace the 0th index with the depth index because 
     //            the data doesn't know about the depth
     volGridDeltas[0] = vmodelGridDeltas[0];
-  
+
     int[] vModelIndex = new int[VOLUME_NUM_AXES];
     for (int k = 0 ; k < vModelIndex.length; k++) {
       int vIndx = V_AXIS_ORDER[k];

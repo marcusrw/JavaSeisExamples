@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.util.SeisException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -24,6 +25,9 @@ public class JTestDistributedArrayViewer {
     } catch (FileNotFoundException e) {
       LOGGER.log(Level.INFO,"Unable to open test dataset",e);
       Assert.fail(e.getMessage());
+    } catch (SeisException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
   }
   

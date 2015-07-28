@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.util.SeisException;
 import org.junit.Test;
 
 
@@ -38,11 +39,21 @@ public class ExampleMigrationRunner {
     parms.setParameter("vModelFilePath",vModelFileName);
 
     //parms.setParameter("threadCount", "1");
-    ExampleMigration.exec(parms,new ExampleMigration());
+    try {
+      ExampleMigration.exec(parms,new ExampleMigration());
+    } catch (SeisException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     boolean debugIsOn = Boolean.parseBoolean(parms.getParameter("DEBUG"));
     if (debugIsOn) {
       setOutputAsInput(parms);
-      DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
+      try {
+        DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
+      } catch (SeisException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
     }
   }
 

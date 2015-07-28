@@ -41,72 +41,58 @@ public class SeismicVolume implements ISeismicVolume {
 
   IParallelContext pc;
 
-  public SeismicVolume(IParallelContext parallelContext,
-      GridDefinition globalGridDefinition) {
-
-    setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
-    setLocalGridAndVolume();
-    binGrid = createDefaultBinGrid();
-    volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
-    elementType = ElementType.FLOAT;
-    elementCount = 1;
-    decompType = Decomposition.BLOCK;
+  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition) {
+    this(parallelContext, globalGridDefinition, BinGrid.simpleBinGrid(
+        (int) globalGridDefinition.getAxisLength(1), (int) globalGridDefinition.getAxisLength(1)),
+        ElementType.FLOAT, 1, Decomposition.BLOCK, 0);
   }
 
-  private BinGrid createDefaultBinGrid() {
-    int[] volumeShape = volume.getShape();
-    return BinGrid.simpleBinGrid(volumeShape[1], volumeShape[2]);
+  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition, long maxlength) {
+    this(parallelContext, globalGridDefinition, BinGrid.simpleBinGrid(
+        (int) globalGridDefinition.getAxisLength(1), (int) globalGridDefinition.getAxisLength(1)),
+        ElementType.FLOAT, 1, Decomposition.BLOCK, maxlength);
   }
 
   public SeismicVolume(IParallelContext parallelContext,
       GridDefinition globalGridDefinition,
       BinGrid binGridIn) {
-
-    setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
-    setLocalGridAndVolume();
-    binGrid = binGridIn;
-    volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
-    elementType = ElementType.FLOAT;
-    elementCount = 1;
-    decompType = Decomposition.BLOCK;
+    this(parallelContext, globalGridDefinition, binGridIn, ElementType.FLOAT, 1, Decomposition.BLOCK, 0);
   }
 
-  public SeismicVolume(IParallelContext parallelContext,
-      GridDefinition globalGridDefinition,
-      BinGrid binGridIn,
-      ElementType volumeElementType,
-      int volumeElementCount, int volumeDecompType ) {
+  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
+      BinGrid binGridIn, long maxlength) {
+    this(parallelContext, globalGridDefinition, binGridIn, ElementType.FLOAT, 1, Decomposition.BLOCK,
+        maxlength);
+  }
 
-    setParallelContextAndGlobalGrid(parallelContext, globalGridDefinition);
-    setLocalGridAndVolume();
+  public SeismicVolume(IParallelContext parallelContext, GridDefinition globalGridDefinition,
+      BinGrid binGridIn, ElementType volumeElementType, int volumeElementCount, int volumeDecompType,
+      long maxLength) {
+    pc = parallelContext;
+    AxisDefinition[] axis = new AxisDefinition[3];
+    volumeShape = new int[3];
+    long length = 1;
+    for (int i = 0; i < 3; i++) {
+      axis[i] = globalGridDefinition.getAxis(i);
+      volumeShape[i] = (int) axis[i].getLength();
+      length *= volumeShape[i];
+    }
+    maxLength = Math.max(maxLength, length);
+    localGridDef = new GridDefinition(3, axis);
     binGrid = binGridIn;
     volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
     elementType = volumeElementType;
     elementCount = volumeElementCount;
     decompType = volumeDecompType;
+    allocate(maxLength);
   }
 
-  private void setParallelContextAndGlobalGrid(
-      IParallelContext parallelContext, GridDefinition globalGridDefinition) {
-    pc = parallelContext;
-    globalGridDef = globalGridDefinition;
-  }
-
-  private void setLocalGridAndVolume() {
-    AxisDefinition[] axis = new AxisDefinition[VOLUME_NUM_DIMENSIONS];
-    int[] volumeShape = new int[VOLUME_NUM_DIMENSIONS];
-    for (int i = 0; i < VOLUME_NUM_DIMENSIONS; i++) {
-      axis[i] = globalGridDef.getAxis(i);
-      volumeShape[i] = (int) axis[i].getLength();
-    }
-    localGridDef = new GridDefinition(axis.length, axis);
-    volume = new DistributedArray(pc, volumeShape);
-  }
-
+  @Override
   public void allocate(long maxLength) {
-    volume = new DistributedArray(pc, elementType.getClass(),
-        VOLUME_NUM_DIMENSIONS, elementCount, volumeShape, decompType,maxLength);
+    volume = new DistributedArray(pc, float.class, 3, elementCount,
+        volumeShape, decompType, maxLength);
     volume.allocate();
+    volumeGrid = new RegularGrid(volume);
   }
 
   @Override

@@ -89,21 +89,26 @@ public class ExampleMigration extends StandAloneVolumeTool {
   //fill in the necessary parameters.
   public static void main(String[] args) {
     ParameterService parms = new ParameterService(args);
-    exec(parms, new ExampleMigration());
+    try {
+      exec(parms, new ExampleMigration());
+    } catch (SeisException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   @Override
   public void serialInit(ToolContext toolContext) {
     serialTime.start();
-    ParameterService parms = toolContext.getParameterService();
+    ParameterService parms = toolContext.parms;
     //TODO this method should check that toolContext contains enough
     // information to do a basic extrapolation.
     // Run main for more information. (ex: inputGrid returns null)
-    GridDefinition inputGrid = toolContext.getInputGrid();
+    GridDefinition inputGrid = toolContext.inputGrid;
     imageGrid = computeImageGrid(inputGrid,parms);
     pc = toolContext.getParallelContext();
     transformGrid = computeTransformAxes(inputGrid);
-    toolContext.setOutputGrid(imageGrid);
+    toolContext.outputGrid = imageGrid;
     checkForDebugMode(parms);
   }
 
@@ -226,10 +231,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     parallelTime.start();
     pc = toolContext.getParallelContext();
     LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
-    LOGGER.info("Input Grid Definition:\n" + toolContext.getInputGrid() + "\n");
-    LOGGER.info("Output Grid Definition:\n" + toolContext.getOutputGrid() + "\n");
+    LOGGER.info("Input Grid Definition:\n" + toolContext.inputGrid + "\n");
+    LOGGER.info("Output Grid Definition:\n" + toolContext.outputGrid + "\n");
     fMax = Double.parseDouble(
-        toolContext.getParameterService().getParameter("FMAX"));
+        toolContext.parms.getParameter("FMAX"));
   }
 
   @Override
@@ -249,7 +254,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     createSeis3dFfts(input);
     transformFromTimeToFrequency();
-    generateShotDistributedArray(input);
+    generateShotDistributedArray(toolContext,input);
 
 
     //SourceVolume src = new SourceVolume(toolContext,input);
@@ -271,7 +276,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //TODO initialize velocity model input
     velocityAccessTime.start();
-    VelocityModelFromFile vmff = getVelocityModelObject();
+    VelocityModelFromFile vmff = getVelocityModelObject(toolContext);
     velocityAccessTime.stop();
 
     for (int zindx = 0 ; zindx < numz ; zindx++) {
@@ -440,7 +445,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return true;
   }
 
-  private VelocityModelFromFile getVelocityModelObject() {
+  private VelocityModelFromFile getVelocityModelObject(
+      ToolContext toolContext) {
     VelocityModelFromFile vmff = null;
     try {
       vmff = new VelocityModelFromFile(toolContext);
@@ -479,7 +485,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     	}
     }*/
 
-    toolContext.setInputGrid(inputGrid);
+    toolContext.inputGrid = inputGrid;
   }
 
   private GridDefinition updateVolumeGridDefinition(ToolContext toolContext,
@@ -626,9 +632,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private JSCoordinateService openTraceHeadersFile(ToolContext toolContext)
       throws SeisException {
     String inputFilePath
-    = toolContext.getParameterService().getParameter("inputFileSystem","null")
+    = toolContext.parms.getParameter("inputFileSystem","null")
     + File.separator
-    +toolContext.getParameterService().getParameter("inputFilePath","null");
+    +toolContext.parms.getParameter("inputFilePath","null");
 
     Seisio sio;
 
@@ -685,13 +691,15 @@ public class ExampleMigration extends StandAloneVolumeTool {
         +"milliseconds.  I don't know how to deal with that.");
   }
 
-  private void generateShotDistributedArray(ISeismicVolume input) {
-    float[] sourceXYZ = locateSourceXYZ(input);
+  private void generateShotDistributedArray(ToolContext toolContext,
+      ISeismicVolume input) {
+    float[] sourceXYZ = locateSourceXYZ(toolContext,input);
     assert sourceXYZ.length == 3;
     generateSourceSignature(sourceXYZ);
   }
 
-  private float[] locateSourceXYZ(ISeismicVolume input) {
+  private float[] locateSourceXYZ(ToolContext toolContext,
+      ISeismicVolume input) {
     LOGGER.info("Volume Index: "
         + Arrays.toString(input.getVolumePosition()) + "\n");
     //TODO this is hard-coded right now.
