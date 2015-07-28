@@ -101,15 +101,23 @@ public class ExampleMigration extends StandAloneVolumeTool {
   public void serialInit(ToolContext toolContext) {
     serialTime.start();
     ParameterService parms = toolContext.parms;
+    checkForDebugMode(parms);
     //TODO this method should check that toolContext contains enough
     // information to do a basic extrapolation.
     // Run main for more information. (ex: inputGrid returns null)
     GridDefinition inputGrid = toolContext.inputGrid;
-    imageGrid = computeImageGrid(inputGrid,parms);
-    pc = toolContext.getParallelContext();
-    transformGrid = computeTransformAxes(inputGrid);
+    if (inputGrid == null) {
+      inputGrid = (GridDefinition) toolContext.getFlowGlobal(
+          ToolContext.INPUT_GRID);
+      toolContext.inputGrid = inputGrid;
+    }
+    Assert.assertNotNull(inputGrid);
+
+    imageGrid = computeImageGrid(toolContext.inputGrid,toolContext.parms);
+    transformGrid = computeTransformAxes(toolContext);
+    //redundant, until we figure out the design of the toolContext
     toolContext.outputGrid = imageGrid;
-    checkForDebugMode(parms);
+    toolContext.putFlowGlobal(ToolContext.OUTPUT_GRID,imageGrid);
   }
 
   private void checkForDebugMode(ParameterService parms) {
@@ -138,11 +146,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     float zmin = Float.parseFloat(parms.getParameter("ZMIN","0"));
     float zmax = Float.parseFloat(parms.getParameter("ZMAX","2000"));
     float delz = Float.parseFloat(parms.getParameter("DELZ","50"));
-    float padT = Float.parseFloat(parms.getParameter("PADT","10"));
-    float padX = Float.parseFloat(parms.getParameter("PADX","10"));
-    float padY = Float.parseFloat(parms.getParameter("PADY","10"));
-    pad = new float[] {padT,padX,padY};
 
+    pad = getPad(parms);
     LOGGER.info("FFT Axis padding: " + Arrays.toString(pad) + "\n");
 
     long depthAxisLength = -1;
@@ -167,7 +172,20 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return new GridDefinition(imageAxes.length,imageAxes);
   }
 
-  private GridDefinition computeTransformAxes(GridDefinition inputGrid) {
+  private float[] getPad(ParameterService parms) {
+    float padT = Float.parseFloat(parms.getParameter("PADT","10"));
+    float padX = Float.parseFloat(parms.getParameter("PADX","10"));
+    float padY = Float.parseFloat(parms.getParameter("PADY","10"));
+    Assert.assertNotNull("padT is null",padT);
+    Assert.assertNotNull("padX is null",padX);
+    Assert.assertNotNull("padY is null",padY);
+    pad = new float[] {padT,padX,padY};
+    Assert.assertNotNull("Pad is null",pad);
+    return pad;
+  }
+
+  private GridDefinition computeTransformAxes(ToolContext toolContext) {
+    inputGrid = toolContext.inputGrid;
     long[] inputAxisLengths = inputGrid.getAxisLengths();
     if (inputAxisLengths.length < 3) {
       throw new IllegalArgumentException("Input dataset is not big "
@@ -179,6 +197,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
     for (int k = 0 ; k < 3 ; k++) {
       inputVolumeLengths[k] = (int)inputAxisLengths[k];
     }
+    pc = toolContext.pc;
+    Assert.assertNotNull(pc);
+    Assert.assertNotNull(inputVolumeLengths);
+    Assert.assertNotNull(pad);
+    Assert.assertNotNull(DEFAULT_FFT_ORIENTATION);
     rcvr = new SeisFft3dNew(pc,inputVolumeLengths,
         pad,DEFAULT_FFT_ORIENTATION);
 
@@ -252,6 +275,13 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     checkVolumeGridDefinition(toolContext,input);
 
+    pad = getPad(toolContext.parms);
+    pc = toolContext.getParallelContext();
+    //Assert.assertNotNull(toolContext.outputGrid);
+    imageGrid = computeImageGrid(toolContext.inputGrid,toolContext.parms);
+    transformGrid = computeTransformAxes(toolContext);
+    toolContext.outputGrid = imageGrid;
+
     createSeis3dFfts(input);
     transformFromTimeToFrequency();
     generateShotDistributedArray(toolContext,input);
@@ -268,9 +298,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     double velocity;
 
     //depth axis information
-    double zmin = outputVolume.getLocalGrid().getAxisPhysicalOrigin(0);
-    double delz = outputVolume.getLocalGrid().getAxisPhysicalDelta(0);
-    long numz = outputVolume.getLocalGrid().getAxisLength(0);
+    double zmin = imageGrid.getAxisPhysicalOrigin(0);
+    double delz = imageGrid.getAxisPhysicalDelta(0);
+    long numz = imageGrid.getAxisLength(0);
     LOGGER.info(String.format("zmin: %6.1f, delz: %6.1f, numz: %4d",
         zmin,delz,numz));
 
@@ -358,7 +388,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
           rXYZ2[1] = yval;
           rXYZ2[2] = depth;
 
-          LOGGER.fine("[processVolume]: Values From Grid (rXYZ2):" + Arrays.toString(rXYZ2));
+          LOGGER.fine("[processVolume]: Values From Grid (rXYZ2):"
+              + Arrays.toString(rXYZ2));
 
           double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
           LOGGER.fine("Physical Location in VModel for Position: "
@@ -375,7 +406,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
                   + Arrays.toString(rXYZ2));
               System.out.println("Receiver XYZ: "
                   + Arrays.toString(rXYZ));
-              throw new ArithmeticException("The origin/delta position doesn't match the getRXYZ position");
+              throw new ArithmeticException("The origin/delta position doesn't"
+                  + "match the getRXYZ position");
             }
           }
 
@@ -442,6 +474,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     vmff.close();
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time",singleVolumeTime);
+    Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_INPUT));
+    Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_OUTPUT));
+
     return true;
   }
 
@@ -501,7 +536,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
       LOGGER.log(Level.INFO,e.getMessage(),e); 
     }
 
-    GridDefinition inputGrid = input.getGlobalGrid();
+    inputGrid = input.getGlobalGrid();
+    Assert.assertNotNull(inputGrid);
 
     //TODO update the grid, show a log message if anything changes.
     long[] inputAxisLengths = inputGrid.getAxisLengths();
@@ -662,6 +698,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private void createSeis3dFfts(ISeismicVolume input) {
     int[] inputShape = input.getLengths();
+    Assert.assertNotNull("ParallelContext is Null",pc);
+    Assert.assertNotNull("Input Shape is null",inputShape);
+    System.out.println("Pad: " + Arrays.toString(pad));
+    Assert.assertNotNull("Pad is null",pad);
     rcvr = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
     shot = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
 
@@ -1081,6 +1121,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   @Override
   public void serialFinish(ToolContext toolContext) {
     serialTime.stop();
+    //TODO timers stopped working.  All the fields seem to be broken.
     logTimerOutput("Serial Time",serialTime);
     logTimerOutput("Parallel Time",parallelTime);
     LOGGER.info("");
