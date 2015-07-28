@@ -79,7 +79,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private double[] sourceXYZ;
   private GridDefinition inputGrid;
 
-  //TODO cleanup
+  //TODO clean this up so there are no redundant elements here.
   private int Xindex = 2;
   private int Yindex = 1;
   private int[] AXIS_ORDER = new int[3];
@@ -374,11 +374,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
             }
           }
 
-
           double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
           LOGGER.fine("Physical Location in VModel for Position: "
               + Arrays.toString(globalPosIndex) + " is " + 
               Arrays.toString(vmff.getVelocityModelXYZ(globalPosIndex)));
+
+          for (int k = 0 ; k < 2 ; k++) {
+            if (rXYZ2[k] - rXYZ[k] > 0.5) {
+              throw new ArithmeticException("The origin/delta position doesn't match the getRXYZ position");
+            }
+          }
+
           for (int k = 0 ; k < vmodXYZ.length ; k++) {
             if (vmodXYZ[0] - rXYZ[0] > 0.5) {
               throw new ArithmeticException(
