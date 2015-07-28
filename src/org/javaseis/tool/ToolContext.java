@@ -20,18 +20,18 @@ import beta.javaseis.parallel.UniprocessorContext;
 public class ToolContext {
 
   // Static fields for common parameters
-  public static String HAS_OUTPUT = "hasOutput";
-  public static String OUTPUT_FILE_PATH = "outputFilePath";
-  public static String OUTPUT_FILE_SYSTEM = "outputFileSystem";
-  public static String OUTPUT_FILE_MODE = "outputFileMode";
-  public static String OUTPUT_FILE_CREATE = "create";
-  public static String OUTPUT_GRID = "outputGrid";
-  public static String HAS_INPUT = "hasInput";
-  public static String INPUT_FILE_PATH = "inputFilePath";
-  public static String INPUT_FILE_SYSTEM = "inputFileSystem";
-  public static String INPUT_GRID = "inputGrid";
-  public static String TASK_COUNT = "taskCount";
-  public static String TOOL_CLASS = "toolClass";
+  public static final String HAS_OUTPUT = "hasOutput";
+  public static final String OUTPUT_FILE_PATH = "outputFilePath";
+  public static final String OUTPUT_FILE_SYSTEM = "outputFileSystem";
+  public static final String OUTPUT_FILE_MODE = "outputFileMode";
+  public static final String OUTPUT_FILE_CREATE = "create";
+  public static final String OUTPUT_GRID = "outputGrid";
+  public static final String HAS_INPUT = "hasInput";
+  public static final String INPUT_FILE_PATH = "inputFilePath";
+  public static final String INPUT_FILE_SYSTEM = "inputFileSystem";
+  public static final String INPUT_GRID = "inputGrid";
+  public static final String TASK_COUNT = "taskCount";
+  public static final String TOOL_CLASS = "toolClass";
 
   /** Visibility of stored objects */
   public enum Visibility {

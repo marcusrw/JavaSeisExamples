@@ -27,7 +27,7 @@ public abstract class StandAloneVolumeTool implements IVolumeTool {
   public StandAloneVolumeTool() {
     // TODO Need default constructor so implementors don't have to provide one
   }
-  
+
   public static void exec(ParameterService parms, IVolumeTool tool )
       throws SeisException {
     ToolContext serialToolContext;
@@ -97,11 +97,17 @@ public abstract class StandAloneVolumeTool implements IVolumeTool {
       hasOutput = true;
     }
     serialToolContext.putFlowGlobal(ToolContext.HAS_OUTPUT, hasOutput );
-    
+
     // Store the tool class in the tool context
     serialToolContext.putToolGlobal(ToolContext.TOOL_CLASS, (Object)(tool.getClass()) );
     // Now run the tool handler which calls the implementor's methods
-    int ntask = Integer.parseInt(serialToolContext.getParameter(ToolContext.TASK_COUNT));
+    int ntask;
+    try {
+      ntask = Integer.parseInt(serialToolContext.getParameter(ToolContext.TASK_COUNT));
+
+    } catch (NumberFormatException e) {
+      ntask = 1;
+    }
     try {
       ParallelTaskExecutor.runTasks(StandAloneVolumeTask.class, ntask, (Object)serialToolContext);
     } catch (ExecutionException e) {
@@ -112,14 +118,14 @@ public abstract class StandAloneVolumeTool implements IVolumeTool {
     // resources
     tool.serialFinish(serialToolContext);
   }
-  
+
   public static class StandAloneVolumeTask extends ParallelTask {
-    
+
     private ToolContext toolContext;
     private IVolumeTool tool;
     private Class<IVolumeTool> toolClass;
     public Boolean input, output;
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void run() {
@@ -185,6 +191,7 @@ public abstract class StandAloneVolumeTool implements IVolumeTool {
         while (ipio.hasNext()) {
           // Get the next input volume
           ipio.next();
+          inputVolume.setVolumePosition(ipio.getFilePosition());
           // TODO: Investigate performance of ParallelException
           try {
             ipio.read();

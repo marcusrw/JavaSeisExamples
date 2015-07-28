@@ -4,6 +4,7 @@ import org.javaseis.array.ElementType;
 import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
+import org.junit.Assert;
 
 import beta.javaseis.array.ITraceIterator;
 import beta.javaseis.distributed.Decomposition;
@@ -72,27 +73,30 @@ public class SeismicVolume implements ISeismicVolume {
     AxisDefinition[] axis = new AxisDefinition[3];
     volumeShape = new int[3];
     long length = 1;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < VOLUME_NUM_DIMENSIONS; i++) {
       axis[i] = globalGridDefinition.getAxis(i);
       volumeShape[i] = (int) axis[i].getLength();
       length *= volumeShape[i];
     }
     maxLength = Math.max(maxLength, length);
+    globalGridDef = globalGridDefinition;
     localGridDef = new GridDefinition(3, axis);
     binGrid = binGridIn;
-    volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
     elementType = volumeElementType;
     elementCount = volumeElementCount;
     decompType = volumeDecompType;
     allocate(maxLength);
+    volumeGrid = new RegularGrid(volume,localGridDef,binGrid);
   }
 
   @Override
   public void allocate(long maxLength) {
-    volume = new DistributedArray(pc, float.class, 3, elementCount,
-        volumeShape, decompType, maxLength);
+    //TODO this float.class elementType should be reconciled with
+    // the element types above.
+    volume = new DistributedArray(pc, float.class, VOLUME_NUM_DIMENSIONS,
+        elementCount,volumeShape, decompType, maxLength);
     volume.allocate();
-    volumeGrid = new RegularGrid(volume);
+    //volumeGrid = new RegularGrid(volume);
   }
 
   @Override
