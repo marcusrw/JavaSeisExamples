@@ -322,6 +322,8 @@ public class VelocityModelFromFile {
     for (int k = 0 ; k < VOLUME_NUM_AXES ; k++) {
       double doubleIndex = (location[k] - vModelOrigin[k])/vModelDeltas[k];
       if (doubleIndex != Math.rint(doubleIndex)) {
+        LOGGER.info("Index: " + doubleIndex);
+        LOGGER.info("Nearest Integer: " + Math.rint(doubleIndex));
         throw new ArithmeticException("Got an noninteger array index");
       }
       posIndx[k] = (int)Math.rint(doubleIndex);
