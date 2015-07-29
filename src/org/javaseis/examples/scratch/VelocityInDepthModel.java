@@ -1,5 +1,7 @@
 package org.javaseis.examples.scratch;
 
+import java.util.Arrays;
+
 import org.javaseis.grid.GridDefinition;
 
 public class VelocityInDepthModel implements IVelocityModel {
@@ -21,6 +23,10 @@ public class VelocityInDepthModel implements IVelocityModel {
           + " one more element than layerVelocities.");
     }
     this.layerDepths = layerDepths;
+    Arrays.sort(layerDepths);
+    if (!Arrays.equals(layerDepths,this.layerDepths)) {
+      throw new IllegalArgumentException("layerDepths isn't properly sorted.");
+    }
     this.layerVelocities = layerVelocities;
   }
 
@@ -55,10 +61,10 @@ public class VelocityInDepthModel implements IVelocityModel {
   @Override
   public double readAverageVelocity(double depth) {
     int indx = 0;
-    while (depth > layerDepths[indx]) {
+    while (indx < layerVelocities.length && depth >= layerDepths[indx]) {
       indx++;
     }
-    return layerVelocities[indx];
+    return layerVelocities[indx-1];
   }
 
   @Override
