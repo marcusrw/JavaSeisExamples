@@ -9,6 +9,8 @@ public class ManualGrid implements ICheckGrids {
   final ISeismicVolume input;
   final ToolContext toolContext;
 
+  //this is arbitrary and irrelevant
+  int[] axisOrder = new int[] {2,1,0};
   double[][] sourceLocations = new double[][] 
       {
       {290,290,0},
@@ -26,10 +28,11 @@ public class ManualGrid implements ICheckGrids {
   public GridDefinition getModifiedGrid() {
     return input.getGlobalGrid();
   }
-  
+
   @Override
   public double[] getSourceXYZ() {
-    throw new UnsupportedOperationException("No argument makes no sense here.");
+    int[] volPos = input.getVolumePosition();
+    return sourceLocations[volPos[3]];
   }
 
   @Override
@@ -46,8 +49,7 @@ public class ManualGrid implements ICheckGrids {
 
   @Override
   public int[] getAxisOrder() {
-    // TODO Auto-generated method stub
-    return null;
+    return axisOrder;
   }
 
 }
