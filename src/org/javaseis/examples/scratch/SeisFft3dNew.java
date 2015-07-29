@@ -33,7 +33,7 @@ public class SeisFft3dNew {
   private final int[]      padShape;
   private final int[]      fpadShape;
   private int[]            fftSigns;
-  
+
   //Distance between samples in T,X,Y domain.  Used to compute Kx,Ky,F indices.
   private double[]         timeDomainSampleRate;
   // domain
@@ -331,11 +331,11 @@ public class SeisFft3dNew {
         da.getShape()[2]);
     System.out.println("***********************************************");
   }
-  
+
   public boolean isTimeTransformed() {
     return isTimeTransformed;
   }
-  
+
   public boolean isSpaceTransformed() {
     return isSpaceTransformed;
   }
@@ -424,7 +424,7 @@ public class SeisFft3dNew {
     if (isTimeTransformed) {
       throw new IllegalArgumentException(
           "Attempted temporal FFT on data"
-          + " that is already in the frequency domain.");
+              + " that is already in the frequency domain.");
     }
     // Make the padded y-axis 'visible'
     da.setShape(new int[] { inputShape[0], inputShape[1], padShape[2] });
@@ -446,7 +446,7 @@ public class SeisFft3dNew {
     // FFT along "T" axis
     // T,X,Y -> F,X,Y
     //System.out.println("FFT over T");
-    
+
     temporalFFT(fft1,inputShape);
     //release realDataView for the garbage collector
     realDataView = null;
@@ -482,7 +482,7 @@ public class SeisFft3dNew {
     if (isSpaceTransformed) {
       throw new IllegalArgumentException(
           "Attempted spatial FFT on data"
-          + " that is already in the wavenumber domain.");
+              + " that is already in the wavenumber domain.");
     }
     // Transpose and bring "X" axis to front
     // nftp,nkx,nyp (213) nkx,nftp,nyp
@@ -568,7 +568,7 @@ public class SeisFft3dNew {
     if (!isSpaceTransformed) {
       throw new IllegalArgumentException(
           "Attempted spatial IFFT on data"
-          + "that is not in the wavenumber domain.");      
+              + "that is not in the wavenumber domain.");      
     }
     // Make 3rd dimension padding 'visible'
     da.setShape(new int[] { fftShape[2], fftShape[1], fpadShape[0] });
@@ -630,7 +630,7 @@ public class SeisFft3dNew {
       throw new IllegalArgumentException(
           "Attempted temporal IFFT on data that is not in the frequency domain.");      
     }
-    
+
     //System.out.println("IFFT over T");
     int[] nonEmptyShape = new int[] {fftShape[0],inputShape[1],inputShape[2]};
     temporalIFFT(fft1,nonEmptyShape);
@@ -687,6 +687,11 @@ public class SeisFft3dNew {
     timeDomainSampleRate[2] = sampleRates[2];
   }
 
+  public double[] getTXYSampleRates() {
+    exceptionIfTXYareUnset();
+    return timeDomainSampleRate;
+  }
+
   /**
    * Converts array indices to physical (Ky, Kx, F) coordinates (cycles/ft and
    * cycles/sec, for example).
@@ -696,9 +701,7 @@ public class SeisFft3dNew {
    *          negative)
    */
   public void getKyKxFCoordinatesForPosition(int[] position, double[] buf) {
-    if (timeDomainSampleRate == null)
-      throw new IllegalStateException(
-          "You need to call setTXYSampleRates() before calling this method.");
+    exceptionIfTXYareUnset();
 
     int pos0 = position[0]; // Ky position
     int pos1 = position[1]; // Kx position
@@ -712,6 +715,12 @@ public class SeisFft3dNew {
     buf[0] = pos0 / (timeDomainSampleRate[2] * fftLengths[2]);
     buf[1] = pos1 / (timeDomainSampleRate[1] * fftLengths[1]);
     buf[2] = pos2 / (timeDomainSampleRate[0] * fftLengths[0]);
+  }
+
+  private void exceptionIfTXYareUnset() {
+    if (timeDomainSampleRate == null)
+      throw new IllegalStateException(
+          "You need to call setTXYSampleRates() before calling this method.");
   }
 }
 
