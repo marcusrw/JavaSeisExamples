@@ -36,7 +36,7 @@ public class JTestVelocityModelFromFile {
   @Test
   public void TestStringConstructor() {
 
-    VelocityModelFromFile vmff = null;
+    IVelocityModel vmff = null;
     try {
       String folder = parms.getParameter("inputFileSystem","null");
       String file = parms.getParameter("inputFileName","null");
@@ -51,7 +51,7 @@ public class JTestVelocityModelFromFile {
   @Test
   public void TestToolContextConstructor() {
 
-    VelocityModelFromFile vmff = null;
+    IVelocityModel vmff = null;
     try {
       vmff = new VelocityModelFromFile(toolContext);
     } catch (FileNotFoundException e) {

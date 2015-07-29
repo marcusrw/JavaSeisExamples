@@ -20,7 +20,7 @@ import beta.javaseis.parallel.UniprocessorContext;
 import beta.javaseis.plot.PlotArray2D;
 import beta.javaseis.util.Convert;
 
-public class VelocityModelFromFile {
+public class VelocityModelFromFile implements IVelocityModel {
 
   private static final Logger LOGGER = 
       Logger.getLogger(VelocityModelFromFile.class.getName());
@@ -44,9 +44,18 @@ public class VelocityModelFromFile {
   //TODO TEST IDEA: Pass in a model and seismic volume with different grid
   //                spacings.  You expect an ArithmeticException.
 
-  public VelocityModelFromFile(IParallelContext pc,String folder,String file) throws FileNotFoundException {
+  public VelocityModelFromFile(IParallelContext pc,String folder,String file)
+      throws FileNotFoundException {
     startFileSystemIOService(pc, folder, file);
   }
+
+  public VelocityModelFromFile(ToolContext toolContext)
+      throws FileNotFoundException {
+    pc = toolContext.getParallelContext();
+    folder = toolContext.getParameter("inputFileSystem");
+    file =  toolContext.getParameter("vModelFilePath");
+    startFileSystemIOService(pc, folder, file);
+  }  
 
   private void startFileSystemIOService(IParallelContext pc, String folder,
       String file) throws FileNotFoundException {
@@ -62,14 +71,10 @@ public class VelocityModelFromFile {
     }
   }
 
-  public VelocityModelFromFile(ToolContext toolContext) throws FileNotFoundException {
-    pc = toolContext.getParallelContext();
-    ParameterService parms = toolContext.parms;
-    folder = parms.getParameter("inputFileSystem");
-    file =  parms.getParameter("vModelFilePath");
-    startFileSystemIOService(pc, folder, file);
-  }  
-
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#open(java.lang.String)
+   */
+  @Override
   public void open(String openMode) {
     try {
       vModelPIO.open(file);
@@ -80,12 +85,10 @@ public class VelocityModelFromFile {
     vmodelGrid = vModelPIO.getGridDefinition();
   }
 
-  /**
-   * Orient the input seismic volume within the larger velocity model,
-   * so we know where to pull velocities from.
-   * @param seismicVolumeGrid - The input seismic grid definition
-   *                            (eg. a shot record)
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#orientSeismicVolume(org.javaseis.grid.GridDefinition, int[])
    */
+  @Override
   public void orientSeismicVolume(GridDefinition seismicVolumeGrid,
       int[] axisOrder) {
     volumeGrid = seismicVolumeGrid;
@@ -119,6 +122,10 @@ public class VelocityModelFromFile {
     }
   }
 
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#close()
+   */
+  @Override
   public void close() {
     try {
       vModelPIO.close();
@@ -142,6 +149,10 @@ public class VelocityModelFromFile {
     return volumeGrid.getAxisPhysicalDeltas();
   }
 
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#getVModelGridLengths()
+   */
+  @Override
   public long[] getVModelGridLengths() {
     return vmodelGrid.getAxisLengths();
   }
@@ -155,6 +166,10 @@ public class VelocityModelFromFile {
   }
 
   //Temporary testing method, maybe
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#getVelocityModelXYZ(int[])
+   */
+  @Override
   public double[] getVelocityModelXYZ(int[] seisVolumePositionIndexInDepth) {
     int[] vvindx = mapSeimicVolumeIndexToVelocityVolumeIndex(
         seisVolumePositionIndexInDepth);
@@ -219,6 +234,10 @@ public class VelocityModelFromFile {
     return number == Math.rint(number);
   }
 
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#readAverageVelocity(double)
+   */
+  @Override
   public double readAverageVelocity(double depth) {
     double[][] velocitySlice = readSlice(depth);
     return averageVelocity(velocitySlice);
@@ -236,13 +255,10 @@ public class VelocityModelFromFile {
     return sum/numElements;
   }
 
-  /**
-   * @param depth - The physical depth in the model.  This method will return
-   *                the slice that is closest to that depth.
-   *                If you've already oriented your seismic volume within the 
-   *                model, this will grab only the part of the model your data
-   *                passes through.
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#readSlice(double)
    */
+  @Override
   public double[][] readSlice(double depth) {
     if (volumeGrid == null) {
       orientSeismicVolume(vmodelGrid,AXIS_ORDER);
@@ -251,19 +267,19 @@ public class VelocityModelFromFile {
         Convert.longToInt(getVolumeGridLengths()),depth);
   }
 
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#getEntireDepthSlice(double)
+   */
+  @Override
   public double[][] getEntireDepthSlice(double depth) {
     return getWindowedDepthSlice(getVModelGridOrigins(),
         Convert.longToInt(getVModelGridLengths()),depth);
   }
 
-  /**
-   * Get a rectangle out of the velocity model.  Pass in the origins and
-   * deltas of your shot record to get just the part of the velocity model
-   * your data passes through during migration.
-   * @param windowOrigin - in STFVH order
-   * @param windowLength - in STFVH order 
-   * @return a slice of the velocity model
+  /* (non-Javadoc)
+   * @see org.javaseis.examples.scratch.IVelocityModel#getWindowedDepthSlice(double[], int[], double)
    */
+  @Override
   public double[][] getWindowedDepthSlice(double[] windowOrigin,
       int[] windowLength,double depth) {
     LOGGER.fine("Velocity Grids: ");
