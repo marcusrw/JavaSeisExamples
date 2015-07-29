@@ -259,7 +259,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     fMax = Double.parseDouble(
         toolContext.parms.getParameter("FMAX"));
   }
-  
+
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume outputVolume) {
@@ -276,7 +276,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //checkVolumeGridDefinition(toolContext,input);
     CheckGrids CheckedGrid = new CheckGrids(input, toolContext);
     inputGrid = CheckedGrid.getModifiedGrid();
-    
+
     //Remember to set this
     toolContext.inputGrid = inputGrid;
 
@@ -311,7 +311,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //TODO initialize velocity model input
     velocityAccessTime.start();
-    VelocityModelFromFile vmff = getVelocityModelObject(toolContext);
+    IVelocityModel vmff = getVelocityModelObject(toolContext);
     velocityAccessTime.stop();
 
     for (int zindx = 0 ; zindx < numz ; zindx++) {
@@ -322,7 +322,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       velocityAccessTime.stop();
 
       //testCoords(input, CheckedGrid, toolContext);
-      
+
       double[][] depthSlice = vmff.readSlice(depth);
       float[][] floatSlice = new float[depthSlice.length][depthSlice[0].length];
       for (int k = 0 ; k < depthSlice.length ; k++) {
@@ -358,9 +358,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return true;
   }
 
-  private VelocityModelFromFile getVelocityModelObject(
+  private IVelocityModel getVelocityModelObject(
       ToolContext toolContext) {
-    VelocityModelFromFile vmff = null;
+    IVelocityModel vmff = null;
     try {
       vmff = new VelocityModelFromFile(toolContext);
       //vmff = new VelocityModelFromFile(pc,folder,file);
@@ -409,7 +409,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private void createSeis3dFfts(ISeismicVolume input) {
     int[] inputShape = input.getLengths();
-    Assert.assertNotNull("ParallelContext is Null",pc);
+    Assert.assertNotNull("ParallelContext is null",pc);
     Assert.assertNotNull("Input Shape is null",inputShape);
     System.out.println("Pad: " + Arrays.toString(pad));
     Assert.assertNotNull("Pad is null",pad);
@@ -679,10 +679,13 @@ public class ExampleMigration extends StandAloneVolumeTool {
         //TODO fix these if statements so we get proper filtering
         // for depth z = 0.
 
+        //TODO use complex math methods instead
+        /*
         recOutSample2 = complexMultiply(
             recInSample,complexExponential(-exponent));
         souOutSample2 = complexMultiply(
             souInSample,complexExponential(exponent));
+         */
 
         recOutSample[0] = (float) (recInSample[0]*Math.cos(-exponent)
             - recInSample[1]*Math.sin(-exponent));

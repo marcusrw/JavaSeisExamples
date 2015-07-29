@@ -20,10 +20,10 @@ public class ExampleMigrationRunner {
 
   @Test
   public void test() throws FileNotFoundException {
-    //String inputFileName = "100a-rawsynthpwaves.js";
-    String inputFileName = "segshotno1.js";
+    String inputFileName = "100a-rawsynthpwaves.js";
+    //String inputFileName = "segshotno1.js";
     //String inputFileName = "seg45shot.js";
-    String outputFileName = "test2step.js";
+    String outputFileName = "test.js";
     String vModelFileName = "segsaltmodel.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
@@ -39,7 +39,7 @@ public class ExampleMigrationRunner {
     parms.setParameter("vModelFilePath",vModelFileName);
     parms.setParameter("DEBUG","FALSE");
     parms.setParameter("outputFileMode","create");
-    
+
     try {
       ExampleMigration.exec(parms,new ExampleMigration());
     } catch (SeisException e) {
