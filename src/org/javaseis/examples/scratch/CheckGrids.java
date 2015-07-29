@@ -1,6 +1,7 @@
 package org.javaseis.examples.scratch;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.logging.Level;
 
@@ -49,11 +50,13 @@ public class CheckGrids implements ICheckGrids {
 		
 		try{
 			sourcesEqual();
+			testCoords(input, this, toolContext);
 		}
 		catch(IllegalArgumentException e){
 			//LOGGER.log(Level.INFO,e.getMessage(),e);
 			e.getMessage();
 		}
+		
 	}
 	
 	private JSCoordinateService openTraceHeadersFile(ToolContext toolContext)
@@ -264,30 +267,192 @@ public class CheckGrids implements ICheckGrids {
 	    }
 	    return true;
 	}
+	
+	//Check when Creating an object
+	private void testCoords(ISeismicVolume input, CheckGrids CheckGrid, ToolContext toolContext){
+		  //LOGGER.info("[processVolume]: ----- Called DEBUG TEST: -----");
 
-	//Get the Source Position
-	public double[] getSourceXYZ(int[] gridPos){
-		double [] sXYZ = new double[3];
-		jscs.getSourceXYZ(gridPos, sXYZ);
-		return sXYZ;
-	}
-	
-	/*
-	 * Get the Receiver Position
-	 */
-	public double[] getReceiverXYZ(int[] gridPos){
-		double [] rXYZ = new double[3];
-		//Get receiver from XYZ
-		jscs.getReceiverXYZ(gridPos, rXYZ);		
-		return rXYZ;
-	}
-	
-	public int[] getAxisOrder(){
-		return AXIS_ORDER;
-	}
-	
-	public GridDefinition getGlobalGrid(){
-		return modifiedGrid;
-	}
+		  VelocityModelFromFile vmff = getVelocityModelObject(this, toolContext);
+		  
+	      //Get the values from the distributed array and compare the jscs values
+
+	      //Grab Input ISeismicVolume -> DistributedArray
+	      DistributedArray inputDistArr = input.getDistributedArray();
+
+	      //index of trace [sample, trace, frame, volume]
+	      int[] globalPosIndex = input.getVolumePosition();
+	      int[] volumePosIndex = new int[3];
+
+	      //Iterate over the traces of the ISeismicVolume in the forward direction (1)
+	      DistributedArrayPositionIterator itrInputArr = 
+	          new DistributedArrayPositionIterator(inputDistArr, volumePosIndex, 
+	              DistributedArrayPositionIterator.FORWARD);
+
+	      while (itrInputArr.hasNext()) {
+	        volumePosIndex = itrInputArr.next();
+
+	        //Don't compare anything about depth
+	        //globalPosIndex[0] = zindx;
+	        globalPosIndex[0] = 0;	//0 the depth field index
+	        
+	        for (int k = 1 ; k < 3 ; k++) {
+	          globalPosIndex[k] = volumePosIndex[k];
+	        }
+
+	        //rXYZ2 hold the receiver location for a given trace location [0,?,?,0]
+	        double [] rXYZ = new double[3];
+	        
+	        //jscs.getReceiverXYZ(globalPosIndex, rXYZ);
+	        rXYZ = CheckGrid.getReceiverXYZ(globalPosIndex);
+	        
+	        //TODO hack - replace the Z index with the depth (since the receiver
+	        //            position Z is the depth of the actual receiver, and
+	        //            doesn't match the current depth level.
+	        
+	        //Don't compare anything about depth
+	        //rXYZ[2] = 100;
+	        //rXYZ[2] = depth;	//the actual depth
+
+	        //LOGGER.fine("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
+	          //  " recXYZ jscs: " + Arrays.toString(rXYZ));
+
+	        ///TEST CODE///
+	        //Compare the jscs coords to the coord based on pOrigin + indx * pDelta
+
+	        //rXYZ value from the Grid instead of jscs
+	        double [] rXYZ2 = new double[3];
+
+	        //Check if both indexes are in range
+	        //double yIndex = globalPosIndex[Yindex];
+	        //double xIndex = globalPosIndex[Xindex];
+	        
+	        double yIndex = globalPosIndex[CheckGrid.getAxisOrder()[1]];
+	        double xIndex = globalPosIndex[CheckGrid.getAxisOrder()[0]];
+
+	        //Calculate position in Xline
+	        
+	        //int currentAxis = Yindex; //Trace axis (Y we believe)
+	        int currentAxis = CheckGrid.getAxisOrder()[1];
+	        
+	        double minPhys0 = CheckGrid.getModifiedGrid().getAxisPhysicalOrigin(currentAxis);
+	        double axisPhysDelta = CheckGrid.getModifiedGrid().getAxisPhysicalDelta(currentAxis);
+	        double yval = minPhys0 + yIndex*axisPhysDelta;
+
+	        //Calculate position in Iline
+	        //currentAxis = Xindex;
+	        currentAxis = CheckGrid.getAxisOrder()[0];
+	        minPhys0 = CheckGrid.getModifiedGrid().getAxisPhysicalOrigin(currentAxis);
+	        axisPhysDelta = CheckGrid.getModifiedGrid().getAxisPhysicalDelta(currentAxis);
+	        double xval = minPhys0 + xIndex*axisPhysDelta;
+
+	        //Set rXYZ2 Grids Calculations 
+	        rXYZ2[0] = xval;
+	        rXYZ2[1] = yval;
+	        
+	        rXYZ2[2] = 0;
+	        //rXYZ2[2] = depth;
+
+	        //LOGGER.fine("[processVolume]: Values From Grid (rXYZ2):" + Arrays.toString(rXYZ2));
+
+	        double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
+	       // LOGGER.fine("Physical Location in VModel for Position: "
+	         //   + Arrays.toString(globalPosIndex) + " is " + 
+	           // Arrays.toString(vmff.getVelocityModelXYZ(globalPosIndex)));
+
+	        /*System.out.println("AXIS_ORDER: "
+	                + Arrays.toString(CheckGrid.getAxisOrder()));
+	            System.out.println("Global Position Index: "
+	                + Arrays.toString(globalPosIndex));
+	            System.out.println("Receiver XYZ from RegularGrids: "
+	                + Arrays.toString(rXYZ2));
+	            System.out.println("Receiver XYZ: "
+	                + Arrays.toString(rXYZ));*/
+	        
+	        //Don't check 1st position that is depth
+	        for (int k = 0 ; k < 2 ; k++) {
+	          if (rXYZ2[k] - rXYZ[k] > 0.5 || rXYZ2[k] - rXYZ[k] < -0.5 ) {
+	            System.out.println("AXIS_ORDER: "
+	                + Arrays.toString(CheckGrid.getAxisOrder()));
+	            System.out.println("Global Position Index: "
+	                + Arrays.toString(globalPosIndex));
+	            System.out.println("Receiver XYZ from RegularGrids: "
+	                + Arrays.toString(rXYZ2));
+	            System.out.println("Receiver XYZ: "
+	                + Arrays.toString(rXYZ));
+	            throw new ArithmeticException("The origin/delta position doesn't match the getRXYZ position");
+	          }
+	        }
+
+	       //Don't check 1st position that is depth pos
+	       //vmodXYZ.length - 1 so that we don't check the depth
+	       for (int k = 0 ; k < vmodXYZ.length - 1 ; k++) {
+	          if (vmodXYZ[k] - rXYZ[k] > 0.5 || vmodXYZ[k] - rXYZ[k] < -0.5) {
+	            System.out.println("AXIS_ORDER: "
+	                + Arrays.toString(CheckGrid.getAxisOrder()));
+	            System.out.println("Global Position Index: "
+	                + Arrays.toString(globalPosIndex));
+	            System.out.println("Velocity Model XYZ: "
+	                + Arrays.toString(vmodXYZ));
+	            System.out.println("Receiver XYZ: "
+	                + Arrays.toString(rXYZ));
+	            throw new ArithmeticException(
+	                "Seismic and VModel locations don't agree here.");
+	          }
+	        }
+
+	        //TODO:Test - remove this code!!
+	        /*try {
+	  		    Thread.sleep(2500);                
+	  	  	} catch(InterruptedException ex) {
+	  		    Thread.currentThread().interrupt();
+	  	  	}*/
+	        //end
+	      }
+	      //LOGGER.info("[processVolume]: ----- DEBUG TEST ENDED -----");
+	  }
+	  
+	  private VelocityModelFromFile getVelocityModelObject(CheckGrids CheckGrid, ToolContext toolContext) {
+		    VelocityModelFromFile vmff = null;
+		    try {
+		      vmff = new VelocityModelFromFile(toolContext);
+		      //vmff = new VelocityModelFromFile(pc,folder,file);
+		    } catch (FileNotFoundException e1) {
+		      // TODO Auto-generated catch block
+		      e1.printStackTrace();
+		    }
+		    vmff.open("r");
+		    //System.out.println("[VelocityModelFromFile: Input grid");
+		    //System.out.println(inputGrid.toString());
+		    //System.out.println("Axis order: " + Arrays.toString(AXIS_ORDER));
+		    //vmff.orientSeismicVolume(inputGrid,AXIS_ORDER);
+		    vmff.orientSeismicVolume(CheckGrid.getModifiedGrid(), CheckGrid.getAxisOrder());
+		    return vmff;
+	   }
+
+
+		//Get the Source Position
+		public double[] getSourceXYZ(int[] gridPos){
+			double [] sXYZ = new double[3];
+			jscs.getSourceXYZ(gridPos, sXYZ);
+			return sXYZ;
+		}
+		
+		/*
+		 * Get the Receiver Position
+		 */
+		public double[] getReceiverXYZ(int[] gridPos){
+			double [] rXYZ = new double[3];
+			//Get receiver from XYZ
+			jscs.getReceiverXYZ(gridPos, rXYZ);		
+			return rXYZ;
+		}
+		
+		public int[] getAxisOrder(){
+			return AXIS_ORDER;
+		}
+		
+		public GridDefinition getModifiedGrid(){
+			return modifiedGrid;
+		}
 	
 }

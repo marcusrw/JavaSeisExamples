@@ -259,7 +259,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     fMax = Double.parseDouble(
         toolContext.parms.getParameter("FMAX"));
   }
-
+  
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume outputVolume) {
@@ -273,7 +273,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
     if (debug && input.getVolumePosition()[3] > 0)
       return false;
 
-    checkVolumeGridDefinition(toolContext,input);
+    //checkVolumeGridDefinition(toolContext,input);
+    CheckGrids CheckedGrid = new CheckGrids(input, toolContext);
+    inputGrid = CheckedGrid.getModifiedGrid();
+    
+    //Remember to set this
+    toolContext.inputGrid = inputGrid;
 
     pad = getPad(toolContext.parms);
     pc = toolContext.getParallelContext();
@@ -316,135 +321,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
       velocity = vmff.readAverageVelocity(depth);
       velocityAccessTime.stop();
 
-      JSCoordinateService jscs = null;
-      try {
-        jscs = openTraceHeadersFile(toolContext);
-      } catch (SeisException e){
-        LOGGER.log(Level.INFO,e.getMessage(),e); 
-      }
-
-      //TODO externalize this test if possible
-      {
-        LOGGER.info("[processVolume]: ----- Called DEBUG TEST: -----");
-
-        //Get the values from the distributed array and compare the jscs values
-
-        //Grab Input ISeismicVolume -> DistributedArray
-        DistributedArray inputDistArr = input.getDistributedArray();
-
-        //index of trace [sample, trace, frame, volume]
-        int[] globalPosIndex = input.getVolumePosition();
-        int[] volumePosIndex = new int[3];
-
-        //Iterate over the traces of the ISeismicVolume in the forward direction (1)
-        DistributedArrayPositionIterator itrInputArr = 
-            new DistributedArrayPositionIterator(inputDistArr, volumePosIndex, 
-                DistributedArrayPositionIterator.FORWARD);
-
-        while (itrInputArr.hasNext()) {
-          volumePosIndex = itrInputArr.next();
-
-          globalPosIndex[0] = zindx;
-          for (int k = 1 ; k < 3 ; k++) {
-            globalPosIndex[k] = volumePosIndex[k];
-          }
-
-          //rXYZ2 hold the receiver location for a given trace location [0,?,?,0]
-          double [] rXYZ = new double[3];
-          jscs.getReceiverXYZ(globalPosIndex, rXYZ);
-          //TODO hack - replace the Z index with the depth (since the receiver
-          //            position Z is the depth of the actual receiver, and
-          //            doesn't match the current depth level.
-          rXYZ[2] = depth;
-
-          LOGGER.fine("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
-              " recXYZ jscs: " + Arrays.toString(rXYZ));
-
-          ///TEST CODE///
-          //Compare the jscs coords to the coord based on pOrigin + indx * pDelta
-
-          //rXYZ value from the Grid instead of jscs
-          double [] rXYZ2 = new double[3];
-
-          //Check if both indexes are in range
-          double yIndex = globalPosIndex[Yindex];
-          double xIndex = globalPosIndex[Xindex];
-
-          //Calculate position in Xline
-
-          int currentAxis = Yindex; //Trace axis (Y we believe)
-          double minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
-          double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
-          double yval = minPhys0 + yIndex*axisPhysDelta;
-
-          //Calculate position in Iline
-          currentAxis = Xindex;
-          minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
-          axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
-          double xval = minPhys0 + xIndex*axisPhysDelta;
-
-          //Set rXYZ2 Grids Calculations 
-          rXYZ2[0] = xval;
-          rXYZ2[1] = yval;
-          rXYZ2[2] = depth;
-
-          LOGGER.fine("[processVolume]: Values From Grid (rXYZ2):"
-              + Arrays.toString(rXYZ2));
-
-          double[] vmodXYZ = vmff.getVelocityModelXYZ(globalPosIndex);
-          LOGGER.fine("Physical Location in VModel for Position: "
-              + Arrays.toString(globalPosIndex) + " is " + 
-              Arrays.toString(vmff.getVelocityModelXYZ(globalPosIndex)));
-
-          for (int k = 0 ; k < 2 ; k++) {
-            if (rXYZ2[k] - rXYZ[k] > 0.5) {
-              System.out.println("AXIS_ORDER: "
-                  + Arrays.toString(AXIS_ORDER));
-              System.out.println("Global Position Index: "
-                  + Arrays.toString(globalPosIndex));
-              System.out.println("Receiver XYZ from RegularGrids: "
-                  + Arrays.toString(rXYZ2));
-              System.out.println("Receiver XYZ: "
-                  + Arrays.toString(rXYZ));
-              throw new ArithmeticException("The origin/delta position doesn't"
-                  + "match the getRXYZ position");
-            }
-          }
-
-          for (int k = 0 ; k < vmodXYZ.length ; k++) {
-            if (vmodXYZ[k] - rXYZ[k] > 0.5) {
-              System.out.println("AXIS_ORDER: "
-                  + Arrays.toString(AXIS_ORDER));
-              System.out.println("Global Position Index: "
-                  + Arrays.toString(globalPosIndex));
-              System.out.println("Velocity Model XYZ: "
-                  + Arrays.toString(vmodXYZ));
-              System.out.println("Receiver XYZ: "
-                  + Arrays.toString(rXYZ));
-              throw new ArithmeticException(
-                  "Seismic and VModel locations don't agree here.");
-            }
-          }
-          //double [] retRecCoord = getVelocityModelXYZ(rDXYZ);
-
-          //Check if the returned coordinates from getVelocityModelXYZ is
-          //equal to rXYZ2
-
-          //Assert.assertTrue(Arrays.equals(rXYZ2, retRecCoord));
-
-
-          //TODO:Test - remove this code!!
-          /*try {
-    		    Thread.sleep(250);                
-    	  } catch(InterruptedException ex) {
-    		    Thread.currentThread().interrupt();
-    	  }*/
-          //end
-        }
-        LOGGER.info("[processVolume]: ----- DEBUG TEST ENDED -----");
-      }
-
-
+      //testCoords(input, CheckedGrid, toolContext);
+      
       double[][] depthSlice = vmff.readSlice(depth);
       float[][] floatSlice = new float[depthSlice.length][depthSlice[0].length];
       for (int k = 0 ; k < depthSlice.length ; k++) {
@@ -496,173 +374,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //System.out.println("Axis order: " + Arrays.toString(AXIS_ORDER));
     vmff.orientSeismicVolume(inputGrid,AXIS_ORDER);
     return vmff;
-  }
-
-  private void checkVolumeGridDefinition(ToolContext toolContext,
-      ISeismicVolume input) {
-    //The only difference should be the physical origins and deltas
-    //are different.
-
-
-
-
-    inputGrid = updateVolumeGridDefinition(toolContext,input);
-
-    //fixedGrid.getAxisPhysicalDelta(0);
-    //fixedGrid.getAxisPhysicalDelta(index);
-    // TODO check here that receiverX = pOx+xindx+pDx,
-    // and receiverY = p0y + yindx+pDy
-
-    /*for (int i = 1; i < fixedGrid.getNumDimensions(); i++){
-    	for (int j = 0; j < fixedGrid.getAxis(i).getLength(); j++){
-    		double[] rxyz = new double[3];
-    		//jscs.getReceiverXYZ
-    	}
-    }*/
-
-    toolContext.inputGrid = inputGrid;
-  }
-
-  private GridDefinition updateVolumeGridDefinition(ToolContext toolContext,
-      ISeismicVolume input) {
-    //open the JScoordinate service, figure out the physical origins/deltas
-    //for the receiver positions, check them against the current grid, 
-    //put out a log message if they're wrong, and change them.
-
-    JSCoordinateService jscs = null;  
-    try {
-      jscs = openTraceHeadersFile(toolContext);
-    } catch (SeisException e) {
-      LOGGER.log(Level.INFO,e.getMessage(),e); 
-    }
-
-    inputGrid = input.getGlobalGrid();
-    Assert.assertNotNull(inputGrid);
-
-    //TODO update the grid, show a log message if anything changes.
-    long[] inputAxisLengths = inputGrid.getAxisLengths();
-
-    int [] VolPos = input.getVolumePosition();
-    System.out.println("[updateVolumeGridDefinition] VolumePos: " + Arrays.toString(VolPos));
-
-    int[] pos = Arrays.copyOf(VolPos, VolPos.length);
-
-    //double[] srxyz = new double[6];
-    sourceXYZ = new double[3];
-    double[] rxyz = new double[3];
-    double[] rxyz2 = new double[3];
-    double[] recXYZsrc = new double[3];
-    //double[] sxyz = new double[3];
-
-    AxisDefinition[] physicalOAxisArray =
-        new AxisDefinition[inputAxisLengths.length];
-
-    jscs.getReceiverXYZ(pos, rxyz);
-
-    for (int k = 1 ; k < 3 ; k++) {
-      pos[k]++;
-      jscs.getReceiverXYZ(pos, rxyz2);
-      System.out.println("pos: " + Arrays.toString(pos));
-      System.out.println("rxyz: " + Arrays.toString(rxyz));
-      System.out.println("rxyz2: " + Arrays.toString(rxyz2));
-      if (Math.abs(rxyz[0] - rxyz2[0]) > 0.5) {
-        Xindex = k;
-        System.out.println("Xindex is " + Xindex);
-      }
-      pos[k]--;
-    }
-    for (int k = 1 ; k < 3 ; k++) {
-      pos[k]++;
-      jscs.getReceiverXYZ(pos, rxyz2);
-      System.out.println("pos: " + Arrays.toString(pos));
-      System.out.println("rxyz: " + Arrays.toString(rxyz));
-      System.out.println("rxyz2: " + Arrays.toString(rxyz2));
-      if (Math.abs(rxyz[1] - rxyz2[1]) > 0.5) {
-        Yindex = k;
-        System.out.println("Yindex is " + Yindex);
-      }
-      pos[k]--;
-    }
-    AXIS_ORDER = new int[] {Xindex,Yindex,0};
-
-    jscs.getReceiverXYZ(pos, rxyz);
-    System.out.println("[updateVolumeGridDefinition] rec1 Pos: " + Arrays.toString(rxyz));
-    pos[1]++;
-    pos[2]++;
-    jscs.getReceiverXYZ(pos,rxyz2);
-    System.out.println("[updateVolumeGridDefinition] rec2 Pos: " + Arrays.toString(rxyz2));
-    //TODO hack
-    pos[1] = 100;
-    pos[2] = 100;
-    jscs.getSourceXYZ(pos, sourceXYZ);
-    jscs.getReceiverXYZ(pos,recXYZsrc);
-    System.out.println("[updateVolumeGridDefinition] sourceXYZ Pos: " + Arrays.toString(sourceXYZ));
-    System.out.println("[updateVolumeGridDefinition] sourceXYZ Pos Check: " + Arrays.toString(recXYZsrc));
-    for (int k = 0 ; k < rxyz2.length ; k++) {
-      rxyz2[k] -= rxyz[k];
-    }
-
-    System.out.println("[updateVolumeGridDefinition] New PhysO: " + Arrays.toString(rxyz));
-    System.out.println("[updateVolumeGridDefinition] New Deltas: " + Arrays.toString(rxyz2));
-    System.out.println("[updateVolumeGridDefinition] Axis Lengths: " + Arrays.toString(inputAxisLengths));
-
-    for (int k = 0; k < inputAxisLengths.length ; k++) {
-      AxisDefinition inputAxis = inputGrid.getAxis(k);
-      physicalOAxisArray[k] = new AxisDefinition(inputAxis.getLabel(),
-          inputAxis.getUnits(),
-          inputAxis.getDomain(),
-          inputAxis.getLength(),
-          inputAxis.getLogicalOrigin(),
-          inputAxis.getLogicalDelta(),
-          //inputAxis.getPhysicalOrigin(),
-          CalculateNewPhysicalOrigin(inputAxis, k, rxyz),
-          //inputAxis.getPhysicalDelta());
-          CalculateNewDeltaOrigin(inputAxis, k, rxyz2));
-    }
-
-    //For debugging
-    GridDefinition modifiedGrid = new GridDefinition(inputGrid.getNumDimensions(),physicalOAxisArray);
-    //System.out.println(modifiedGrid.toString());
-
-    double[] physicalOrigins = modifiedGrid.getAxisPhysicalOrigins();
-    double[] deltaA = modifiedGrid.getAxisPhysicalDeltas();
-
-    System.out.println("[updateVolumeGridDefinition] Physical Origins from data: " + Arrays.toString(rxyz));
-    System.out.println("[updateVolumeGridDefinition] Physical Origins from grid: " + Arrays.toString(physicalOrigins));
-
-    System.out.println("[updateVolumeGridDefinition] Physical Origins from data: " + Arrays.toString(rxyz2));
-    System.out.println("[updateVolumeGridDefinition] Physical Deltas from grid: " + Arrays.toString(deltaA));
-    //DBG end
-
-
-    return modifiedGrid;
-  }
-
-  private double CalculateNewDeltaOrigin(AxisDefinition axis, int k, double[] data) {
-    if (k == Xindex){
-      return data[0];
-    }
-    else if (k == Yindex){
-      return data[1];
-    }
-    else{
-      return axis.getPhysicalDelta();
-      //return 0;
-    }
-  }
-
-  //Calculate the new Physical Origin based on the 
-  private double CalculateNewPhysicalOrigin(AxisDefinition axis, int k, double [] data) {
-    if (k == Xindex){
-      return data[0];
-    }
-    else if (k == Yindex){
-      return data[1];
-    }
-    else{
-      return axis.getPhysicalOrigin();
-      //0
-    }
   }
 
   private JSCoordinateService openTraceHeadersFile(ToolContext toolContext)

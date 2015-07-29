@@ -7,7 +7,7 @@ public interface ICheckGrids {
 	/*
 	 * Gets the Modified Grid.
 	 */
-	public GridDefinition getGlobalGrid();
+	public GridDefinition getModifiedGrid();
 	
 	/*
 	 * Gets the Source from a Global Position. [0,?,?,v]  
