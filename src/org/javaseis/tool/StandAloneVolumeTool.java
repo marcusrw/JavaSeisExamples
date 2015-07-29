@@ -226,8 +226,6 @@ public abstract class StandAloneVolumeTool implements IVolumeTool {
           } catch (SeisException e) {
             ex = e;
           }
-          //TODO I have no idea if this will work.
-          outputVolume = null;
           pe.exitOnException(ex, 1);
         }
       }
