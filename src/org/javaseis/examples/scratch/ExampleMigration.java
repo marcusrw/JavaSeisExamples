@@ -74,13 +74,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private double fMax = -1;
   //private double fMax = Double.POSITIVE_INFINITY;
   private static final float FLOAT_EPSILON = 1.19e-7F;
+  
   private double[] sourceXYZ;
   private GridDefinition inputGrid;
-
-  //TODO clean this up so there are no redundant elements here.
-  private int Xindex = 2;
-  private int Yindex = 1;
-  private int[] AXIS_ORDER = new int[3];
+  private CheckGrids inputGridObj;
 
   public ExampleMigration() {
   }
@@ -273,12 +270,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
     if (debug && input.getVolumePosition()[3] > 0)
       return false;
 
-    //checkVolumeGridDefinition(toolContext,input);
+    //Instantiate a checked grid which fixes any misplaced receivers
     CheckGrids CheckedGrid = new CheckGrids(input, toolContext);
-    inputGrid = CheckedGrid.getModifiedGrid();
+    inputGridObj = CheckedGrid;
     
-    //Remember to set this
-    toolContext.inputGrid = inputGrid;
+    //Set the Modified Grid = input Grid
+    toolContext.inputGrid = CheckedGrid.getModifiedGrid();
 
     pad = getPad(toolContext.parms);
     pc = toolContext.getParallelContext();
@@ -372,7 +369,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //System.out.println("[VelocityModelFromFile: Input grid");
     //System.out.println(inputGrid.toString());
     //System.out.println("Axis order: " + Arrays.toString(AXIS_ORDER));
-    vmff.orientSeismicVolume(inputGrid,AXIS_ORDER);
+    
+    //TODO:check
+    //vmff.orientSeismicVolume(inputGrid,AXIS_ORDER);
+    vmff.orientSeismicVolume(inputGridObj.getModifiedGrid(), inputGridObj.getAxisOrder());
     return vmff;
   }
 
@@ -390,8 +390,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
       sio.open("r");
       sio.usesProperties(true);
       GridDefinition grid = sio.getGridDefinition();
-      int xdim = Yindex;  //2nd array index
-      int ydim = Xindex;  //3rd array index
+      //int xdim = Yindex;  //2nd array index
+      //int ydim = Xindex;  //3rd array index
+      
+      //TODO:check
+
+      Assert.assertNotNull(inputGridObj.getAxisOrder());
+      
+      System.out.println(inputGridObj.getAxisOrder());
+      int xdim = inputGridObj.getAxisOrder()[1]; //2nd array index
+      int ydim = inputGridObj.getAxisOrder()[0]; //3rd array index
+      
       BinGrid bingrid = new BinGrid(grid,xdim,ydim);
       Assert.assertNotNull(bingrid);     
       String[] coordprops = new String[]
@@ -501,13 +510,19 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       //Do math to get the Source Index
       //First the X then the Y
-      int currentAxis = Xindex;
+      //TODO: check
+      //int currentAxis = Xindex;
+      
+      System.out.println(inputGridObj.getAxisOrder());
+      
+      int currentAxis = inputGridObj.getAxisOrder()[0];
       double minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
       double axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
 
       double sX = (sXYZ[0] - minPhys0)/axisPhysDelta;
 
-      currentAxis = Yindex;
+      //currentAxis = Yindex;
+      currentAxis = inputGridObj.getAxisOrder()[1];
       minPhys0 = inputGrid.getAxisPhysicalOrigin(currentAxis);
       axisPhysDelta = inputGrid.getAxisPhysicalDelta(currentAxis);
 
@@ -628,7 +643,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //TODO CHECK!
     LOGGER.fine("Grid Order (STF -> XYZ (or XYT)): " 
-        + Arrays.toString(AXIS_ORDER));
+        + Arrays.toString(inputGridObj.getAxisOrder()));
     LOGGER.fine("Physical Origins: "
         + Arrays.toString(inputGrid.getAxisPhysicalOrigins()));
     LOGGER.fine("Physical Deltas: "
