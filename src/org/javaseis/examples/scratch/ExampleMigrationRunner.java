@@ -31,7 +31,7 @@ public class ExampleMigrationRunner {
     //set basic user inputs
     parms.setParameter("ZMIN","0");
     parms.setParameter("ZMAX","2000");
-    parms.setParameter("DELZ","50");
+    parms.setParameter("DELZ","40");
     parms.setParameter("PADT","50");
     parms.setParameter("PADX","20");
     parms.setParameter("PADY","20");
