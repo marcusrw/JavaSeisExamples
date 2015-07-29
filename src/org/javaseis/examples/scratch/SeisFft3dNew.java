@@ -692,6 +692,14 @@ public class SeisFft3dNew {
     return timeDomainSampleRate;
   }
 
+  //TODO implement
+  public void getTXYCoordinatesForPosition(int[] position, double[] buf) {
+  }
+
+  //TODO implement
+  public void getFXYCoordinatesForPosition(int[] position,double[] buf) {
+  }
+
   /**
    * Converts array indices to physical (Ky, Kx, F) coordinates (cycles/ft and
    * cycles/sec, for example).
