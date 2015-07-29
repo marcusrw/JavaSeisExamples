@@ -26,6 +26,11 @@ public class ManualGrid implements ICheckGrids {
   public GridDefinition getModifiedGrid() {
     return input.getGlobalGrid();
   }
+  
+  @Override
+  public double[] getSourceXYZ() {
+    throw new UnsupportedOperationException("No argument makes no sense here.");
+  }
 
   @Override
   public double[] getSourceXYZ(int[] gridPos) {
