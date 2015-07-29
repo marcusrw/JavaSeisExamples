@@ -8,6 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import beta.javaseis.distributed.DistributedArray;
+import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 
 import org.javaseis.examples.scratch.SeisFft3dNew;
@@ -17,6 +18,7 @@ import beta.javaseis.services.CoordinateType;
 import beta.javaseis.services.JSCoordinateService;
 import beta.javaseis.util.Convert;
 
+import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
@@ -77,7 +79,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private double[] sourceXYZ;
   private GridDefinition inputGrid;
-  private CheckGrids inputGridObj;
+  private ICheckGrids inputGridObj;
 
   public ExampleMigration() {
   }
@@ -98,7 +100,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   public void serialInit(ToolContext toolContext) {
     serialTime.start();
     ParameterService parms = toolContext.parms;
-    checkForDebugMode(parms);
+    debug = checkForDebugMode(parms);
     //TODO this method should check that toolContext contains enough
     // information to do a basic extrapolation.
     // Run main for more information. (ex: inputGrid returns null)
@@ -117,11 +119,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
     toolContext.putFlowGlobal(ToolContext.OUTPUT_GRID,imageGrid);
   }
 
-  private void checkForDebugMode(ParameterService parms) {
+  private boolean checkForDebugMode(ParameterService parms) {
     debug = Boolean.parseBoolean(parms.getParameter("DEBUG","FALSE"));
     if (debug) {
       LOGGER.info("RUNNING IN DEBUG MODE");
     }
+    return debug;
   }
 
   //Returns Depth Axis Length
@@ -267,11 +270,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
         +Arrays.toString(input.getVolumePosition()));
 
     //Only extrapolate the first volume if we're in debug mode.
+    debug = checkForDebugMode(toolContext.parms);
     if (debug && input.getVolumePosition()[3] > 0)
       return false;
 
     //Instantiate a checked grid which fixes any misplaced receivers
-    CheckGrids CheckedGrid = new CheckGrids(input, toolContext);
+    ICheckGrids CheckedGrid = new ManualGrid(input, toolContext);
 
     inputGridObj = CheckedGrid;
 
@@ -285,9 +289,21 @@ public class ExampleMigration extends StandAloneVolumeTool {
     transformGrid = computeTransformAxes(toolContext);
     toolContext.outputGrid = imageGrid;
 
+
+    int[] gridPos = input.getVolumePosition();
+    sourceXYZ = CheckedGrid.getSourceXYZ(gridPos);
+    System.out.println("[processVolume]: sourceXYZ is " + 
+        Arrays.toString(sourceXYZ));
+
+    System.out.println(
+        Arrays.toString(input.getGlobalGrid().getAxisPhysicalDeltas()));
     createSeis3dFfts(input);
     transformFromTimeToFrequency();
+
     generateShotDistributedArray(toolContext,input);
+
+    DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
+        "Raw source signature");
 
 
     //SourceVolume src = new SourceVolume(toolContext,input);
@@ -327,25 +343,36 @@ public class ExampleMigration extends StandAloneVolumeTool {
         floatSlice[k] = Convert.DoubleToFloat(depthSlice[k]);
       }
 
-      //visualize
-      //PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
-      //sliceDisplay.display();
-
       LOGGER.info("Volume #" + Arrays.toString(input.getVolumePosition()));
       transformFromSpaceToWavenumber();
       //this extrapolator is v(z) only.
-      LOGGER.info(String.format("Begin Extrapolation to depth %5.1f",depth));
+      LOGGER.info(
+          String.format("Begin Extrapolation to depth %5.1f.  Velocity is %5.1f"
+              ,depth,velocity));
       extrapolate((float)velocity, delz, zindx,fMax);
       LOGGER.info("Extrapolation finished");
       transformFromWavenumberToSpace();
+
+
+      rcvr.inverseTemporal();
+      display = new SingleVolumeDAViewer(rcvr.getArray(),inputGrid);
+      display.showAsModalDialog();
+      rcvr.forwardTemporal();
+
+      shot.inverseTemporal();
+      display = new SingleVolumeDAViewer(shot.getArray(),inputGrid);
+      display.showAsModalDialog();
+      shot.forwardTemporal();
+
+
       LOGGER.info("Applying imaging condition");
       imagingCondition(outputVolume,zindx,fMax);
-      LOGGER.info("Imaging condition finished.");
-      LOGGER.info("Processing of volume "
-          + Arrays.toString(input.getVolumePosition())
-          + " complete.");
-
+      LOGGER.info("Imaging condition finished."); 
     }
+
+    LOGGER.info("Processing of volume "
+        + Arrays.toString(input.getVolumePosition())
+        + " complete.");
 
     vmff.close();
     singleVolumeTime.stop();
@@ -353,19 +380,23 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_INPUT));
     Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_OUTPUT));
 
+    DistributedArrayMosaicPlot.showAsModalDialog(outputVolume.getDistributedArray(),
+        "Final Image.");
+
     return true;
   }
 
   private IVelocityModel getVelocityModelObject(
       ToolContext toolContext) {
     IVelocityModel vmff = null;
-    try {
-      vmff = new VelocityModelFromFile(toolContext);
-      //vmff = new VelocityModelFromFile(pc,folder,file);
-    } catch (FileNotFoundException e1) {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
-    }
+    vmff = new VelocityInDepthModel(
+        new double[] {0,1000,2000},new double[] {2000,3800});
+    //try {
+    //  vmff = new VelocityModelFromFile(toolContext);
+    //} catch (FileNotFoundException e1) {
+    //  // TODO Auto-generated catch block
+    //  e1.printStackTrace();
+    //}
     vmff.open("r");
     //System.out.println("[VelocityModelFromFile: Input grid");
     //System.out.println(inputGrid.toString());
@@ -431,6 +462,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //Specify the sample rates
     double[] sampleRates = computeVolumeSampleRates(input);
+    Assert.assertEquals(0.002,sampleRates[0],1e-7);
+    Assert.assertEquals(20,sampleRates[1],1e-7);
+    Assert.assertEquals(20,sampleRates[2],1e-7);
+    System.out.println(Arrays.toString(sampleRates));
     rcvr.setTXYSampleRates(sampleRates);
     shot.setTXYSampleRates(sampleRates);
   }
@@ -454,9 +489,22 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private void generateShotDistributedArray(ToolContext toolContext,
       ISeismicVolume input) {
-    float[] sourceXYZ = locateSourceXYZ(toolContext,input);
+    System.out.println("[generateShotDA]:  Source XYZ is: "
+        + Arrays.toString(sourceXYZ));
+    //float[] sourceXYZ = locateSourceXYZ(toolContext,input);
     assert sourceXYZ.length == 3;
-    generateSourceSignature(sourceXYZ);
+    Assert.assertNotNull(sourceXYZ);
+    double[] srcIndex = sourceArrayIndices(sourceXYZ);
+    generateSourceSignature(srcIndex);
+  }
+
+  private double[] sourceArrayIndices(double[] sourceXYZ2) {
+    double[] srcIndex = new double[sourceXYZ2.length]; 
+    for (int k = 0 ; k < sourceXYZ2.length ; k++) {
+      if (k == 2) srcIndex[k] = 0;
+      srcIndex[k] = (int)Math.rint(sourceXYZ2[k]/20);
+    }
+    return srcIndex;
   }
 
   private float[] locateSourceXYZ(ToolContext toolContext,
@@ -468,13 +516,26 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //For now we're just going to use the globalGrid and our prior knowledge
     //then refactor it into an auto/manual source field generator.
 
-    //float[][] sourceLocations = new float[][] {{100F,100F,0F}};
-    /*{
-	        {14.5F,14.5F,0},
-	        {34.5F,14.5F,0},
-	        {14.5F,34.5F,0},
-	        {34.5F,34.5F,0}
-	        };*/
+    float[][] sourceLocations = getSourceFromJSCS(toolContext, input);
+
+    //sourceLocations set
+
+    int volumeArrayIndex;
+    GridDefinition globalGrid = input.getGlobalGrid();
+    String[] axisLabels = globalGrid.getAxisLabelsStrings();
+    for (int k = 0 ; k < axisLabels.length; k++) {
+      if (axisLabels[k] == "SOURCE") {
+        volumeArrayIndex = 0; //TODO refactor
+        LOGGER.info("Source location: "
+            + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
+        return sourceLocations[volumeArrayIndex];
+      }
+    }
+    throw new IllegalArgumentException("Unable to find source location.");
+  }
+
+  private float[][] getSourceFromJSCS(ToolContext toolContext,
+      ISeismicVolume input) {
     JSCoordinateService jscs = null;
     try {
       jscs = openTraceHeadersFile(toolContext);
@@ -553,24 +614,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
       }
 
     }
-
-    //sourceLocations set
-
-    int volumeArrayIndex;
-    GridDefinition globalGrid = input.getGlobalGrid();
-    String[] axisLabels = globalGrid.getAxisLabelsStrings();
-    for (int k = 0 ; k < axisLabels.length; k++) {
-      if (axisLabels[k] == "SOURCE") {
-        volumeArrayIndex = 0; //TODO refactor
-        LOGGER.info("Source location: "
-            + Arrays.toString(sourceLocations[volumeArrayIndex]) + "\n");
-        return sourceLocations[volumeArrayIndex];
-      }
-    }
-    throw new IllegalArgumentException("Unable to find source location.");
+    return sourceLocations;
   }
 
-  private void generateSourceSignature(float[] sourceXYZ) {
+  private void generateSourceSignature(double[] sourceXYZ) {
     if (sourceXYZ.length != 3)
       throw new IllegalArgumentException(
           "Wrong number of elements for sourceXYZ");
@@ -584,7 +631,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     while (sourceX < sourceXYZ[0] + 1) {
       int sourceY = (int) Math.floor(sourceXYZ[1]);
       while (sourceY < sourceXYZ[1] + 1) {
-        float weight = 
+        double weight = 
             Math.max(0, 1-euclideanDistance(sourceX,sourceY,sourceXYZ));
         putWhiteSpectrum(shot,sourceX,sourceY,weight);
         sourceY++;
@@ -601,20 +648,20 @@ public class ExampleMigration extends StandAloneVolumeTool {
    * @return The  Euclidean distance between the current array index
    *           and the input source.
    */
-  private float euclideanDistance(float sourceX,
-      float sourceY,float[] sourceXYZ) {
+  private double euclideanDistance(int sourceX,
+      int sourceY,double[] sourceXYZ) {
 
-    float dx2 = (sourceX - sourceXYZ[0])*(sourceX - sourceXYZ[0]);
-    float dy2 = (sourceY - sourceXYZ[1])*(sourceY - sourceXYZ[1]);
-    return (float)Math.sqrt(dx2+dy2);
+    double dx2 = (sourceX - sourceXYZ[0])*(sourceX - sourceXYZ[0]);
+    double dy2 = (sourceY - sourceXYZ[1])*(sourceY - sourceXYZ[1]);
+    return Math.sqrt(dx2+dy2);
   }
 
   private void putWhiteSpectrum(SeisFft3dNew source,int sourceX,
-      int sourceY,float amplitude) {
+      int sourceY,double amplitude) {
 
     int[] position = new int[] {0,sourceX,sourceY};
     int[] volumeShape = source.getArray().getShape();
-    float[] sample = new float[] {amplitude,0}; //amplitude+0i complex
+    float[] sample = new float[] {(float)amplitude,0}; //amplitude+0i complex
     DistributedArray sourceDA = source.getArray();
     while (position[0] < volumeShape[0]) {
       sourceDA.putSample(sample, position);
@@ -622,6 +669,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
   }
 
+  /*
   private float getVelocityModel(double depth) {
     float V;
     if (depth <= 1000)
@@ -630,6 +678,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       V = 3800;
     return V;
   }
+   */
 
   private void transformFromTimeToFrequency() {
     transformTime.start();
@@ -652,6 +701,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     LOGGER.fine("Source: "
         + Arrays.toString(sourceXYZ));
 
+    double[] sampleRates = rcvr.getTXYSampleRates();
+    System.out.println("Receiver sample rate");
+    System.out.println(Arrays.toString(sampleRates));
 
     DistributedArray rcvrDA = rcvr.getArray();
     DistributedArray shotDA = shot.getArray();

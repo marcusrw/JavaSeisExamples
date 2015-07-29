@@ -1,5 +1,6 @@
 package org.javaseis.examples.scratch;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.logging.Logger;
 
@@ -29,8 +30,8 @@ public class ExampleMigrationRunner {
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
     //set basic user inputs
     parms.setParameter("ZMIN","0");
-    parms.setParameter("ZMAX","4000");
-    parms.setParameter("DELZ","200");
+    parms.setParameter("ZMAX","2000");
+    parms.setParameter("DELZ","20");
     parms.setParameter("PADT","10");
     parms.setParameter("PADX","10");
     parms.setParameter("PADY","10");
@@ -49,7 +50,11 @@ public class ExampleMigrationRunner {
     boolean debugIsOn = Boolean.parseBoolean(parms.getParameter("DEBUG"));
     if (debugIsOn) {
       setOutputAsInput(parms);
+      parms.setParameter("outputFilePath",outputFileName);
       try {
+        System.out.println("Displaying data in "
+            + parms.getParameter("inputFileSystem")
+            + File.separator + parms.getParameter("inputFilePath"));
         DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
       } catch (SeisException e) {
         // TODO Auto-generated catch block
