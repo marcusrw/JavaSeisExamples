@@ -1,10 +1,6 @@
 package org.javaseis.examples.scratch;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import beta.javaseis.distributed.DistributedArray;
@@ -14,15 +10,11 @@ import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import org.javaseis.examples.scratch.SeisFft3dNew;
 
 import beta.javaseis.parallel.IParallelContext;
-import beta.javaseis.services.CoordinateType;
-import beta.javaseis.services.JSCoordinateService;
 import beta.javaseis.util.Convert;
 
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
-import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
-import org.javaseis.io.Seisio;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;
@@ -52,7 +44,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   //Is having rcvr and shot as member variables going to cause
   //some sort of race condition?
-  SeisFft3dNew rcvr,shot;
+  private SeisFft3dNew rcvr,shot;
   private long[] transformAxisLengths;
   private DataDomain[] transformDomains;
   private AxisDefinition[] transformAxes;
@@ -74,13 +66,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private float[] pad;
   private float eps;
   private double fMax = -1;
-  //private double fMax = Double.POSITIVE_INFINITY;
   private static final float FLOAT_EPSILON = 1.19e-7F;
 
   private double[] sourceXYZ;
   private GridDefinition inputGrid;
   private ICheckGrids inputGridObj;
-  private double[] recXYZs;
+  private double[] recXYZ;
 
   public ExampleMigration() {
   }
@@ -276,7 +267,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
       return false;
 
     //Instantiate a checked grid which fixes any misplaced receivers
-    ICheckGrids CheckedGrid = new CheckGrids(input, toolContext);
+    //Change this when changing datasets
+    ICheckGrids CheckedGrid = new ManualGrid(input, toolContext);
 
     inputGridObj = CheckedGrid;
 
@@ -292,14 +284,14 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
 
     int[] gridPos = input.getVolumePosition();
-    recXYZs = CheckedGrid.getReceiverXYZ(gridPos);
+    recXYZ = CheckedGrid.getReceiverXYZ(gridPos);
     sourceXYZ = CheckedGrid.getSourceXYZ(gridPos);
     //TODO hack.  depth not zero not implemented.
     sourceXYZ[2] = 0;
     System.out.println("[processVolume]: sourceXYZ is " + 
         Arrays.toString(sourceXYZ));
     System.out.println("[processVolume]: recXYZ is " + 
-        Arrays.toString(recXYZs));
+        Arrays.toString(recXYZ));
 
     System.out.println(
         Arrays.toString(input.getGlobalGrid().getAxisPhysicalDeltas()));
@@ -322,6 +314,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     eps = 1E-12F;
     eps = 0F;
     double velocity;
+    
+    //TODO Make sure the output DA is empty.
 
     //depth axis information
     double zmin = imageGrid.getAxisPhysicalOrigin(0);
@@ -397,14 +391,15 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private IVelocityModel getVelocityModelObject(
       ToolContext toolContext) {
     IVelocityModel vmff = null;
-    //vmff = new VelocityInDepthModel(
-    //    new double[] {0,1000,2000},new double[] {2000,3800});
-    try {
-      vmff = new VelocityModelFromFile(toolContext);
-    } catch (FileNotFoundException e1) {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
-    }
+    //Change this when changing datasets
+    vmff = new VelocityInDepthModel(
+        new double[] {0,1000,2000},new double[] {2000,3800});
+    //try {
+    //  vmff = new VelocityModelFromFile(toolContext);
+    // } catch (FileNotFoundException e1) {
+    //   // TODO Auto-generated catch block
+    //  e1.printStackTrace();
+    //}
     vmff.open("r");
     //System.out.println("[VelocityModelFromFile: Input grid");
     //System.out.println(inputGrid.toString());
@@ -430,7 +425,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //Specify the sample rates
     double[] sampleRates = computeVolumeSampleRates(input);
-    Assert.assertEquals(0.008,Math.abs(sampleRates[0]),1e-7);
+    //Change this when changing datasets
+    Assert.assertEquals(0.002,Math.abs(sampleRates[0]),1e-7);
     Assert.assertEquals(20,Math.abs(sampleRates[1]),1e-7);
     Assert.assertEquals(20,Math.abs(sampleRates[2]),1e-7);
     System.out.println(Arrays.toString(sampleRates));
