@@ -1,106 +1,141 @@
 package org.javaseis.examples.scratch;
 
-import java.io.File;
-import java.util.Arrays;
+import beta.javaseis.distributed.DistributedArray;
 
-import org.javaseis.grid.BinGrid;
-import org.javaseis.grid.GridDefinition;
-import org.javaseis.io.Seisio;
-import org.javaseis.properties.PropertyDescription;
-import org.javaseis.properties.TraceProperties;
-import org.javaseis.tool.ToolContext;
-import org.javaseis.util.SeisException;
-import org.javaseis.volume.ISeismicVolume;
-import org.junit.Assert;
+public class SourceVolume implements ISourceVolume {
 
-import beta.javaseis.services.CoordinateType;
-import beta.javaseis.services.JSCoordinateService;
+	SeisFft3dNew shot;
+	double[] physicalSourceXYZ;
+	float[] arraySourceXYZ;
+	int[] AXIS_ORDER;
 
-public class SourceVolume {
+	public SourceVolume(ICheckGrids CheckedGrid, SeisFft3dNew shot) {
+		// Get the physical source
+		this.physicalSourceXYZ = CheckedGrid.getSourceXYZ();
 
-  private final int[] receiverVolumePosition;
+		// Get the Axis Order
+		this.AXIS_ORDER = CheckedGrid.getAxisOrder();
 
-  public SourceVolume(ToolContext toolContext,
-      ISeismicVolume receiverVolume) {
-    receiverVolumePosition = receiverVolume.getVolumePosition();
-    System.out.println(Arrays.toString(receiverVolumePosition));
+		// Compute the Array coordinates based on the grid
+		this.arraySourceXYZ = covertPhysToArray(this.physicalSourceXYZ, CheckedGrid);
 
-    String inputFilePath
-    = toolContext.parms.getParameter("inputFileSystem","null")
-    + File.separator
-    +toolContext.parms.getParameter("inputFilePath","null");
-    //System.out.println(inputFilePath);
+		// Check the shot
+		this.shot = CheckShot(shot);
 
-    Seisio sio;
-    JSCoordinateService jscs;
+		// Generate
+		generateSourceSignature(arraySourceXYZ);
 
-    try {
-      sio = new Seisio(inputFilePath);
-      sio.open("r");
-      sio.usesProperties(true);
-      TraceProperties tp = sio.getTraceProperties();
-      PropertyDescription[] tpd = tp.getTraceProperties();
-      GridDefinition grid = sio.getGridDefinition();
-      int xdim = 1;  //2nd array index
-      int ydim = 2;  //3rd array index
-      BinGrid bingrid = new BinGrid(grid,xdim,ydim);
-      Assert.assertNotNull(bingrid);     
-      //TODO  I'm not sure which is x and which is y here.
+	}
 
-      String[] coordprops = new String[]
-          {"SOU_XD","SOU_YD","SOU_ELEV","REC_XD","REC_YD","REC_ELEV"};
-      //The JSCS source/javadoc should explain that ORDER MATTERS HERE.
-      jscs = new JSCoordinateService(sio,bingrid,
-          CoordinateType.SHOTRCVR,coordprops);
-      int[] pos = Arrays.copyOf(receiverVolumePosition,
-          receiverVolumePosition.length);
-      double[] srxyz = new double[6];
-      double[] sxyz = new double[3];
-      double[] rxyz = new double[3];
-      double[] rxyz2 = new double[3];
-      double[] sxyzFirst = new double[3];
-      long[] volumeShape = receiverVolume.getLocalGrid().getAxisLengths();
-      double DOUBLE_EPSILON = 1e-7;
+	public SourceVolume(ICheckGrids CheckedGrid, SeisFft3dNew shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
+		// Get the physical source
+		this.physicalSourceXYZ = physicalSourceXYZ;
 
-      jscs.getSourceXYZ(pos, sxyzFirst);
-      jscs.getReceiverXYZ(pos, rxyz);
-      jscs.getReceiverXYZ(new int[] {0,1,1,0},rxyz2);
-      for (int k = 0 ; k < rxyz2.length ; k++) {
-        rxyz2[k] -= rxyz[k];
-      }
+		// Get the Axis Order
+		this.AXIS_ORDER = AXIS_ORDER;
 
-      System.out.println("Physical Origins from data: " + Arrays.toString(rxyz));
-      System.out.println("Physical Deltas from data: " + Arrays.toString(rxyz2));
+		// Need to convert this grid into array coordinates
+		this.arraySourceXYZ = covertPhysToArray(this.physicalSourceXYZ, CheckedGrid);
 
-      double[] physicalOrigins = grid.getAxisPhysicalOrigins();
-      double[] physicalDeltas = grid.getAxisPhysicalDeltas();
-      System.out.println("Physical Origins from grid: "
-          + Arrays.toString(physicalOrigins));
-      System.out.println("Physical Deltas from grid: "
-          + Arrays.toString(physicalDeltas));
+		this.shot = CheckShot(shot);
 
-      if (physicalOrigins[xdim] != rxyz[0]) {
-        System.out.println("Grid physical origin for dimension " 
-            + xdim + " is " + physicalOrigins[xdim]
-                + ".  Does not match the ReceiverX origin of " + rxyz[0]);
-      }
+		// Generate
+		generateSourceSignature(arraySourceXYZ);
 
-      //check that SourceXYZ doesn't change between traces
-      for (int xindx = 0 ; xindx < volumeShape[1] ; xindx++) {
-        pos[1] = xindx;
-        for (int yindx = 0 ; yindx < volumeShape[2] ; yindx++) {
-          pos[2] = yindx;
-          jscs.getSourceXYZ(pos, sxyz);
-          Assert.assertArrayEquals(sxyzFirst,sxyz,DOUBLE_EPSILON);
-        }
-      }
-    } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }    
-  }
+	}
 
-  public boolean isFinished() {
-    return false;
-  }
+	private SeisFft3dNew CheckShot(SeisFft3dNew shot) {
+		if (!shot.isTimeTransformed()) {
+			shot.forwardTemporal();
+			return shot;
+		}
+		return shot;
+	}
+
+	/*
+	 * Converts the physical coordinates to Array Coordinates
+	 */
+	public float[] covertPhysToArray(double[] sourceXYZ, ICheckGrids CheckedGrid) {
+		//Correct
+		//System.out.println("[covertPhysToArray]: " + Arrays.toString(sourceXYZ));
+		
+		// output buffer
+		float[] vS = new float[AXIS_ORDER.length];
+
+		for (int i = 0; i < AXIS_ORDER.length; i++) {
+			int currentAxis = CheckedGrid.getAxisOrder()[i];
+			double minPhys0 = CheckedGrid.getModifiedGrid().getAxisPhysicalOrigin(currentAxis);
+			double axisPhysDelta = CheckedGrid.getModifiedGrid().getAxisPhysicalDelta(currentAxis);
+			vS[i] = (float) ((sourceXYZ[i] - minPhys0) / axisPhysDelta);
+		}
+		return vS;
+	}
+
+	private void generateSourceSignature(float[] sourceXYZ) {
+		//System.out.println("[generateSourceSignature]: " + Arrays.toString(sourceXYZ));
+		if (sourceXYZ.length != 3)
+			throw new IllegalArgumentException("Wrong number of elements for sourceXYZ");
+		
+		//TODO: !!!!!THIS IS NOT CORRECT FIX IT AT SOME POINT!!!!!
+		if (sourceXYZ[2] > 0){
+			sourceXYZ[2] = 0;
+			System.out.println("Source Depth changed to: " + sourceXYZ[2]);
+			//throw new UnsupportedOperationException("Sources at Depths besides zero not yet implemented");
+		}
+
+		int sourceX = (int) Math.floor(sourceXYZ[0]);
+		while (sourceX < sourceXYZ[0] + 1) {
+			int sourceY = (int) Math.floor(sourceXYZ[1]);
+			while (sourceY < sourceXYZ[1] + 1) {
+				float weight = Math.max(0, 1 - euclideanDistance(sourceX, sourceY, sourceXYZ));
+				putWhiteSpectrum(shot, sourceX, sourceY, weight);
+				sourceY++;
+			}
+			sourceX++;
+		}
+	}
+
+	/**
+	 * @param sourceX
+	 *            - Target X index in the grid
+	 * @param sourceY
+	 *            - Target Y index in the grid
+	 * @param sourceXYZ
+	 *            - Actual Source position in the grid
+	 * @return The Euclidean distance between the current array index and the
+	 *         input source.
+	 */
+	private float euclideanDistance(float sourceX, float sourceY, float[] sourceXYZ) {
+
+		float dx2 = (sourceX - sourceXYZ[0]) * (sourceX - sourceXYZ[0]);
+		float dy2 = (sourceY - sourceXYZ[1]) * (sourceY - sourceXYZ[1]);
+		return (float) Math.sqrt(dx2 + dy2);
+	}
+
+	private void putWhiteSpectrum(SeisFft3dNew source, int sourceX, int sourceY, float amplitude) {
+
+		int[] position = new int[] { 0, sourceX, sourceY };
+		int[] volumeShape = source.getArray().getShape();
+		float[] sample = new float[] { amplitude, 0 }; // amplitude+0i complex
+		DistributedArray sourceDA = source.getArray();
+		while (position[0] < volumeShape[0]) {
+			sourceDA.putSample(sample, position);
+			position[0]++;
+		}
+	}
+
+	/*
+	 * Returns the SeisFft3dNew Object (shot)
+	 */
+	public SeisFft3dNew getShot() {
+		return shot;
+	}
+
+	/*
+	 * Returns the DistributedArray of the shot
+	 */
+	public DistributedArray getDistributedArray() {
+		return shot.getArray();
+	}
+
 }

@@ -300,7 +300,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     createSeis3dFfts(input);
     transformFromTimeToFrequency();
 
-    generateShotDistributedArray(toolContext,input);
+    //generateShotDistributedArray(toolContext,input);
+    ISourceVolume srcVol = new SourceVolume(CheckedGrid, shot);
+    shot = srcVol.getShot();
 
     DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
         "Raw source signature");
