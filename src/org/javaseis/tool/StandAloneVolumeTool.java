@@ -216,7 +216,8 @@ public abstract class StandAloneVolumeTool implements IVolumeTool {
         // Process any remaining output
         while (tool.outputVolume(toolContext, outputVolume)) {
           if (!opio.hasNext()) {
-            ex = new SeisException("Tool is attempting to output volume that is outside data context");
+            ex = new SeisException("Tool is attempting to output volume that "
+                + "is outside data context");
           }
           pe.exitOnException(ex, 1);
           opio.next();
@@ -225,10 +226,13 @@ public abstract class StandAloneVolumeTool implements IVolumeTool {
           } catch (SeisException e) {
             ex = e;
           }
+          //TODO I have no idea if this will work.
+          outputVolume = null;
           pe.exitOnException(ex, 1);
         }
       }
-      // Call the implementor's parallel finish method to release any local resources
+      // Call the implementor's parallel finish method to 
+      // release any local resources
       tool.parallelFinish(toolContext);
     }
   }
