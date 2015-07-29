@@ -24,5 +24,10 @@ public interface ICheckGrids {
 	 */
 	public int[] getAxisOrder();
 	
+	/*
+	 * Get the source from the corrected grid
+	 */
+	public double[] getSourceXYZ();
+	
 }
 
