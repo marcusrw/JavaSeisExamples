@@ -430,6 +430,10 @@ public class CheckGrids implements ICheckGrids {
   }
 
 
+  public double[] getSourceXYZ() {
+    return sourceXYZ;
+  }
+  
   //Get the Source Position
   public double[] getSourceXYZ(int[] gridPos){
     double [] sXYZ = new double[3];
