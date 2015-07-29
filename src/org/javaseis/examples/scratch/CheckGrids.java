@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
@@ -20,12 +21,18 @@ import beta.javaseis.services.CoordinateType;
 import beta.javaseis.services.JSCoordinateService;
 
 public class CheckGrids implements ICheckGrids {
+
+  private static final Logger LOGGER = 
+      Logger.getLogger(CheckGrids.class.getName());
+
+
   private ISeismicVolume input;
   private ToolContext toolContext;
   private GridDefinition modifiedGrid; 
 
   private int Xindex = 2;
   private int Yindex = 1;
+  private int Zindex = 0;
   private int[] AXIS_ORDER;
 
   private JSCoordinateService jscs;
@@ -40,10 +47,8 @@ public class CheckGrids implements ICheckGrids {
     try {
       this.jscs = openTraceHeadersFile(toolContext);
     } catch (SeisException e){
-      //LOGGER.log(Level.INFO,e.getMessage(),e);
-      e.getMessage();
+      LOGGER.log(Level.INFO,e.getMessage(),e);
     }
-
 
     //Updates the Grid
     checkVolumeGridDefinition(this.toolContext, this.input);
@@ -53,8 +58,7 @@ public class CheckGrids implements ICheckGrids {
       testCoords(input, this, toolContext);
     }
     catch(IllegalArgumentException e){
-      //LOGGER.log(Level.INFO,e.getMessage(),e);
-      e.getMessage();
+      LOGGER.log(Level.INFO,e.getMessage(),e);
     }
 
   }
@@ -63,20 +67,18 @@ public class CheckGrids implements ICheckGrids {
       throws SeisException {
     String inputFilePath
     = toolContext.getParameter("inputFileSystem")
-    //= toolContext.getParameterService().getParameter("inputFileSystem","null")
     + File.separator
     + toolContext.getParameter("inputFilePath");
-    //+toolContext.getParameterService().getParameter("inputFilePath","null");
 
     Seisio sio;
-
     try {
       sio = new Seisio(inputFilePath);
       sio.open("r");
       sio.usesProperties(true);
       GridDefinition grid = sio.getGridDefinition();
-      int xdim = Yindex;  //2nd array index
-      int ydim = Xindex;  //3rd array index
+      //TODO obvious logical failure here
+      int xdim = Yindex;
+      int ydim = Xindex;
       BinGrid bingrid = new BinGrid(grid,xdim,ydim);
       Assert.assertNotNull(bingrid);     
       String[] coordprops = new String[]
@@ -86,8 +88,7 @@ public class CheckGrids implements ICheckGrids {
           CoordinateType.SHOTRCVR,coordprops);
 
     } catch (SeisException e) {
-      //LOGGER.log(Level.SEVERE,e.getMessage(),e);
-      //LOGGER.severe("Something is very wrong if you're seeing this.");
+      LOGGER.log(Level.SEVERE,e.getMessage(),e);
       throw e;
     }
   }
@@ -142,14 +143,19 @@ public class CheckGrids implements ICheckGrids {
       pos[k]--;
     }
 
-    AXIS_ORDER = new int[] {Xindex,Yindex,0};
+    //sample axis is almost always time/depth
+    Zindex = 0;
+
+    AXIS_ORDER = new int[] {Xindex,Yindex,Zindex};
 
     jscs.getReceiverXYZ(pos, rxyz);
-    System.out.println("[updateVolumeGridDefinition] rec1 Pos: " + Arrays.toString(rxyz));
+    System.out.println("[updateVolumeGridDefinition] rec1 Pos: "
+        + Arrays.toString(rxyz));
     pos[1]++;
     pos[2]++;
     jscs.getReceiverXYZ(pos,rxyz2);
-    System.out.println("[updateVolumeGridDefinition] rec2 Pos: " + Arrays.toString(rxyz2));
+    System.out.println("[updateVolumeGridDefinition] rec2 Pos: "
+        + Arrays.toString(rxyz2));
 
     //TODO hack
     pos[1] = 100;
@@ -234,6 +240,8 @@ public class CheckGrids implements ICheckGrids {
     int[] volumePosIndex = new int[3];
 
     //Iterate over traces
+    //TODO is iterating over positions (samples)
+    //You can iterate over traces by setting the scope to 1.
     DistributedArrayPositionIterator itrInputArr = 
         new DistributedArrayPositionIterator(inputDistArr, volumePosIndex, 
             DistributedArrayPositionIterator.FORWARD);
@@ -270,9 +278,9 @@ public class CheckGrids implements ICheckGrids {
 
   //Check when Creating an object
   private void testCoords(ISeismicVolume input, CheckGrids CheckGrid, ToolContext toolContext){
-    //LOGGER.info("[processVolume]: ----- Called DEBUG TEST: -----");
+    LOGGER.info("[tesCoords]: ----- Called DEBUG TEST: -----");
 
-    VelocityModelFromFile vmff = getVelocityModelObject(this, toolContext);
+    IVelocityModel vmff = getVelocityModelObject(this, toolContext);
 
     //Get the values from the distributed array and compare the jscs values
 
@@ -304,14 +312,6 @@ public class CheckGrids implements ICheckGrids {
 
       //jscs.getReceiverXYZ(globalPosIndex, rXYZ);
       rXYZ = CheckGrid.getReceiverXYZ(globalPosIndex);
-
-      //TODO hack - replace the Z index with the depth (since the receiver
-      //            position Z is the depth of the actual receiver, and
-      //            doesn't match the current depth level.
-
-      //Don't compare anything about depth
-      //rXYZ[2] = 100;
-      //rXYZ[2] = depth;	//the actual depth
 
       //LOGGER.fine("[processVolume]: Pos: " + Arrays.toString(globalPosIndex) + 
       //  " recXYZ jscs: " + Arrays.toString(rXYZ));
@@ -411,8 +411,8 @@ public class CheckGrids implements ICheckGrids {
     //LOGGER.info("[processVolume]: ----- DEBUG TEST ENDED -----");
   }
 
-  private VelocityModelFromFile getVelocityModelObject(CheckGrids CheckGrid, ToolContext toolContext) {
-    VelocityModelFromFile vmff = null;
+  private IVelocityModel getVelocityModelObject(CheckGrids CheckGrid, ToolContext toolContext) {
+    IVelocityModel vmff = null;
     try {
       vmff = new VelocityModelFromFile(toolContext);
       //vmff = new VelocityModelFromFile(pc,folder,file);
