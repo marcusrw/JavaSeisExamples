@@ -80,6 +80,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private double[] sourceXYZ;
   private GridDefinition inputGrid;
   private ICheckGrids inputGridObj;
+  private double[] recXYZs;
 
   public ExampleMigration() {
   }
@@ -275,7 +276,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       return false;
 
     //Instantiate a checked grid which fixes any misplaced receivers
-    ICheckGrids CheckedGrid = new ManualGrid(input, toolContext);
+    ICheckGrids CheckedGrid = new CheckGrids(input, toolContext);
 
     inputGridObj = CheckedGrid;
 
@@ -291,9 +292,14 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
 
     int[] gridPos = input.getVolumePosition();
+    recXYZs = CheckedGrid.getReceiverXYZ(gridPos);
     sourceXYZ = CheckedGrid.getSourceXYZ(gridPos);
+    //TODO hack.  depth not zero not implemented.
+    sourceXYZ[2] = 0;
     System.out.println("[processVolume]: sourceXYZ is " + 
         Arrays.toString(sourceXYZ));
+    System.out.println("[processVolume]: recXYZ is " + 
+        Arrays.toString(recXYZs));
 
     System.out.println(
         Arrays.toString(input.getGlobalGrid().getAxisPhysicalDeltas()));
@@ -353,7 +359,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       LOGGER.info("Extrapolation finished");
       transformFromWavenumberToSpace();
 
-
+      /*
       rcvr.inverseTemporal();
       display = new SingleVolumeDAViewer(rcvr.getArray(),inputGrid);
       display.showAsModalDialog();
@@ -363,6 +369,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       display = new SingleVolumeDAViewer(shot.getArray(),inputGrid);
       display.showAsModalDialog();
       shot.forwardTemporal();
+       */
 
 
       LOGGER.info("Applying imaging condition");
@@ -389,14 +396,14 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private IVelocityModel getVelocityModelObject(
       ToolContext toolContext) {
     IVelocityModel vmff = null;
-    vmff = new VelocityInDepthModel(
-        new double[] {0,1000,2000},new double[] {2000,3800});
-    //try {
-    //  vmff = new VelocityModelFromFile(toolContext);
-    //} catch (FileNotFoundException e1) {
-    //  // TODO Auto-generated catch block
-    //  e1.printStackTrace();
-    //}
+    //vmff = new VelocityInDepthModel(
+    //    new double[] {0,1000,2000},new double[] {2000,3800});
+    try {
+      vmff = new VelocityModelFromFile(toolContext);
+    } catch (FileNotFoundException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
     vmff.open("r");
     //System.out.println("[VelocityModelFromFile: Input grid");
     //System.out.println(inputGrid.toString());
@@ -462,18 +469,23 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //Specify the sample rates
     double[] sampleRates = computeVolumeSampleRates(input);
-    Assert.assertEquals(0.002,sampleRates[0],1e-7);
-    Assert.assertEquals(20,sampleRates[1],1e-7);
-    Assert.assertEquals(20,sampleRates[2],1e-7);
+    Assert.assertEquals(0.008,Math.abs(sampleRates[0]),1e-7);
+    Assert.assertEquals(20,Math.abs(sampleRates[1]),1e-7);
+    Assert.assertEquals(20,Math.abs(sampleRates[2]),1e-7);
     System.out.println(Arrays.toString(sampleRates));
     rcvr.setTXYSampleRates(sampleRates);
     shot.setTXYSampleRates(sampleRates);
   }
 
+  /**
+   * @param input
+   * @return
+   */
   private double[] computeVolumeSampleRates(ISeismicVolume input) {
-    GridDefinition localGrid = input.getLocalGrid();
-    double[] localGridSampleRates = localGrid.getAxisPhysicalDeltas().clone();
-    Units timeAxisUnits = localGrid.getAxisUnits(0);
+    GridDefinition checkedGrid = inputGridObj.getModifiedGrid();
+    System.out.println(checkedGrid.toString());
+    double[] localGridSampleRates = checkedGrid.getAxisPhysicalDeltas().clone();
+    Units timeAxisUnits = checkedGrid.getAxisUnits(0);
     if (timeAxisUnits.equals(Units.SECONDS)) {
       return localGridSampleRates;
     }
@@ -498,11 +510,14 @@ public class ExampleMigration extends StandAloneVolumeTool {
     generateSourceSignature(srcIndex);
   }
 
-  private double[] sourceArrayIndices(double[] sourceXYZ2) {
-    double[] srcIndex = new double[sourceXYZ2.length]; 
-    for (int k = 0 ; k < sourceXYZ2.length ; k++) {
+  private double[] sourceArrayIndices(double[] sourceXYZ) {
+    int[] axisOrder = inputGridObj.getAxisOrder();
+    GridDefinition grid = inputGridObj.getModifiedGrid();
+    double[] recDeltas = grid.getAxisPhysicalDeltas();
+    double[] srcIndex = new double[sourceXYZ.length]; 
+    for (int k = 0 ; k < sourceXYZ.length ; k++) {
       if (k == 2) srcIndex[k] = 0;
-      srcIndex[k] = (int)Math.rint(sourceXYZ2[k]/20);
+      srcIndex[k] = (sourceXYZ[k]-recXYZs[k])/recDeltas[axisOrder[k]];
     }
     return srcIndex;
   }
