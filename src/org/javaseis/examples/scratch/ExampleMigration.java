@@ -93,7 +93,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   public void serialInit(ToolContext toolContext) {
     serialTime.start();
     ParameterService parms = toolContext.parms;
-    debug = checkForDebugMode(parms);
+    debug = debugIsOn(parms);
     //TODO this method should check that toolContext contains enough
     // information to do a basic extrapolation.
     // Run main for more information. (ex: inputGrid returns null)
@@ -112,7 +112,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     toolContext.putFlowGlobal(ToolContext.OUTPUT_GRID,imageGrid);
   }
 
-  private boolean checkForDebugMode(ParameterService parms) {
+  private boolean debugIsOn(ParameterService parms) {
     debug = Boolean.parseBoolean(parms.getParameter("DEBUG","FALSE"));
     if (debug) {
       LOGGER.info("RUNNING IN DEBUG MODE");
@@ -263,8 +263,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
         +Arrays.toString(input.getVolumePosition()));
 
     //Only extrapolate the first volume if we're in debug mode.
-    debug = checkForDebugMode(toolContext.parms);
-    if (debug && input.getVolumePosition()[3] > 0)
+    if (debugIsOn(toolContext.parms) && input.getVolumePosition()[3] > 0)
       return false;
 
     //Instantiate a checked grid which fixes any misplaced receivers
@@ -303,8 +302,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     ISourceVolume srcVol = new SourceVolume(CheckedGrid, shot);
     shot = srcVol.getShot();
 
-    DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
-        "Raw source signature");
+    if (debugIsOn(toolContext.parms)) {
+      DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
+          "Raw source signature");
+    }
 
     eps = 1E-12F;
     eps = 0F;
@@ -383,8 +384,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_INPUT));
     Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_OUTPUT));
 
-    DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
-        "Final Image.");
+    if (debugIsOn(toolContext.parms)) {
+      DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
+          "Final Image.");
+    }
 
     return true;
   }

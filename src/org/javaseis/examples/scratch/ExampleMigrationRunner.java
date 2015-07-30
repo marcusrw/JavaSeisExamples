@@ -24,7 +24,7 @@ public class ExampleMigrationRunner {
     //String inputFileName = "100a-rawsynthpwaves.js";
     //String inputFileName = "segshotno1.js";
     String inputFileName = "seg45shot.js";
-    String outputFileName = "test.js";
+    String outputFileName = "test45.js";
     String vModelFileName = "segsaltmodel.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
