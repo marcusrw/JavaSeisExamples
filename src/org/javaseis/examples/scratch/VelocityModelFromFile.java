@@ -54,7 +54,20 @@ public class VelocityModelFromFile implements IVelocityModel {
     pc = toolContext.getParallelContext();
     folder = toolContext.getParameter("inputFileSystem");
     file =  toolContext.getParameter("vModelFilePath");
+    errorMessageIfVModelNotSpecified();
     startFileSystemIOService(pc, folder, file);
+  }
+
+  private void errorMessageIfVModelNotSpecified() throws FileNotFoundException {
+    if (file.equals("null")) {
+      throw new FileNotFoundException(
+          String.format("Specify a velocity model filename%n"
+              + "using by adding the parameter \"vModelFilePath\" to your "
+              + "ParameterService object."
+              + "%n Ex:  ParameterService parms;"
+              + "%n      parms.setParameter(\"vModelFilePath\""
+              + ",\"myVelocityModel.js\");"));
+    }
   }  
 
   private void startFileSystemIOService(IParallelContext pc, String folder,
