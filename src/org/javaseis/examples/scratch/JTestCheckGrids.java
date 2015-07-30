@@ -37,7 +37,7 @@ public class JTestCheckGrids {
     //Specify which data to load
     String inputFileName = "segshotno1.js";
     try {
-      //Use the find test data to populate your parameterservice with
+      //Use the find test data to populate your ParameterService with
       //IO info
       parms = new FindTestData(inputFileName).getParameterService();
     } catch (FileNotFoundException e) {
@@ -90,6 +90,7 @@ public class JTestCheckGrids {
       DistributedArrayMosaicPlot.showAsModalDialog(da, "Is it loading?");
 
       //or call CheckGrids on it
+      //this guy needs a velocity model
       String vModelFileName = "segsaltmodel.js";
       parms.setParameter("vModelFilePath", vModelFileName);
       ICheckGrids checkGrid = new CheckGrids(inputVolume, toolContext);
