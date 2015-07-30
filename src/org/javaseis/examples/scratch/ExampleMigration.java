@@ -1,5 +1,6 @@
 package org.javaseis.examples.scratch;
 
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
@@ -254,7 +255,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
-      ISeismicVolume outputVolume) {
+      ISeismicVolume output) {
 
     IntervalTimer singleVolumeTime = new IntervalTimer();
     singleVolumeTime.start();
@@ -267,8 +268,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
       return false;
 
     //Instantiate a checked grid which fixes any misplaced receivers
-    //Change this when changing datasets
-    ICheckGrids CheckedGrid = new ManualGrid(input, toolContext);
+    //Change code: 65432
+    //ICheckGrids CheckedGrid = new ManualGrid(input, toolContext);   
+    ICheckGrids CheckedGrid = new CheckGrids(input, toolContext);
 
     inputGridObj = CheckedGrid;
 
@@ -304,18 +306,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
     DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
         "Raw source signature");
 
-
-    //SourceVolume src = new SourceVolume(toolContext,input);
-    //TODO: fix this commented out for testing
-    //if (!src.isFinished()) {
-    //return false;
-    //}
-
     eps = 1E-12F;
     eps = 0F;
     double velocity;
-    
+
+    output.getDistributedArray().zeroCompletely();
+    //emptyOutputDA(output.getDistributedArray());
+
     //TODO Make sure the output DA is empty.
+    if (!distributedArrayIsEmpty(output.getDistributedArray())) {
+      throw new IllegalArgumentException("Why is the output not empty?");
+    }
 
     //depth axis information
     double zmin = imageGrid.getAxisPhysicalOrigin(0);
@@ -368,7 +369,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
 
       LOGGER.info("Applying imaging condition");
-      imagingCondition(outputVolume,zindx,fMax);
+      imagingCondition(output,zindx,fMax);
       LOGGER.info("Imaging condition finished."); 
     }
 
@@ -382,24 +383,61 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_INPUT));
     Assert.assertTrue((boolean)toolContext.getFlowGlobal(ToolContext.HAS_OUTPUT));
 
-    DistributedArrayMosaicPlot.showAsModalDialog(outputVolume.getDistributedArray(),
+    DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
         "Final Image.");
 
+    return true;
+  }
+
+  private void emptyOutputDA(DistributedArray da) {
+    int[] position = new int[da.getShape().length];
+    int direction = 1; //forward
+    int scope = 0; //sample scope
+    float[] buffer = new float[da.getElementCount()];
+    DistributedArrayPositionIterator dapi = 
+        new DistributedArrayPositionIterator(da,position,direction,scope);
+    while (dapi.hasNext()) {
+      position = dapi.next();
+      for (float element : buffer) {
+        element = 0;
+      }
+      da.putSample(buffer,position);
+    }  
+  }
+
+  private boolean distributedArrayIsEmpty(DistributedArray da) {
+    int[] position = new int[da.getShape().length];
+    int direction = 1; //forward
+    int scope = 0; //sample scope
+    float[] buffer = new float[da.getElementCount()];
+    DistributedArrayPositionIterator dapi = 
+        new DistributedArrayPositionIterator(da,position,direction,scope);
+    while (dapi.hasNext()) {
+      position = dapi.next();
+      da.getSample(buffer, position);
+      for (float element : buffer) {
+        if (element != 0) {
+          System.out.println("DA is not empty as position: "
+              + Arrays.toString(position));
+          return false;
+        }
+      }
+    }
     return true;
   }
 
   private IVelocityModel getVelocityModelObject(
       ToolContext toolContext) {
     IVelocityModel vmff = null;
-    //Change this when changing datasets
-    vmff = new VelocityInDepthModel(
-        new double[] {0,1000,2000},new double[] {2000,3800});
-    //try {
-    //  vmff = new VelocityModelFromFile(toolContext);
-    // } catch (FileNotFoundException e1) {
-    //   // TODO Auto-generated catch block
-    //  e1.printStackTrace();
-    //}
+    //Change code: 65432
+    //vmff = new VelocityInDepthModel(
+    //    new double[] {0,1000,2000},new double[] {2000,3800});
+    try {
+      vmff = new VelocityModelFromFile(toolContext);
+    } catch (FileNotFoundException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
     vmff.open("r");
     //System.out.println("[VelocityModelFromFile: Input grid");
     //System.out.println(inputGrid.toString());
@@ -425,8 +463,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //Specify the sample rates
     double[] sampleRates = computeVolumeSampleRates(input);
-    //Change this when changing datasets
-    Assert.assertEquals(0.002,Math.abs(sampleRates[0]),1e-7);
+    //Change code: 65432
+    //Assert.assertEquals(0.008,Math.abs(sampleRates[0]),1e-7);
     Assert.assertEquals(20,Math.abs(sampleRates[1]),1e-7);
     Assert.assertEquals(20,Math.abs(sampleRates[2]),1e-7);
     System.out.println(Arrays.toString(sampleRates));
