@@ -43,8 +43,7 @@ public class ManualGrid implements ICheckGrids {
 
   @Override
   public double[] getReceiverXYZ(int[] gridPos) {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException("Not implemented.");
   }
 
   @Override
