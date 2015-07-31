@@ -2,6 +2,7 @@ package org.javaseis.examples.scratch;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.javaseis.examples.plot.DistributedArrayViewer;
@@ -21,17 +22,27 @@ public class ExampleMigrationRunner {
 
   @Test
   public void test() throws FileNotFoundException {
-    String inputFileName = "100a-rawsynthpwaves.js";
-    //String inputFileName = "segshotno1.js";
+    //String inputFileName = "100a-rawsynthpwaves.js";
+    String inputFileName = "segshotno1.js";
     //String inputFileName = "seg45shot.js";
     String outputFileName = "test.js";
     String vModelFileName = "segsaltmodel.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
     //set basic user inputs
+    basicParameters(inputFileName,vModelFileName);
+
+    try {
+      ExampleMigration.exec(parms,new ExampleMigration());
+    } catch (SeisException e) {
+      LOGGER.log(Level.SEVERE,e.getMessage(),e);
+    }
+  }
+
+  private void basicParameters(String inputFileName,String vModelFileName) {
     parms.setParameter("ZMIN","0");
-    parms.setParameter("ZMAX","2000");
-    parms.setParameter("DELZ","40");
+    parms.setParameter("DELZ","4000");
+    parms.setParameter("DELZ","20");
     parms.setParameter("PADT","20");
     parms.setParameter("PADX","5");
     parms.setParameter("PADY","5");
@@ -41,32 +52,8 @@ public class ExampleMigrationRunner {
     parms.setParameter("DEBUG","TRUE");
     parms.setParameter("outputFileMode","create");
 
-    try {
-      ExampleMigration.exec(parms,new ExampleMigration());
-    } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+    if (inputFileName.equals("100a-rawsynthpwaves.js")) {
+      parms.setParameter("ZMAX","2000");
     }
-    boolean debugIsOn = Boolean.parseBoolean(parms.getParameter("DEBUG"));
-    if (debugIsOn) {
-      setOutputAsInput(parms);
-      parms.setParameter("outputFilePath",outputFileName);
-      try {
-        System.out.println("Displaying data in "
-            + parms.getParameter("inputFileSystem")
-            + File.separator + parms.getParameter("inputFilePath"));
-        DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
-      } catch (SeisException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-  }
-
-  private static void setOutputAsInput(ParameterService parms) {
-    String outputFilePath = parms.getParameter("outputFilePath","null");
-    String outputFileSystem = parms.getParameter("outputFileSystem","null");
-    parms.setParameter("inputFilePath",outputFilePath);
-    parms.setParameter("inputFileSystem",outputFileSystem);
   }
 }

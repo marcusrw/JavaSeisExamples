@@ -237,9 +237,14 @@ public class ExampleMigration extends StandAloneVolumeTool {
         +Arrays.toString(input.getVolumePosition()));
 
     //Instantiate a checked grid which fixes any misplaced receivers
-    //Change code: 65432
-    ICheckGrids gridFromHeaders = new ManualGrid(input, toolContext);   
-    //ICheckGrids gridFromHeaders = new CheckGrids(input, toolContext);
+
+    ICheckGrids gridFromHeaders;
+    try{
+      gridFromHeaders = new CheckGrids(input, toolContext);
+    } catch (InstantiationException e){
+      LOGGER.info(e.getMessage());
+      gridFromHeaders = new ManualGrid(input, toolContext); 
+    }
 
     //Set the Modified Grid = input Grid, since we can't set it in the input
     toolContext.inputGrid = gridFromHeaders.getModifiedGrid();
@@ -262,10 +267,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     shot = srcVol.getShot();
 
     //Plot to check
-    if (debugIsOn(toolContext.parms)) {
-      DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
-          "Raw source signature");
-    }
+    //if (debugIsOn(toolContext.parms)) {
+    //  DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
+    //      "Raw source signature");
+    //}
 
     output.getDistributedArray().zeroCompletely();
     DistributedArray vModelWindowed =
@@ -347,6 +352,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     if (debugIsOn(toolContext.parms)) {
       DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
           "Final Image.");
+      DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
+          "Velocity Model.");
+
     }
 
     logTimerOutput("Velocity Access Time",velocityAccessTime.total());
@@ -358,36 +366,41 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return true;
   }
 
-  private void saveWindowedVelocitySlice(double[][] windowedSlice, DistributedArray vModelWindowed, int zindx) {
-		// TODO Auto-generated method stub
-		int[] position = new int[vModelWindowed.getDimensions()];
-		int direction = 1; // forward
-		int scope = 1; // traces
+  private boolean usingTestData(ToolContext toolContext) {
+    return toolContext.getParameter("inputFilePath")
+        .equals("100a-rawsynthpwaves.js");
+  }
 
-		DistributedArrayPositionIterator dapi;
-		dapi = new DistributedArrayPositionIterator(vModelWindowed, position, direction, scope);
+  private void saveWindowedVelocitySlice(double[][] windowedSlice,
+      DistributedArray vModelWindowed, int zindx) {
+    // TODO Auto-generated method stub
+    int[] position = new int[vModelWindowed.getDimensions()];
+    int direction = 1; // forward
+    int scope = 1; // traces
 
-		while (dapi.hasNext()) {
-			position = dapi.next();
-			int[] outputPosition = position.clone();
-			outputPosition[0] = zindx;
-			int[] pos = dapi.getPosition();			
-			
-			//Pass x = pos[1], y = pos[2];
-			double buffer = windowedSlice[pos[1]][pos[2]];
-			//System.out.println("buffer value:" + buffer);
-			//System.out.println("Output pos:" + Arrays.toString(outputPosition));
-			vModelWindowed.putSample((float)buffer, outputPosition);
-		}
-	}
+    DistributedArrayPositionIterator dapi;
+    dapi = new DistributedArrayPositionIterator(vModelWindowed, position, direction, scope);
+
+    while (dapi.hasNext()) {
+      position = dapi.next();
+      int[] outputPosition = position.clone();
+      outputPosition[0] = zindx;
+      int[] pos = dapi.getPosition();	
+
+      //Pass x = pos[1], y = pos[2];
+      double buffer = windowedSlice[pos[1]][pos[2]];
+      //System.out.println("buffer value:" + buffer);
+      //System.out.println("Output pos:" + Arrays.toString(outputPosition));
+      vModelWindowed.putSample((float)buffer, outputPosition);
+    }
+  }
 
   private void createSeis3dFfts(ToolContext toolContext,
       ISeismicVolume input) {
     int[] inputShape = input.getLengths();
+    float[] pad = getPad(toolContext.parms);
     Assert.assertNotNull("ParallelContext is null",pc);
     Assert.assertNotNull("Input Shape is null",inputShape);
-    float[] pad = getPad(toolContext.parms);
-    System.out.println("Pad: " + Arrays.toString(pad));
     Assert.assertNotNull("Pad is null",pad);
     rcvr = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
     shot = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
@@ -430,14 +443,18 @@ public class ExampleMigration extends StandAloneVolumeTool {
   private IVelocityModel getVelocityModelObject(
       ToolContext toolContext) {
     IVelocityModel vmff = null;
-    //Change code: 65432
-    vmff = new VelocityInDepthModel(
-        new double[] {0,1000,2000},new double[] {2000,3800});
-    //try {
-    //  vmff = new VelocityModelFromFile(toolContext);
-    //} catch (FileNotFoundException e1) {
-    //  LOGGER.log(Level.SEVERE,e1.getMessage(),e1);
-    //}
+    try {
+      vmff = new VelocityModelFromFile(toolContext);
+    } catch (FileNotFoundException e1) {
+      LOGGER.log(Level.SEVERE,e1.getMessage(),e1);
+    }
+
+    //override the default behaviour if we're working on the test data which
+    //has no header information.
+    if (usingTestData(toolContext)) {
+      vmff = new VelocityInDepthModel(
+          new double[] {0,1000,2000},new double[] {2000,3800});
+    }
     vmff.open("r");
     return vmff;
   }

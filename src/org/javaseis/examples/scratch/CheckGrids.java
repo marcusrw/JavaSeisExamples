@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.io.Seisio;
@@ -12,6 +13,7 @@ import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 import org.junit.Assert;
+
 import beta.javaseis.services.CoordinateType;
 import beta.javaseis.services.JSCoordinateService;
 
@@ -36,7 +38,7 @@ public class CheckGrids implements ICheckGrids {
 	//Source Position
 	private double[] sourceXYZ;
 
-	public CheckGrids(ISeismicVolume input, ToolContext toolContext) {
+	public CheckGrids(ISeismicVolume input, ToolContext toolContext) throws InstantiationException {
 		this.input = input;
 		this.toolContext = toolContext;
 
@@ -44,6 +46,8 @@ public class CheckGrids implements ICheckGrids {
 			this.jscs = openTraceHeadersFile(toolContext);
 		} catch (SeisException e) {
 			LOGGER.log(Level.INFO, e.getMessage(), e);
+			throw new InstantiationException("This dataset has no associated"
+			    + " trace header file");
 		}
 
 		// Updates the Grid
