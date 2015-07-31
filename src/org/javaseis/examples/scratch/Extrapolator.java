@@ -22,6 +22,7 @@ public class Extrapolator {
     this.rcvr = rcvr;
     this.shot = shot;
     extrapTime = new IntervalTimer();
+    transformTime = new IntervalTimer();
   }
 
   //Constant velocity phase shift
