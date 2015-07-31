@@ -28,74 +28,19 @@ import beta.javaseis.parallel.UniprocessorContext;
 
 public class JTestVolumeEdgeVirtualization {
 
-  IParallelContext pc;
   ParameterService parms;
   ToolContext toolContext;
   ISeismicVolume seismicInput;
   IDistributedIOService ipio = null;
-  GridDefinition globalGrid;
   ICheckGrids checkGrid;
 
   @Before
   public void loadDataIntoVolume() {
-    pc = new UniprocessorContext();
-
-    // Specify which data to load
-    String inputFileName = "seg45shot.js";
-    try {
-      // Use the find test data to populate your parameterservice with
-      // IO info
-      parms = new FindTestData(inputFileName).getParameterService();
-    } catch (FileNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    // Push that parameterservice into a toolContext and add the
-    // parallelcontext
-    toolContext = new ToolContext(parms);
-    toolContext.setParallelContext(pc);
-
-    // start the file system IO service on the folder that FindTestData
-    // found
-    try {
-      ipio = new FileSystemIOService(pc, toolContext.getParameter(ToolContext.INPUT_FILE_SYSTEM));
-    } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-
-    // Open your chosen file for reading
-    try {
-      ipio.open(toolContext.getParameter(ToolContext.INPUT_FILE_PATH));
-    } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-
-    // Get the global grid definition
-    globalGrid = ipio.getGridDefinition();
-
-    // Now you have enough to make a SeismicVolume
-    ISeismicVolume inputVolume = new SeismicVolume(pc, globalGrid);
-    seismicInput = inputVolume;
-
-    // match the IO's DA with the Volume's DA
-    ipio.setDistributedArray(inputVolume.getDistributedArray());
-
-    /*
-     * while (ipio.hasNext()) { ipio.next();
-     * inputVolume.setVolumePosition(ipio.getFilePosition()); try {
-     * ipio.read(); } catch (SeisException e) { // TODO Auto-generated catch
-     * block e.printStackTrace(); }
-     * 
-     * // or call CheckGrids on it String vModelFileName =
-     * "segsaltmodel.js"; parms.setParameter("vModelFilePath",
-     * vModelFileName); checkGrid = new CheckGrids(inputVolume,
-     * toolContext); //
-     * System.out.println(Arrays.toString(checkGrid.getSourceXYZ()));
-     * 
-     * }
-     */
+    JTestSampleInputCreator test = new JTestSampleInputCreator(false);
+    this.toolContext = test.getToolContext();
+    this.seismicInput = test.getSeismicInput();
+    this.checkGrid = test.getCheckGrid();
+    this.parms = test.getParms();
   }
 
   @Test
@@ -131,11 +76,10 @@ public class JTestVolumeEdgeVirtualization {
     String path = "//tmp//vEdge.txt";
     // check if file exists
 
-    File f = new File(path); 
-    if(f.exists() && !f.isDirectory()) {
-      f.delete(); 
+    File f = new File(path);
+    if (f.exists() && !f.isDirectory()) {
+      f.delete();
     }
-
 
     // File Writer
     PrintWriter out = null;
