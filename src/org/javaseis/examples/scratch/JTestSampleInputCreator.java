@@ -88,7 +88,12 @@ public class JTestSampleInputCreator {
 				// this method needs a velocity model parameter
 				String vModelFileName = "segsaltmodel.js";
 				parms.setParameter("vModelFilePath", vModelFileName);
-				checkGrid = new CheckGrids(inputVolume, toolContext);
+				try {
+          checkGrid = new CheckGrids(inputVolume, toolContext);
+        } catch (InstantiationException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
 				// System.out.println(Arrays.toString(checkGrid.getSourceXYZ()));
 
 			}
