@@ -358,10 +358,28 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return true;
   }
 
-  private void saveWindowedVelocitySlice(double[][] windowedSlice,
-      DistributedArray vModelWindowed, int zindx) {
-    // TODO Auto-generated method stub
-  }
+  private void saveWindowedVelocitySlice(double[][] windowedSlice, DistributedArray vModelWindowed, int zindx) {
+		// TODO Auto-generated method stub
+		int[] position = new int[vModelWindowed.getDimensions()];
+		int direction = 1; // forward
+		int scope = 1; // traces
+
+		DistributedArrayPositionIterator dapi;
+		dapi = new DistributedArrayPositionIterator(vModelWindowed, position, direction, scope);
+
+		while (dapi.hasNext()) {
+			position = dapi.next();
+			int[] outputPosition = position.clone();
+			outputPosition[0] = zindx;
+			int[] pos = dapi.getPosition();			
+			
+			//Pass x = pos[1], y = pos[2];
+			double buffer = windowedSlice[pos[1]][pos[2]];
+			//System.out.println("buffer value:" + buffer);
+			//System.out.println("Output pos:" + Arrays.toString(outputPosition));
+			vModelWindowed.putSample((float)buffer, outputPosition);
+		}
+	}
 
   private void createSeis3dFfts(ToolContext toolContext,
       ISeismicVolume input) {
