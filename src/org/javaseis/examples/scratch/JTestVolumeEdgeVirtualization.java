@@ -41,6 +41,7 @@ public class JTestVolumeEdgeVirtualization {
     this.seismicInput = test.getSeismicInput();
     this.checkGrid = test.getCheckGrid();
     this.parms = test.getParms();
+    this.ipio = test.getIpio();
   }
 
   @Test
