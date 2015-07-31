@@ -99,4 +99,8 @@ public class ImagingCondition {
 
     imagingTime.stop();
   }
+  
+  public double getImagingTime() {
+    return imagingTime.total();
+  }
 }

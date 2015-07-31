@@ -16,6 +16,7 @@ public class Extrapolator {
   SeisFft3dNew rcvr;
 
   IntervalTimer extrapTime;
+  IntervalTimer transformTime;
 
   public Extrapolator(SeisFft3dNew shot,SeisFft3dNew rcvr) {
     this.rcvr = rcvr;
@@ -91,5 +92,44 @@ public class Extrapolator {
       shotDA.putSample(souOutSample, position);
     }
     extrapTime.stop();
+  }
+
+  public void transformFromSpaceToWavenumber() {
+    transformTime.start();
+    rcvr.forwardSpatial2D();
+    shot.forwardSpatial2D();
+    transformTime.stop();
+
+  }
+
+  public void transformFromWavenumberToSpace() {
+    transformTime.start();
+    rcvr.inverseSpatial2D();
+    shot.inverseSpatial2D();
+    transformTime.stop();
+  }
+
+  public void transformFromTimeToFrequency() {
+    transformTime.start();
+    rcvr.forwardTemporal();
+    shot.forwardTemporal();
+    transformTime.stop();
+  }
+
+  public void transformFromFrequencyToTime() {
+    transformTime.start();
+    rcvr.inverseTemporal();
+    shot.inverseTemporal();
+    transformTime.stop();
+  }
+
+
+
+  public double getTransformTime() {
+    return transformTime.total();
+  }
+
+  public double getExtrapolationTime() {
+    return extrapTime.total();
   }
 }
