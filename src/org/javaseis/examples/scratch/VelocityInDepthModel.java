@@ -9,6 +9,8 @@ public class VelocityInDepthModel implements IVelocityModel {
   private double[] layerDepths;
   private double[] layerVelocities;
 
+  GridDefinition vmodelGrid = null;
+
   /**
    * @param layerDepths - the depths of the interfaces between layers, including
    *                      the top and bottom of the model.  Should contain one
@@ -38,6 +40,7 @@ public class VelocityInDepthModel implements IVelocityModel {
   @Override
   public void orientSeismicVolume(GridDefinition seismicVolumeGrid,
       int[] axisOrder) {
+    vmodelGrid = seismicVolumeGrid;
     // Axis order is irrelevant for v(z)
   }
 
@@ -48,8 +51,7 @@ public class VelocityInDepthModel implements IVelocityModel {
 
   @Override
   public long[] getVModelGridLengths() {
-    throw new UnsupportedOperationException("For a v(z) medium, the grid lengths"
-        + " are whatever you want them to be.");
+    return vmodelGrid.getAxisLengths();
   }
 
   @Override
@@ -69,8 +71,18 @@ public class VelocityInDepthModel implements IVelocityModel {
 
   @Override
   public double[][] readSlice(double depth) {
+
     double velocity = readAverageVelocity(depth);
-    return new double[][] {{velocity}};
+    int numTraces = (int)vmodelGrid.getAxisLength(1);
+    int numFrames = (int)vmodelGrid.getAxisLength(2);
+
+    double[][] slice = new double[numTraces][numFrames];
+    for (int trace = 0 ; trace < numTraces ; trace++) {
+      for (int frame = 0 ; frame < numFrames ; frame++) {
+        slice[trace][frame] = velocity;
+      }
+    }
+    return slice;
   }
 
   @Override
