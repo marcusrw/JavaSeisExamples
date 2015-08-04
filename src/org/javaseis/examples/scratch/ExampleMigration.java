@@ -11,6 +11,7 @@ import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 
 import org.javaseis.examples.scratch.SeisFft3dNew;
+import org.javaseis.examples.scratch.MigrationFFT3D;
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
@@ -259,6 +260,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     toolContext.outputGrid = imageGrid;
 
     createSeis3dFfts(toolContext,input);
+
     //Initialize Extrapolator
     Extrapolator extrapolator = new Extrapolator(shot,rcvr);
     //Initialize Imaging Condition
@@ -266,6 +268,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
         output.getDistributedArray());
 
     extrapolator.transformFromTimeToFrequency();
+    
+    //This has to be after the time transform.
     ISourceVolume srcVol = new SourceVolume(gridFromHeaders, shot);
     shot = srcVol.getShot();
 
@@ -421,6 +425,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertNotNull("Input Shape is null",inputShape);
     Assert.assertNotNull("Pad is null",pad);
     rcvr = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
+    //MigrationFFT3D rcvr2 = new MigrationFFT3D(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
+    //int[] testShape = rcvr2.getShape();
+    //Assert.assertArrayEquals("Returned shape does not equal input shape",
+    //    inputShape,testShape);
     shot = new SeisFft3dNew(pc,inputShape,pad,DEFAULT_FFT_ORIENTATION);
 
     //copy the receiver data into the rcvr object
