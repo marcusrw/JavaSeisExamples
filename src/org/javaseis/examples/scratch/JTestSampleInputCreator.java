@@ -17,115 +17,116 @@ import beta.javaseis.parallel.UniprocessorContext;
 
 public class JTestSampleInputCreator {
 
-	private IParallelContext pc;
-	private ParameterService parms;
-	private ToolContext toolContext;
-	private ISeismicVolume seismicInput;
-	private IDistributedIOService ipio = null;
-	private GridDefinition globalGrid;
-	private ICheckGrids checkGrid;
+  private IParallelContext pc;
+  private ParameterService parms;
+  private ToolContext toolContext;
+  private ISeismicVolume seismicInput;
+  private IDistributedIOService ipio = null;
+  private GridDefinition globalGrid;
+  private ICheckGrids checkGrid;
 
-	public JTestSampleInputCreator(boolean loop) {
-		pc = new UniprocessorContext();
+  public JTestSampleInputCreator(boolean loop) {
+    pc = new UniprocessorContext();
 
-		// Specify which data to load
-		String inputFileName = "segshotno1.js";
-		try {
-			// Use the FindTestData to populate your ParameterService with
-			// IO info
-			parms = new FindTestData(inputFileName).getParameterService();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+    // Specify which data to load
+    String inputFileName = "segshotno1.js";
+    try {
+      // Use the FindTestData to populate your ParameterService with
+      // IO info
+      parms = new FindTestData(inputFileName).getParameterService();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
 
-		// Push that ParameterService into a toolContext and add the
-		// ParallelContext
-		toolContext = new ToolContext(parms);
-		toolContext.setParallelContext(pc);
+    // Push that ParameterService into a toolContext and add the
+    // ParallelContext
+    toolContext = new ToolContext(parms);
+    toolContext.setParallelContext(pc);
 
-		// start the file system IO service on the folder that FindTestData
-		// found
-		try {
-			ipio = new FileSystemIOService(pc, toolContext.getParameter(ToolContext.INPUT_FILE_SYSTEM));
-		} catch (SeisException e) {
-			e.printStackTrace();
-		}
+    // start the file system IO service on the folder that FindTestData
+    // found
+    try {
+      ipio = new FileSystemIOService(pc, toolContext.getParameter(ToolContext.INPUT_FILE_SYSTEM));
+    } catch (SeisException e) {
+      e.printStackTrace();
+    }
 
-		// Open your chosen file for reading
-		try {
-			ipio.open(toolContext.getParameter(ToolContext.INPUT_FILE_PATH));
-		} catch (SeisException e) {
-			e.printStackTrace();
-		}
+    // Open your chosen file for reading
+    try {
+      ipio.open(toolContext.getParameter(ToolContext.INPUT_FILE_PATH));
+    } catch (SeisException e) {
+      e.printStackTrace();
+    }
 
-		// Get the global grid definition
-		globalGrid = ipio.getGridDefinition();
+    // Get the global grid definition
+    globalGrid = ipio.getGridDefinition();
 
-		// Now you have enough to make a SeismicVolume
-		ISeismicVolume inputVolume = new SeismicVolume(pc, globalGrid);
-		seismicInput = inputVolume;
+    // Now you have enough to make a SeismicVolume
+    ISeismicVolume inputVolume = new SeismicVolume(pc, globalGrid);
+    seismicInput = inputVolume;
 
-		// match the IO's DA with the Volume's DA
-		ipio.setDistributedArray(inputVolume.getDistributedArray());
+    // match the IO's DA with the Volume's DA
+    ipio.setDistributedArray(inputVolume.getDistributedArray());
 
-		if (loop) {
-			while (ipio.hasNext()) {
-				ipio.next();
-				inputVolume.setVolumePosition(ipio.getFilePosition());
-				try {
-					ipio.read();
-				} catch (SeisException e) {
-					e.printStackTrace();
-				}
-
-				// and do something to it
-				// ie, view it
-				// DistributedArray da = inputVolume.getDistributedArray();
-				// DistributedArrayMosaicPlot.showAsModalDialog(da, "Is it
-				// loading?");
-
-				// or call CheckGrids on it
-				// this method needs a velocity model parameter
-				String vModelFileName = "segsaltmodel.js";
-				parms.setParameter("vModelFilePath", vModelFileName);
-				try {
-          checkGrid = new CheckGrids(inputVolume, toolContext);
-        } catch (InstantiationException e) {
-          // TODO Auto-generated catch block
+    if (loop) {
+      while (ipio.hasNext()) {
+        ipio.next();
+        inputVolume.setVolumePosition(ipio.getFilePosition());
+        try {
+          ipio.read();
+        } catch (SeisException e) {
           e.printStackTrace();
         }
-				// System.out.println(Arrays.toString(checkGrid.getSourceXYZ()));
 
-			}
-		}
-	}
+        // and do something to it
+        // ie, view it
+        // DistributedArray da = inputVolume.getDistributedArray();
+        // DistributedArrayMosaicPlot.showAsModalDialog(da, "Is it
+        // loading?");
 
-	public IParallelContext getPc() {
-		return pc;
-	}
+        // or call CheckGrids on it
+        // this method needs a velocity model parameter
+        String vModelFileName = "segsaltmodel.js";
+        parms.setParameter("vModelFilePath", vModelFileName);
+        try {
+          checkGrid = new CheckGrids(inputVolume, toolContext);
+        } catch (NullPointerException e) {
+          System.out.println("It's possible that the current input has\n"
+              + "no associated trace header file.");
+          e.printStackTrace();
+        }
+        // System.out.println(Arrays.toString(checkGrid.getSourceXYZ()));
 
-	public ParameterService getParms() {
-		return parms;
-	}
+      }
+    }
+  }
 
-	public ToolContext getToolContext() {
-		return toolContext;
-	}
+  public IParallelContext getPc() {
+    return pc;
+  }
 
-	public ISeismicVolume getSeismicInput() {
-		return seismicInput;
-	}
+  public ParameterService getParms() {
+    return parms;
+  }
 
-	public IDistributedIOService getIpio() {
-		return ipio;
-	}
+  public ToolContext getToolContext() {
+    return toolContext;
+  }
 
-	public GridDefinition getGlobalGrid() {
-		return globalGrid;
-	}
+  public ISeismicVolume getSeismicInput() {
+    return seismicInput;
+  }
 
-	public ICheckGrids getCheckGrid() {
-		return checkGrid;
-	}
-	
+  public IDistributedIOService getIpio() {
+    return ipio;
+  }
+
+  public GridDefinition getGlobalGrid() {
+    return globalGrid;
+  }
+
+  public ICheckGrids getCheckGrid() {
+    return checkGrid;
+  }
+
 }
