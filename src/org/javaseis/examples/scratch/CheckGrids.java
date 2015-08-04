@@ -58,14 +58,12 @@ public class CheckGrids implements ICheckGrids {
 
     Seisio sio;
     try {
+      //TODO handle these exceptions better.
       sio = new Seisio(inputFilePath);
       sio.open("r");
       sio.usesProperties(true);
       GridDefinition grid = sio.getGridDefinition();
-      // TODO obvious logical failure here
-      int xdim = Yindex;
-      int ydim = Xindex;
-      BinGrid bingrid = new BinGrid(grid, xdim, ydim);
+      BinGrid bingrid = new BinGrid(grid, Xindex, Yindex);
       Assert.assertNotNull(bingrid);
       String[] coordprops = new String[] { "SOU_XD", "SOU_YD", "SOU_ELEV", "REC_XD", "REC_YD", "REC_ELEV" };
       // The JSCS source/javadoc should explain that ORDER MATTERS HERE.
