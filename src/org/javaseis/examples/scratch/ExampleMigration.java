@@ -90,6 +90,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //redundant, until we figure out the design of the toolContext
     toolContext.outputGrid = imageGrid;
     toolContext.putFlowGlobal(ToolContext.OUTPUT_GRID,imageGrid);
+    
+    VolumeEdgeIO vEdgeIO = new VolumeEdgeIO(pc, toolContext);
+    vEdgeIO.write();
   }
 
   private boolean debugIsOn(ParameterService parms) {
