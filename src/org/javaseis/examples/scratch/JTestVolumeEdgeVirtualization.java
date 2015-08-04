@@ -59,12 +59,7 @@ public class JTestVolumeEdgeVirtualization {
       // or call CheckGrids on it
       String vModelFileName = "segsaltmodel.js";
       parms.setParameter("vModelFilePath", vModelFileName);
-      try {
-        checkGrid = new CheckGrids(seismicInput, toolContext);
-      } catch (InstantiationException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+      checkGrid = new CheckGrids(seismicInput, toolContext);
       // System.out.println(Arrays.toString(checkGrid.getSourceXYZ()));
 
       printVolumeEdges(checkGrid, seismicInput);
