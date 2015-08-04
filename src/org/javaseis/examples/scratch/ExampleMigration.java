@@ -241,8 +241,11 @@ public class ExampleMigration extends StandAloneVolumeTool {
     ICheckGrids gridFromHeaders;
     try{
       gridFromHeaders = new CheckGrids(input, toolContext);
-    } catch (InstantiationException e){
+    } catch (NullPointerException e){
       LOGGER.info(e.getMessage());
+      LOGGER.info("It's possible that the input dataset has no associated,\n"
+          + "trace header file, so that trying to open the coordinate\n"
+          + "service failed.");
       gridFromHeaders = new ManualGrid(input, toolContext); 
     }
 
@@ -271,6 +274,21 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //  DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
     //      "Raw source signature");
     //}
+
+    if (distributedArrayIsEmpty(output.getDistributedArray())) {
+      //Should only be true when we're on the first volume, until the tool
+      //is fixed.
+      System.out.println(Arrays.toString(input.getVolumePosition()));
+      System.out.println(Arrays.toString(new int[input.getGlobalGrid().getNumDimensions()]));
+      if (!Arrays.equals(input.getVolumePosition(),
+          new int[input.getGlobalGrid().getNumDimensions()])) {
+
+        throw new IllegalArgumentException("The distributed array is"
+            + " already empty, so the next step is a waste of time.");
+      } else {
+        LOGGER.config("First volume output is empty, as expected.");
+      }
+    }    
 
     output.getDistributedArray().zeroCompletely();
     DistributedArray vModelWindowed =
@@ -419,6 +437,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     shot.setTXYSampleRates(sampleRates);
   }
 
+  //Currently superfluous check that will start throwing an exception when
+  //a better way of removing the output data between volumes is implemented.
+  //To remind you to remove the slow emptying of the DA.
   private boolean distributedArrayIsEmpty(DistributedArray da) {
     int[] position = new int[da.getShape().length];
     int direction = 1; //forward
@@ -431,7 +452,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       da.getSample(buffer, position);
       for (float element : buffer) {
         if (element != 0) {
-          System.out.println("DA is not empty as position: "
+          System.out.println("DA is not empty at position: "
               + Arrays.toString(position));
           return false;
         }
