@@ -252,12 +252,7 @@ public class VolumeEdgeIO {
 				e.printStackTrace();
 			}
 
-			try {
-				checkGrid = new CheckGrids(seismicInput, toolContext);
-			} catch (InstantiationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			checkGrid = new CheckGrids(seismicInput, toolContext);
 
 			try {
 				vff = new VelocityModelFromFile(toolContext);
