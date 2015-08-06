@@ -3,6 +3,7 @@ package org.javaseis.examples.scratch;
 import java.util.logging.Logger;
 
 import org.javaseis.util.IntervalTimer;
+import org.javaseis.util.SeisException;
 
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
@@ -87,9 +88,9 @@ public class PhaseShiftExtrapolator {
 
         //TODO use complex math methods instead of doing it manually
         sampleOut[0] = (float) (sampleIn[0]*Math.cos(direction*exponent)
-            - sampleIn[1]*Math.sin(exponent));
+            - sampleIn[1]*Math.sin(direction*exponent));
         sampleOut[1] = (float) (sampleIn[1]*Math.cos(direction*exponent)
-            + sampleIn[0]*Math.sin(exponent));
+            + sampleIn[0]*Math.sin(direction*exponent));
 
       } else {
         //evanescent region
@@ -133,4 +134,18 @@ public class PhaseShiftExtrapolator {
   public double getExtrapolationTime() {
     return extrapTime.total();
   }
+
+  //This should be an enum in the FFT object
+  public String getDomain() {
+    if (wavefield.isTimeTransformed() && wavefield.isSpaceTransformed())
+      return "XYF";
+    if (!wavefield.isTimeTransformed() && wavefield.isSpaceTransformed())
+      return "XYT";
+    if (wavefield.isTimeTransformed() && !wavefield.isSpaceTransformed())
+      return "FXY";
+    if (!wavefield.isTimeTransformed() && !wavefield.isSpaceTransformed())
+      return "TXY";
+    throw new NullPointerException("This shouldn't happen");
+  }
+
 }
