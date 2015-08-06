@@ -130,6 +130,10 @@ public class SourceVolume implements ISourceVolume {
   public SeisFft3dNew getShot() {
     return shot;
   }
+  
+  public DistributedArray getShotDA() {
+    return shot.getArray();
+  }
 
   /*
    * Returns the DistributedArray of the shot
