@@ -10,10 +10,12 @@ import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 
-import org.javaseis.examples.scratch.PhaseShiftFFT3D;
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
+import org.javaseis.imaging.ImagingCondition;
+import org.javaseis.imaging.PhaseShiftExtrapolator;
+import org.javaseis.imaging.PhaseShiftFFT3D;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 
+import org.javaseis.imaging.PhaseShiftFFT3D;
 import org.junit.Test;
 
 import beta.javaseis.distributed.DistributedArray;

@@ -1,5 +1,7 @@
 package org.javaseis.examples.scratch;
 
+import org.javaseis.imaging.PhaseShiftFFT3D;
+
 import beta.javaseis.distributed.DistributedArray;
 
 public interface ISourceVolume {

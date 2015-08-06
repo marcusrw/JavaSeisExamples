@@ -2,6 +2,7 @@ package org.javaseis.examples.scratch;
 
 import java.util.Arrays;
 
+import org.javaseis.imaging.PhaseShiftFFT3D;
 import org.junit.Assert;
 import org.junit.Test;
 

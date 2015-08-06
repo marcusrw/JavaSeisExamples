@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.imaging;
 
 import java.util.Arrays;
 import java.util.logging.Logger;
