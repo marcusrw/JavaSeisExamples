@@ -4,12 +4,12 @@ import beta.javaseis.distributed.DistributedArray;
 
 public class SourceVolume implements ISourceVolume {
 
-  SeisFft3dNew shot;
+  PhaseShiftFFT3D shot;
   double[] physicalSourceXYZ;
   float[] arraySourceXYZ;
   int[] AXIS_ORDER;
 
-  public SourceVolume(ICheckGrids CheckedGrid, SeisFft3dNew shot) {
+  public SourceVolume(ICheckGrids CheckedGrid, PhaseShiftFFT3D shot) {
     // Get the physical source
     this.physicalSourceXYZ = CheckedGrid.getSourceXYZ();
 
@@ -27,7 +27,7 @@ public class SourceVolume implements ISourceVolume {
 
   }
 
-  public SourceVolume(ICheckGrids CheckedGrid, SeisFft3dNew shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
+  public SourceVolume(ICheckGrids CheckedGrid, PhaseShiftFFT3D shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
     // Get the physical source
     this.physicalSourceXYZ = physicalSourceXYZ;
 
@@ -44,7 +44,7 @@ public class SourceVolume implements ISourceVolume {
 
   }
 
-  private SeisFft3dNew checkShotIsInFXY(SeisFft3dNew shot) {
+  private PhaseShiftFFT3D checkShotIsInFXY(PhaseShiftFFT3D shot) {
     if (!shot.isTimeTransformed()) {
       shot.forwardTemporal();
       return shot;
@@ -112,7 +112,7 @@ public class SourceVolume implements ISourceVolume {
     return (float) Math.sqrt(dx2 + dy2);
   }
 
-  private void putWhiteSpectrum(SeisFft3dNew source, int sourceX, int sourceY, float amplitude) {
+  private void putWhiteSpectrum(PhaseShiftFFT3D source, int sourceX, int sourceY, float amplitude) {
 
     int[] position = new int[] { 0, sourceX, sourceY };
     int[] volumeShape = source.getArray().getShape();
@@ -127,7 +127,7 @@ public class SourceVolume implements ISourceVolume {
   /*
    * Returns the SeisFft3dNew Object (shot)
    */
-  public SeisFft3dNew getShot() {
+  public PhaseShiftFFT3D getShot() {
     return shot;
   }
   

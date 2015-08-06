@@ -17,7 +17,7 @@ import beta.javaseis.fft.SeisFft;
  * @author Chuck Mosher & Marcus Wilson for JavaSeis.org
  * 
  */
-public class SeisFft3dNew {
+public class PhaseShiftFFT3D {
 
   private final IFFT       fft1, fft2, fft3;
 
@@ -47,7 +47,7 @@ public class SeisFft3dNew {
    * @param len unpadded actual data length for each axis
    * @param a pre-existing DistributedArray
    */
-  public SeisFft3dNew(int[] len, DistributedArray a) {
+  public PhaseShiftFFT3D(int[] len, DistributedArray a) {
     this(a.getParallelContext(), len, new float[] { 0.0f, 0.0f, 0.0f },
         new int[] { -1, 1, 1 }, a);
   }
@@ -58,7 +58,7 @@ public class SeisFft3dNew {
    * 
    * @param a pre-existing DistributedArray
    */
-  public SeisFft3dNew(DistributedArray a) {
+  public PhaseShiftFFT3D(DistributedArray a) {
     this(a.getParallelContext(), a.getShape(),
         new float[] { 0.0f, 0.0f, 0.0f }, new int[] { -1, 1, 1 }, a);
   }
@@ -70,7 +70,7 @@ public class SeisFft3dNew {
    * @param pad factor in percent for each axis
    * @param a pre-existing DistributedArray
    */
-  public SeisFft3dNew(int[] len, float[] pad, DistributedArray a) {
+  public PhaseShiftFFT3D(int[] len, float[] pad, DistributedArray a) {
     this(a.getParallelContext(), len, pad, new int[] { -1, 1, 1 }, a);
   }
 
@@ -82,7 +82,7 @@ public class SeisFft3dNew {
    * @param isign exponent signs to use for forward transforms for each axis
    * @param a pre-existing DistributedArray
    */
-  public SeisFft3dNew(int[] len, float[] pad, int[] isign, DistributedArray a) {
+  public PhaseShiftFFT3D(int[] len, float[] pad, int[] isign, DistributedArray a) {
     this(a.getParallelContext(), len, pad, isign, a);
   }
 
@@ -93,7 +93,7 @@ public class SeisFft3dNew {
    * @param len unpadded actual data length for each axis
    * @param pad transform padding factor in percent for each axis
    */
-  public SeisFft3dNew(IParallelContext pc, int[] len, float[] pad) {
+  public PhaseShiftFFT3D(IParallelContext pc, int[] len, float[] pad) {
     this(pc, len, pad, new int[] { -1, 1, 1 }, null);
   }
 
@@ -105,11 +105,11 @@ public class SeisFft3dNew {
    * @param pad transform padding factor in percent for each axis
    * @param isign exponent signs to use for forward transforms for each axis
    */
-  public SeisFft3dNew(IParallelContext pc, int[] len, float[] pad, int[] isign) {
+  public PhaseShiftFFT3D(IParallelContext pc, int[] len, float[] pad, int[] isign) {
     this(pc, len, pad, isign, null);
   }
 
-  public SeisFft3dNew(SeisFft3dNew cloneMe) {
+  public PhaseShiftFFT3D(PhaseShiftFFT3D cloneMe) {
     this(cloneMe.getArray().getParallelContext(),
         cloneMe.getShape(),
         cloneMe.getPad(),
@@ -132,7 +132,7 @@ public class SeisFft3dNew {
    * @param isign exponent signs to use for forward transforms for each axis
    * @param a pre-existing or constructor will instantiate if a == null
    */
-  public SeisFft3dNew(IParallelContext pc, int[] len, float[] pad, int[] isign,
+  public PhaseShiftFFT3D(IParallelContext pc, int[] len, float[] pad, int[] isign,
       DistributedArray a) {
 
     // Check that input arrays have a length of at least 3
@@ -212,7 +212,7 @@ public class SeisFft3dNew {
    *          axis
    * @param KyKxF distributed array
    */
-  public SeisFft3dNew(DistributedArray KyKxF, int[] isign) {
+  public PhaseShiftFFT3D(DistributedArray KyKxF, int[] isign) {
 
     // Check that input array has a length of at least 3
     assert isign.length > 2;

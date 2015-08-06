@@ -52,7 +52,7 @@ public class JTestSeisFft3dNewExecutor {
         val = r.nextFloat();
         a.putSample(val, position);
       }
-      SeisFft3dNew f3d = new SeisFft3dNew(pc, lengths, pad);
+      PhaseShiftFFT3D f3d = new PhaseShiftFFT3D(pc, lengths, pad);
       DistributedArray b = f3d.getArray();
       b.setShape(lengths);
       b.copy(a);

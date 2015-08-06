@@ -18,9 +18,9 @@ public class JTestSepFfts {
   private float[] pad = {0,0,0};
   private final int[] TYPE = {-1,1,1};
 
-  private SeisFft3dNew control;
-  private SeisFft3dNew intermediate;
-  private SeisFft3dNew test;
+  private PhaseShiftFFT3D control;
+  private PhaseShiftFFT3D intermediate;
+  private PhaseShiftFFT3D test;
 
   @Test
   public void testRoundTripSize() {
@@ -30,10 +30,10 @@ public class JTestSepFfts {
 
     while (tSize <= MAXT) {
       inputShape = new int[] {tSize,xSize,ySize};
-      test = new SeisFft3dNew(pc,inputShape,pad,TYPE);
-      control = new SeisFft3dNew(new DistributedArray(test.getArray()));
+      test = new PhaseShiftFFT3D(pc,inputShape,pad,TYPE);
+      control = new PhaseShiftFFT3D(new DistributedArray(test.getArray()));
       test.forwardTemporal();
-      intermediate = new SeisFft3dNew(new DistributedArray(test.getArray()));
+      intermediate = new PhaseShiftFFT3D(new DistributedArray(test.getArray()));
       int[] intShape = intermediate.getShape();
       test.forwardSpatial2D();
 
@@ -69,11 +69,11 @@ public class JTestSepFfts {
 
     while (tSize <= MAXT) {
       inputShape = new int[] {tSize,xSize,ySize};
-      test = new SeisFft3dNew(pc,inputShape,pad,TYPE);
+      test = new PhaseShiftFFT3D(pc,inputShape,pad,TYPE);
       generateRandomData(test.getArray());
-      control = new SeisFft3dNew(new DistributedArray(test.getArray()));
+      control = new PhaseShiftFFT3D(new DistributedArray(test.getArray()));
       test.forwardTemporal();
-      intermediate = new SeisFft3dNew(new DistributedArray(test.getArray()));
+      intermediate = new PhaseShiftFFT3D(new DistributedArray(test.getArray()));
       test.forwardSpatial2D();
       test.inverseSpatial2D();
       float maxErrorIntermediate =

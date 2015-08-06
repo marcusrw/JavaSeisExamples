@@ -11,7 +11,7 @@ public class GreenSource implements ISourceVolume {
   }
 
   @Override
-  public SeisFft3dNew getShot() {
+  public PhaseShiftFFT3D getShot() {
     // TODO Auto-generated method stub
     return null;
   }

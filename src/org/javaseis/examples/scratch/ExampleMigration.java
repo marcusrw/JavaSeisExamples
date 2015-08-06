@@ -10,7 +10,7 @@ import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 
-import org.javaseis.examples.scratch.SeisFft3dNew;
+import org.javaseis.examples.scratch.PhaseShiftFFT3D;
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
@@ -180,8 +180,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     //createSeis3dFfts(toolContext, input);
 
-    SeisFft3dNew rcvr = createReceiverFFT(toolContext,input);
-    SeisFft3dNew shot = createSourceFFT(rcvr);
+    PhaseShiftFFT3D rcvr = createReceiverFFT(toolContext,input);
+    PhaseShiftFFT3D shot = createSourceFFT(rcvr);
 
     // Initialize Extrapolator
     //Extrapolator extrapolator = new Extrapolator(shotold, rcvrold);
@@ -340,7 +340,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return Boolean.parseBoolean(toolContext.getParameter("FIRSTVOLUME"));
   }
 
-  private void plotSeisInTime(SeisFft3dNew seisFFT,String title) {
+  private void plotSeisInTime(PhaseShiftFFT3D seisFFT,String title) {
     seisFFT.inverseTemporal();
     DistributedArrayMosaicPlot.showAsModalDialog(seisFFT.getArray(), title);
     seisFFT.forwardTemporal();
@@ -475,7 +475,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   }
   */
 
-  private SeisFft3dNew createReceiverFFT(
+  private PhaseShiftFFT3D createReceiverFFT(
       ToolContext toolContext, ISeismicVolume input) {
 
     int[] inputShape = input.getLengths();
@@ -486,7 +486,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertNotNull("ParallelContext is null", pc);
     Assert.assertNotNull("Input Shape is null", inputShape);
     Assert.assertNotNull("Pad is null", pad);
-    SeisFft3dNew rcvr = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
+    PhaseShiftFFT3D rcvr = new PhaseShiftFFT3D(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
 
     // copy the receiver data into the rcvr object
     rcvr.getArray().copy(input.getDistributedArray());
@@ -501,9 +501,9 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return rcvr;
   }
 
-  private SeisFft3dNew createSourceFFT(SeisFft3dNew receiverFFT) {
+  private PhaseShiftFFT3D createSourceFFT(PhaseShiftFFT3D receiverFFT) {
 
-    SeisFft3dNew sourceFFT = new SeisFft3dNew(receiverFFT);
+    PhaseShiftFFT3D sourceFFT = new PhaseShiftFFT3D(receiverFFT);
     sourceFFT.getArray().zeroCompletely();
     sourceFFT.setTXYSampleRates(receiverFFT.getTXYSampleRates());
     LOGGER.info("Created transformable source wavefield with sample rates: "

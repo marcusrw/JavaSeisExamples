@@ -12,7 +12,7 @@ public interface ISourceVolume {
 	/*
 	 * Returns the SeisFft3dNew Object (shot)
 	 */
-	public SeisFft3dNew getShot();
+	public PhaseShiftFFT3D getShot();
 
 	/*
 	 * Returns the DistributedArray of the shot

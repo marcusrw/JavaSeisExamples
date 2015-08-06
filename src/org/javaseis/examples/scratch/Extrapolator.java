@@ -12,13 +12,13 @@ public class Extrapolator {
   private static final Logger LOGGER = 
       Logger.getLogger(Extrapolator.class.getName());
 
-  SeisFft3dNew shot;
-  SeisFft3dNew rcvr;
+  PhaseShiftFFT3D shot;
+  PhaseShiftFFT3D rcvr;
 
   IntervalTimer extrapTime;
   IntervalTimer transformTime;
 
-  public Extrapolator(SeisFft3dNew shot,SeisFft3dNew rcvr) {
+  public Extrapolator(PhaseShiftFFT3D shot,PhaseShiftFFT3D rcvr) {
     this.rcvr = rcvr;
     this.shot = shot;
     extrapTime = new IntervalTimer();

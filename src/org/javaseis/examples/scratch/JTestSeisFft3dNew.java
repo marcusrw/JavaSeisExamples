@@ -89,7 +89,7 @@ public class JTestSeisFft3dNew {
       LOGGER.log(Level.INFO,e.getMessage(),e);
     }
 
-    SeisFft3dNew fft3d = new SeisFft3dNew(pc, len, pad);
+    PhaseShiftFFT3D fft3d = new PhaseShiftFFT3D(pc, len, pad);
     fft3d.debugPrint("BEFORE:");
     fft3d.setTXYSampleRates(sampleRates);
     fft3d.forward();
@@ -165,8 +165,8 @@ public class JTestSeisFft3dNew {
     if(VERBOSE) System.out.printf("%n***** begin test w/testType, nf, nx, ny = "
         + testType + " %d %d %d *****%n", nf, nx, ny);
 
-    SeisFft3dNew f3d0 = new SeisFft3dNew( pc, len, pad );
-    SeisFft3dNew f3d1 = new SeisFft3dNew( pc, len, pad );
+    PhaseShiftFFT3D f3d0 = new PhaseShiftFFT3D( pc, len, pad );
+    PhaseShiftFFT3D f3d1 = new PhaseShiftFFT3D( pc, len, pad );
     DistributedArray da0 = f3d0.getArray();
     DistributedArray da1 = f3d1.getArray();
 
@@ -285,13 +285,13 @@ public class JTestSeisFft3dNew {
     IParallelContext pc = new ParallelContextThread();
 
     // Get FFT lengths and create an appropriate sized DistributedArray.
-    int[] len = SeisFft3dNew.getTransformShape(
+    int[] len = PhaseShiftFFT3D.getTransformShape(
         new int[] { nf, nx, ny }, new float[] {0f,0f,0f}, pc );
     int[] type =
         new int[] { Decomposition.BLOCK, Decomposition.BLOCK, Decomposition.BLOCK };
     DistributedArray daCopy = new DistributedArray(pc, float.class, 3, 2, len, type);
     DistributedArray da = new DistributedArray(pc, float.class, 3, 2, len, type);
-    SeisFft3dNew fft3d = new SeisFft3dNew(da,new int[] {-1,1,1});
+    PhaseShiftFFT3D fft3d = new PhaseShiftFFT3D(da,new int[] {-1,1,1});
 
     // Set the shape to the transform domain
     int[] fftlen = fft3d.getFftLengths();

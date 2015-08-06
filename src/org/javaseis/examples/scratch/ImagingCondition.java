@@ -13,14 +13,14 @@ public class ImagingCondition {
   private static final Logger LOGGER = 
       Logger.getLogger(ImagingCondition.class.getName());
 
-  SeisFft3dNew shot;
-  SeisFft3dNew rcvr;
+  PhaseShiftFFT3D shot;
+  PhaseShiftFFT3D rcvr;
 
   DistributedArray imageDA;
 
   IntervalTimer imagingTime;
 
-  public ImagingCondition(SeisFft3dNew shot,SeisFft3dNew rcvr,
+  public ImagingCondition(PhaseShiftFFT3D shot,PhaseShiftFFT3D rcvr,
       DistributedArray imageDA) {
     this.shot = shot;
     this.rcvr = rcvr;
