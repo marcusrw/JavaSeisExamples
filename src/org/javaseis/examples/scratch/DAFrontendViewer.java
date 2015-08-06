@@ -8,8 +8,13 @@ import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
 
 /**
- * DistributedArray Viewer Must call - Frame, Trace, Depth Order Use setAll(For
- * Safety) Works only on 3 dimensions
+ * DistributedArray Viewer
+ * 
+ * Must call - Frame, Trace, Depth Order
+ * 
+ * Use setAll(ForSafety)
+ * 
+ * Works only on 3 dimensions
  */
 public class DAFrontendViewer {
   private DistributedArray A;
@@ -189,10 +194,16 @@ public class DAFrontendViewer {
     }
   }
 
-  public void setAll(int[][] A) {
-    setLogicalFrame(A[0][0], A[0][1]);
-    setLogicalTrace(A[1][0], A[1][1]);
-    setLogicalDepth(A[2][0], A[2][1]);
+  /**
+   * Set all the transformation parameters.
+   * 
+   * @param Array
+   *          - { {Frame}, {Trace}, {Depth} }
+   */
+  public void setAll(int[][] Array) {
+    setLogicalFrame(Array[0][0], Array[0][1]);
+    setLogicalTrace(Array[1][0], Array[1][1]);
+    setLogicalDepth(Array[2][0], Array[2][1]);
   }
 
   /**
