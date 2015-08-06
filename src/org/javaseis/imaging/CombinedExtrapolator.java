@@ -7,10 +7,10 @@ import beta.javaseis.distributed.DistributedArrayPositionIterator;
 
 import org.javaseis.util.IntervalTimer;
 
-public class Extrapolator {
+public class CombinedExtrapolator {
 
   private static final Logger LOGGER = 
-      Logger.getLogger(Extrapolator.class.getName());
+      Logger.getLogger(CombinedExtrapolator.class.getName());
 
   PhaseShiftFFT3D shot;
   PhaseShiftFFT3D rcvr;
@@ -18,7 +18,7 @@ public class Extrapolator {
   IntervalTimer extrapTime;
   IntervalTimer transformTime;
 
-  public Extrapolator(PhaseShiftFFT3D shot,PhaseShiftFFT3D rcvr) {
+  public CombinedExtrapolator(PhaseShiftFFT3D shot,PhaseShiftFFT3D rcvr) {
     this.rcvr = rcvr;
     this.shot = shot;
     extrapTime = new IntervalTimer();
