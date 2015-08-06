@@ -20,10 +20,10 @@ public class ExampleMigrationRunner {
 
   @Test
   public void test() throws FileNotFoundException {
-    //String inputFileName = "100a-rawsynthpwaves.js";
-    String inputFileName = "segshotno1.js";
+    String inputFileName = "100a-rawsynthpwaves.js";
+    //String inputFileName = "segshotno1.js";
     //String inputFileName = "seg45shot.js";
-    String outputFileName = "test.js";
+    String outputFileName = "twolayer.js";
     String vModelFileName = "segsaltmodel.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
@@ -39,7 +39,7 @@ public class ExampleMigrationRunner {
 
   private void basicParameters(String inputFileName,String vModelFileName) {
     parms.setParameter("ZMIN","0");
-    parms.setParameter("DELZ","4000");
+    parms.setParameter("ZMAX","4000");
     parms.setParameter("DELZ","20");
     parms.setParameter("PADT","20");
     parms.setParameter("PADX","5");
@@ -47,11 +47,14 @@ public class ExampleMigrationRunner {
     parms.setParameter("FMAX","6000");
     parms.setParameter("taskCount", "1");
     parms.setParameter("vModelFilePath",vModelFileName);
-    parms.setParameter("DEBUG","TRUE");
     parms.setParameter("outputFileMode","create");
 
     if (inputFileName.equals("100a-rawsynthpwaves.js")) {
       parms.setParameter("ZMAX","2000");
+      parms.setParameter("PADT","20");
+      parms.setParameter("PADX","5");
+      parms.setParameter("PADY","5");
+      parms.setParameter("FIRSTVOLUME","FALSE");
     }
   }
 }

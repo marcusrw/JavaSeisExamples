@@ -11,7 +11,6 @@ import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 
 import org.javaseis.examples.scratch.SeisFft3dNew;
-import org.javaseis.examples.scratch.MigrationFFT3D;
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridDefinition;
@@ -35,29 +34,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private static final float S_TO_MS = 1000;
   private static final int[] DEFAULT_FFT_ORIENTATION = new int[] { -1, 1, 1 };
-
-  private static final Logger LOGGER = Logger.getLogger(ExampleMigration.class
-      .getName());
-
-  int volumeCount;
-  IParallelContext pc;
-
-  // Is having rcvr and shot as member variables going to cause
-  // some sort of race condition?
-  private SeisFft3dNew rcvr, shot;
-  private long[] transformAxisLengths;
-  private DataDomain[] transformDomains;
-  private AxisDefinition[] transformAxes;
-  private GridDefinition imageGrid;
-
-  // TODO only for visual checks. Delete later.
-  private GridDefinition transformGrid;
-  private SingleVolumeDAViewer display;
-  private boolean debug;
-
-  private GridDefinition inputGrid;
-  private SeisFft3dNew rcvr2;
-  private SeisFft3dNew shot2;
+  private static final Logger LOGGER =
+      Logger.getLogger(ExampleMigration.class.getName());
 
   public ExampleMigration() {
   }
@@ -69,68 +47,54 @@ public class ExampleMigration extends StandAloneVolumeTool {
     try {
       exec(parms, new ExampleMigration());
     } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE,e.getMessage(),e);
+    }
+  }
+
+  //Figure out if the public inputGrid and outputGrid are populated
+  //and populate them if they aren't.
+  private void checkPublicGrids(ToolContext toolContext) {
+    GridDefinition inputGrid = toolContext.inputGrid;
+    if (inputGrid == null) {
+      LOGGER.severe("The public field toolContext.inputGrid is null, "
+          + "doesn't get shared between parallel tasks, and is a huge "
+          + "violation of object encapsulation.  You shouldn't use it.");
+      inputGrid = (GridDefinition) toolContext
+          .getFlowGlobal(ToolContext.INPUT_GRID);
+      toolContext.inputGrid = inputGrid;
+    }
+    GridDefinition outputGrid = toolContext.outputGrid;
+    if (outputGrid == null) {
+      LOGGER.severe("The public field toolContext.outputGrid is null, "
+          + "doesn't get shared between parallel tasks, and is a huge "
+          + "violation of object encapsulation.  You shouldn't use it.");
+      outputGrid = (GridDefinition) toolContext
+          .getFlowGlobal(ToolContext.OUTPUT_GRID);
+      toolContext.outputGrid = outputGrid;
     }
   }
 
   @Override
   public void serialInit(ToolContext toolContext) {
-    ParameterService parms = toolContext.parms;
-    debug = debugIsOn(parms);
+    checkPublicGrids(toolContext);
     // TODO this method should check that toolContext contains enough
     // information to do a basic extrapolation.
     // Run main for more information. (ex: inputGrid returns null)
-    GridDefinition inputGrid = toolContext.inputGrid;
-    if (inputGrid == null) {
-      inputGrid = (GridDefinition) toolContext
-          .getFlowGlobal(ToolContext.INPUT_GRID);
-      toolContext.inputGrid = inputGrid;
-    }
 
-    imageGrid = computeImageGrid(toolContext.inputGrid, toolContext.parms);
-    transformGrid = computeTransformAxes(toolContext);
     // redundant, until we figure out the design of the toolContext
-    toolContext.outputGrid = imageGrid;
+    GridDefinition imageGrid = computeImageGrid(toolContext);
+    toolContext.outputGrid = imageGrid;  //This one doesn't get saved.
     toolContext.putFlowGlobal(ToolContext.OUTPUT_GRID, imageGrid);
-
     saveVolumeEdgesIfTraceHeadersExist(toolContext);
   }
 
-  private void saveVolumeEdgesIfTraceHeadersExist(ToolContext toolContext) {
-    try {
-      VolumeEdgeIO vEdgeIO = new VolumeEdgeIO(pc, toolContext);
-      vEdgeIO.write();
-    } catch (NullPointerException e) {
-      LOGGER.info("Input javaseis file has no associated trace header file.\n"
-          + "No grid orientation information will be saved.");
-    }
-  }
+  private GridDefinition computeImageGrid(ToolContext toolContext) {
 
-  private boolean debugIsOn(ParameterService parms) {
-    debug = Boolean.parseBoolean(parms.getParameter("DEBUG", "FALSE"));
-    if (debug) {
-      LOGGER.info("RUNNING IN DEBUG MODE");
-    }
-    return debug;
-  }
-
-  // Returns Depth Axis Length
-  // DeltaZ - represents the iteration interval
-  // ZMin - represents the min depth
-  // ZMax - represents the max depth
-  public long computeDepthAxis(float zMin, float deltaZ, float zMax) {
-    if (deltaZ <= 0 || (zMax - zMin) < deltaZ)
-      return 1;
-    else
-      return (long) Math.floor((zMax - zMin) / deltaZ) + 1;
-  }
-
-  private GridDefinition computeImageGrid(GridDefinition inputGrid,
-      ParameterService parms) {
+    GridDefinition inputGrid = toolContext.inputGrid;
+    ParameterService parms = toolContext.parms;
 
     AxisDefinition[] imageAxes = new AxisDefinition[inputGrid
-        .getNumDimensions()];
+                                                    .getNumDimensions()];
 
     float zmin = Float.parseFloat(parms.getParameter("ZMIN", "0"));
     float zmax = Float.parseFloat(parms.getParameter("ZMAX", "2000"));
@@ -152,138 +116,115 @@ public class ExampleMigration extends StandAloneVolumeTool {
     return new GridDefinition(imageAxes.length, imageAxes);
   }
 
-  private float[] getPad(ParameterService parms) {
-    float padT = Float.parseFloat(parms.getParameter("PADT", "10"));
-    float padX = Float.parseFloat(parms.getParameter("PADX", "10"));
-    float padY = Float.parseFloat(parms.getParameter("PADY", "10"));
-    float[] pad = new float[] { padT, padX, padY };
-    return pad;
+  // Returns Depth Axis Length
+  // DeltaZ - represents the iteration interval
+  // ZMin - represents the min depth
+  // ZMax - represents the max depth
+  public long computeDepthAxis(float zMin, float deltaZ, float zMax) {
+    if (deltaZ <= 0 || (zMax - zMin) < deltaZ)
+      return 1;
+    else
+      return (long) Math.floor((zMax - zMin) / deltaZ) + 1;
   }
 
-  private GridDefinition computeTransformAxes(ToolContext toolContext) {
-    inputGrid = toolContext.inputGrid;
-    long[] inputAxisLengths = inputGrid.getAxisLengths();
-    if (inputAxisLengths.length < 3) {
-      throw new IllegalArgumentException("Input dataset is not big "
-          + "enough for a Volumetool");
+  private void saveVolumeEdgesIfTraceHeadersExist(ToolContext toolContext) {
+    Assert.assertNotNull(toolContext.pc);
+    IParallelContext pc = toolContext.pc;
+    try {
+      VolumeEdgeIO vEdgeIO = new VolumeEdgeIO(pc, toolContext);
+      vEdgeIO.write();
+    } catch (NullPointerException e) {
+      LOGGER.info("Input javaseis file has no associated trace header file.\n"
+          + "No grid orientation information will be saved.");
     }
-    transformAxisLengths = Arrays.copyOf(inputAxisLengths,
-        inputAxisLengths.length);
-    int[] inputVolumeLengths = new int[3];
-    for (int k = 0; k < 3; k++) {
-      inputVolumeLengths[k] = (int) inputAxisLengths[k];
-    }
-    pc = toolContext.pc;
-    float[] pad = getPad(toolContext.parms);
-    Assert.assertNotNull(pc);
-    Assert.assertNotNull(inputVolumeLengths);
-    Assert.assertNotNull(pad);
-    Assert.assertNotNull(DEFAULT_FFT_ORIENTATION);
-    rcvr = new SeisFft3dNew(pc, inputVolumeLengths, pad,
-        DEFAULT_FFT_ORIENTATION);
-
-    // determine shape in KyKxF domain
-    for (int k = 0; k < 3; k++) {
-      transformAxisLengths[k] = rcvr.getFftShape()[k];
-    }
-
-    transformAxes = new AxisDefinition[inputAxisLengths.length];
-    transformDomains = findTransformDomains(inputGrid.getAxisDomains());
-    for (int k = 0; k < inputAxisLengths.length; k++) {
-      AxisDefinition inputAxis = inputGrid.getAxis(k);
-      transformAxes[k] = new AxisDefinition(inputAxis.getLabel(),
-          inputAxis.getUnits(), transformDomains[k], transformAxisLengths[k],
-          inputAxis.getLogicalOrigin(), inputAxis.getLogicalDelta(),
-          inputAxis.getPhysicalOrigin(), inputAxis.getPhysicalDelta());
-    }
-
-    return new GridDefinition(inputGrid.getNumDimensions(), transformAxes);
-  }
-
-  private DataDomain[] findTransformDomains(DataDomain[] inputAxisDomains) {
-    for (int k = 0; k < inputAxisDomains.length; k++) {
-      switch (inputAxisDomains[k].toString()) {
-      case "time":
-        inputAxisDomains[k] = new DataDomain("frequency");
-        break;
-      case "frequency":
-        inputAxisDomains[k] = new DataDomain("time");
-        break;
-      case "space":
-        inputAxisDomains[k] = new DataDomain("wavenumber");
-        break;
-      case "wavenumber":
-        inputAxisDomains[k] = new DataDomain("space");
-        break;
-      default:
-        break; // don't change anything if the domain is anything else
-      }
-    }
-    return inputAxisDomains;
   }
 
   @Override
   public void parallelInit(ToolContext toolContext) {
+    Assert.assertNotNull(toolContext.pc);
+    IParallelContext pc = toolContext.pc;
     pc = toolContext.getParallelContext();
+    //TODO These grids aren't working now
+    checkPublicGrids(toolContext);
     LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
     LOGGER.info("Input Grid Definition:\n" + toolContext.inputGrid + "\n");
     LOGGER.info("Output Grid Definition:\n" + toolContext.outputGrid + "\n");
   }
 
   @Override
-  public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
-      ISeismicVolume output) {
+  public boolean processVolume(ToolContext toolContext,
+      ISeismicVolume input,ISeismicVolume output) {
 
+    checkPublicGrids(toolContext);
+    if (processFirstVolumeOnly(toolContext) && !isFirstVolume(input))
+      return false;
+
+    //initialize timers
     IntervalTimer velocityAccessTime = new IntervalTimer();
     IntervalTimer sourceGenTime = new IntervalTimer();
     IntervalTimer singleVolumeTime = new IntervalTimer();
+
     singleVolumeTime.start();
-    LOGGER.info("[start processVolume on Volume #"
+    LOGGER.info("Processing Volume #"
         + Arrays.toString(input.getVolumePosition()));
+
+    Assert.assertNotNull(input.getGlobalGrid());
+    Assert.assertNotNull(output.getGlobalGrid());
 
     // Instantiate a checked grid which fixes any misplaced receivers
     ICheckGrids gridFromHeaders = verifyGridOriginsAndDeltas(toolContext, input);
 
-    pc = toolContext.getParallelContext();
-    // Assert.assertNotNull(toolContext.outputGrid);
-    imageGrid = computeImageGrid(toolContext.inputGrid, toolContext.parms);
-    transformGrid = computeTransformAxes(toolContext);
+    GridDefinition imageGrid = computeImageGrid(toolContext);
     toolContext.outputGrid = imageGrid;
+    Assert.assertNotNull(toolContext.outputGrid);
 
-    createSeis3dFfts(toolContext, input);
+    //createSeis3dFfts(toolContext, input);
+
+    SeisFft3dNew rcvr = createReceiverFFT(toolContext,input);
+    SeisFft3dNew shot = createSourceFFT(rcvr);
 
     // Initialize Extrapolator
-    Extrapolator extrapolator = new Extrapolator(shot, rcvr);
+    //Extrapolator extrapolator = new Extrapolator(shotold, rcvrold);
 
     // TODO Test Phase Shift Extrapolator
-    PhaseShiftExtrapolator extrapR = new PhaseShiftExtrapolator(rcvr2);
-    PhaseShiftExtrapolator extrapS = new PhaseShiftExtrapolator(shot2);
+    PhaseShiftExtrapolator extrapR = new PhaseShiftExtrapolator(rcvr);
+    PhaseShiftExtrapolator extrapS = new PhaseShiftExtrapolator(shot);
 
     // Initialize Imaging Condition
     ImagingCondition imagingCondition = new ImagingCondition(shot, rcvr,
         output.getDistributedArray());
 
-    extrapolator.transformFromTimeToFrequency();
+    //extrapolator.transformFromTimeToFrequency();
+    //ISourceVolume srcVolOld = new SourceVolume(gridFromHeaders, shotold);
+    //shotold = srcVolOld.getShot();
 
     // TODO test code
     extrapR.transformFromTimeToFrequency();
     extrapS.transformFromTimeToFrequency();
 
+    // Plot to check
+    //DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
+    //"Empty Source Array (FXY)");
+    //plotSeisInTime(shot,"Empty Source Array (TXY)");
+
     // This has to be after the time transform.
     ISourceVolume srcVol = new SourceVolume(gridFromHeaders, shot);
     shot = srcVol.getShot();
 
-    // TODO test code
-    ISourceVolume srcVol2 = new SourceVolume(gridFromHeaders, shot2);
-    shot2 = srcVol2.getShot();
-
     // Plot to check
-    // if (debugIsOn(toolContext.parms)) {
     // DistributedArrayMosaicPlot.showAsModalDialog(shot.getArray(),
-    // "Raw source signature");
-    // }
+    // "Raw source signature (FXY)");
+    // plotSeisInTime(shot,"Raw source signature (TXY)");
 
-    DistributedArray vModelWindowed = checkOutputDAIsEmpty(input, output);
+    checkOutputDAIsEmpty(input, output);
+    DistributedArray vModelWindowed = (DistributedArray) output
+        .getDistributedArray().clone();
+
+    //test different objects have different DAs
+    //Assert.assertNotEquals("Receiver wavefields share an array",
+    //    rcvr.getArray(),rcvrold.getArray());
+    //Assert.assertNotEquals("Source wavefields share an array",
+    //    shot.getArray(),shotold.getArray());
 
     // depth axis information
     double zmin = imageGrid.getAxisPhysicalOrigin(0);
@@ -309,7 +250,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       velocityAccessTime.stop();
 
       LOGGER.info("Volume #" + Arrays.toString(input.getVolumePosition()));
-      extrapolator.transformFromSpaceToWavenumber();
+      //extrapolator.transformFromSpaceToWavenumber();
 
       // TODO Test Code
       extrapR.transformFromSpaceToWavenumber();
@@ -319,12 +260,12 @@ public class ExampleMigration extends StandAloneVolumeTool {
           + "  Velocity is %5.1f", depth, velocity));
 
       // TODO test code
-      // testDAEquals(rcvr.getArray(),rcvr2.getArray());
-      // testDAEquals(shot.getArray(),shot2.getArray());
+      //testDAEquals(rcvr.getArray(),rcvrold.getArray());
+      //testDAEquals(shot.getArray(),shotold.getArray());
 
-      extrapolator.extrapolate((float) velocity, delz, zindx, fMax);
-      logTimerOutput("Double Extrapolator Time: ",
-          extrapolator.getExtrapolationTime());
+      //extrapolator.extrapolate((float) velocity, delz, zindx, fMax);
+      //logTimerOutput("Double Extrapolator Time: ",
+      //    extrapolator.getExtrapolationTime());
 
       // TODO test code
       extrapR.reverseExtrapolate((float) velocity, delz, zindx, fMax);
@@ -335,25 +276,23 @@ public class ExampleMigration extends StandAloneVolumeTool {
           extrapS.getExtrapolationTime());
 
       // TODO test code
-      // testDAEquals(rcvr.getArray(),rcvr2.getArray());
-      // testDAEquals(shot.getArray(),shot2.getArray());
+      //testDAEquals(rcvr.getArray(),rcvrold.getArray());
+      //testDAEquals(shot.getArray(),shotold.getArray());
 
       LOGGER.info("Extrapolation finished");
-      extrapolator.transformFromWavenumberToSpace();
+      //extrapolator.transformFromWavenumberToSpace();
 
       // TODO Test Code
       extrapR.transformFromWavenumberToSpace();
       extrapS.transformFromWavenumberToSpace();
 
-      /*
-       * if (debugIsOn(toolContext.parms)) { rcvr.inverseTemporal(); display =
-       * new SingleVolumeDAViewer(rcvr.getArray(),inputGrid);
-       * display.showAsModalDialog(); rcvr.forwardTemporal();
-       * 
-       * shot.inverseTemporal(); display = new
-       * SingleVolumeDAViewer(shot.getArray(),inputGrid);
-       * display.showAsModalDialog(); shot.forwardTemporal(); }
-       */
+      {
+        //TODO test code - plot to check
+        //plotSeisInTime(rcvrold,"Original Receivers - Depth: " + depth);
+        //plotSeisInTime(rcvr,"New Receivers - Depth: " + depth);
+        //plotSeisInTime(shotold,"Original Source - Depth: " + depth);
+        //plotSeisInTime(shot,"New Source - Depth: " + depth);
+      }
 
       LOGGER.info("Applying imaging condition");
       imagingCondition.imagingCondition(output.getDistributedArray(), zindx,
@@ -373,29 +312,38 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertTrue((boolean) toolContext
         .getFlowGlobal(ToolContext.HAS_OUTPUT));
 
-    if (debugIsOn(toolContext.parms)) {
-
-      // DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
-      // "Final Image.");
-      // DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
-      // "Velocity Model.");
+    {
+      //plot to check
+      DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
+          "Final Image.");
+      DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
+          "Velocity Model.");
 
       // example usage of Front End Viewer
-      DAFrontendViewer A = new DAFrontendViewer(output.getDistributedArray());
+      //DAFrontendViewer A = new DAFrontendViewer(output.getDistributedArray());
       // A.setLogicalTraces(75, 125);
       // A.setLogicalDepth(0, 250);
       // A.setLogicalFrame(75, 125);
-      A.show("Final Image.");
-
+      //A.show("Final Image.");
     }
 
     logTimerOutput("Velocity Access Time", velocityAccessTime.total());
     logTimerOutput("Source Generation Time", sourceGenTime.total());
-    logTimerOutput("Transform Time", extrapolator.getTransformTime());
-    logTimerOutput("Extrapolation Time", extrapolator.getExtrapolationTime());
+    //logTimerOutput("Transform Time", extrapolator.getTransformTime());
+    //logTimerOutput("Extrapolation Time", extrapolator.getExtrapolationTime());
     logTimerOutput("Imaging Time", imagingCondition.getImagingTime());
 
     return true;
+  }
+
+  private boolean processFirstVolumeOnly(ToolContext toolContext) {
+    return Boolean.parseBoolean(toolContext.getParameter("FIRSTVOLUME"));
+  }
+
+  private void plotSeisInTime(SeisFft3dNew seisFFT,String title) {
+    seisFFT.inverseTemporal();
+    DistributedArrayMosaicPlot.showAsModalDialog(seisFFT.getArray(), title);
+    seisFFT.forwardTemporal();
   }
 
   private void testDAEquals(DistributedArray a, DistributedArray b) {
@@ -421,31 +369,38 @@ public class ExampleMigration extends StandAloneVolumeTool {
     LOGGER.info("Distributed Arrays match to error " + floateps);
   }
 
-  private DistributedArray checkOutputDAIsEmpty(ISeismicVolume input,
+  private void checkOutputDAIsEmpty(ISeismicVolume input,
       ISeismicVolume output) {
     if (distributedArrayIsEmpty(output.getDistributedArray())) {
       // Should only be true when we're on the first volume, until the
       // tool
       // is fixed.
-      if (!Arrays.equals(input.getVolumePosition(), new int[input
-          .getGlobalGrid().getNumDimensions()])) {
+      if (!isFirstVolume(input)) {
+        LOGGER.info("Is first volume: " 
+            + isFirstVolume(input));
+        LOGGER.info("Current Volume: " 
+            + Arrays.toString(input.getVolumePosition()));
+        LOGGER.info("First Volume: " 
+            + Arrays.toString(new int[input.getVolumePosition().length]));    
 
         throw new IllegalArgumentException("The distributed array is"
             + " already empty, so the next step is a waste of time.");
       } else {
-        LOGGER.config("First volume output is empty, as expected.");
+        LOGGER.info("First volume output is empty, as expected.");
       }
     }
 
     output.getDistributedArray().zeroCompletely();
-    DistributedArray vModelWindowed = (DistributedArray) output
-        .getDistributedArray().clone();
 
     // Make sure the output DA is empty.
     if (!distributedArrayIsEmpty(output.getDistributedArray())) {
       throw new IllegalArgumentException("Why is the output not empty?");
     }
-    return vModelWindowed;
+  }
+
+  private boolean isFirstVolume(ISeismicVolume input) {
+    return Arrays.equals(input.getVolumePosition(),
+        new int[input.getVolumePosition().length]);
   }
 
   private ICheckGrids verifyGridOriginsAndDeltas(ToolContext toolContext,
@@ -495,19 +450,43 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
   }
 
+  /*
   private void createSeis3dFfts(ToolContext toolContext, ISeismicVolume input) {
     int[] inputShape = input.getLengths();
-    float[] pad = getPad(toolContext.parms);
+    float[] pad = getPad(toolContext);
+    Assert.assertNotNull(toolContext.pc);
+    IParallelContext pc = toolContext.pc;
+
     Assert.assertNotNull("ParallelContext is null", pc);
     Assert.assertNotNull("Input Shape is null", inputShape);
     Assert.assertNotNull("Pad is null", pad);
-    rcvr = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
-    shot = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
+    //rcvrold = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
+    //shotold = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
 
-    // TODO test code
-    rcvr2 = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
-    shot2 = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
-    rcvr2.getArray().copy(input.getDistributedArray());
+    // copy the receiver data into the rcvr object
+    //rcvrold.getArray().copy(input.getDistributedArray());
+
+    // Specify the sample rates
+    double[] sampleRates = computeVolumeSampleRates(input,
+        toolContext.inputGrid);
+
+    //rcvrold.setTXYSampleRates(sampleRates);
+    //shotold.setTXYSampleRates(sampleRates);
+  }
+  */
+
+  private SeisFft3dNew createReceiverFFT(
+      ToolContext toolContext, ISeismicVolume input) {
+
+    int[] inputShape = input.getLengths();
+    float[] pad = getPad(toolContext);
+    Assert.assertNotNull(toolContext.pc);
+    IParallelContext pc = toolContext.pc;
+
+    Assert.assertNotNull("ParallelContext is null", pc);
+    Assert.assertNotNull("Input Shape is null", inputShape);
+    Assert.assertNotNull("Pad is null", pad);
+    SeisFft3dNew rcvr = new SeisFft3dNew(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
 
     // copy the receiver data into the rcvr object
     rcvr.getArray().copy(input.getDistributedArray());
@@ -517,11 +496,30 @@ public class ExampleMigration extends StandAloneVolumeTool {
         toolContext.inputGrid);
 
     rcvr.setTXYSampleRates(sampleRates);
-    shot.setTXYSampleRates(sampleRates);
+    LOGGER.info("Created transformable receiver wavefield with sample rates: "
+        + Arrays.toString(rcvr.getTXYSampleRates()));
+    return rcvr;
+  }
 
-    // TODO test code
-    rcvr2.setTXYSampleRates(sampleRates);
-    shot2.setTXYSampleRates(sampleRates);
+  private SeisFft3dNew createSourceFFT(SeisFft3dNew receiverFFT) {
+
+    SeisFft3dNew sourceFFT = new SeisFft3dNew(receiverFFT);
+    sourceFFT.getArray().zeroCompletely();
+    sourceFFT.setTXYSampleRates(receiverFFT.getTXYSampleRates());
+    LOGGER.info("Created transformable source wavefield with sample rates: "
+        + Arrays.toString(sourceFFT.getTXYSampleRates()));
+
+    return sourceFFT;
+  }
+
+  private float[] getPad(ToolContext toolContext) {
+    ParameterService parms = toolContext.parms;
+    float padT = Float.parseFloat(parms.getParameter("PADT", "10"));
+    float padX = Float.parseFloat(parms.getParameter("PADX", "10"));
+    float padY = Float.parseFloat(parms.getParameter("PADY", "10"));
+    float[] pad = new float[] { padT, padX, padY };
+    LOGGER.info("Pad: " + Arrays.toString(pad));
+    return pad;
   }
 
   // Currently superfluous check that will start throwing an exception when
