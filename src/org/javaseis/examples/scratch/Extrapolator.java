@@ -124,8 +124,6 @@ public class Extrapolator {
     transformTime.stop();
   }
 
-
-
   public double getTransformTime() {
     return transformTime.total();
   }
