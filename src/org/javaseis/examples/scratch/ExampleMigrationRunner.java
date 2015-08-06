@@ -1,11 +1,9 @@
 package org.javaseis.examples.scratch;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.util.SeisException;
