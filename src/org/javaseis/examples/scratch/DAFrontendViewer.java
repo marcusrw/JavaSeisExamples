@@ -8,7 +8,8 @@ import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
 
 /**
- * Works only on 3 dimensions
+ * DistributedArray Viewer Must call - Frame, Trace, Depth Order Use setAll(For
+ * Safety) Works only on 3 dimensions
  */
 public class DAFrontendViewer {
   private DistributedArray A;
@@ -25,27 +26,26 @@ public class DAFrontendViewer {
     this.A = A;
     this.B = (DistributedArray) A.clone();
 
-    //Set trivial zoom
+    // Set trivial zoom
     zoomBegin = new int[A.getShape().length];
     zoomEnd = A.getShape();
   }
 
-  //Figure out the position in the outer array corresponding to the position
-  //in the inner array.
+  // Figure out the position in the outer array corresponding to the position
+  // in the inner array.
   private int[] outerPosition(int[] innerPosition) {
     int[] outerPosition = innerPosition.clone();
-    for (int k = 0 ; k < innerPosition.length ; k++) {
+    for (int k = 0; k < innerPosition.length; k++) {
       outerPosition[k] = zoomBegin[k] + innerPosition[k];
       if (outerPosition[k] >= A.getShape()[k]) {
-        throw new ArrayIndexOutOfBoundsException("Computed outer position "
-            + "exceeds outer array size");
+        throw new ArrayIndexOutOfBoundsException("Computed outer position " + "exceeds outer array size");
       }
     }
     return outerPosition;
   }
 
-  public void setLogicalSize(int[] sIndices , int[] eIndices) {
-    //check that s and e are both in range
+  public void setLogicalSize(int[] sIndices, int[] eIndices) {
+    // check that s and e are both in range
 
     zoomBegin = sIndices;
     zoomEnd = eIndices;
@@ -54,7 +54,7 @@ public class DAFrontendViewer {
 
   private void populateZoomedArray() {
     int[] innerArrayShape = new int[zoomEnd.length];
-    for (int k = 0 ; k < innerArrayShape.length ; k++) {
+    for (int k = 0; k < innerArrayShape.length; k++) {
       innerArrayShape[k] = zoomBegin[k] - zoomEnd[k] + 1;
     }
 
@@ -63,21 +63,23 @@ public class DAFrontendViewer {
     int sampleScope = 0;
     int[] innerPosition = new int[B.getShape().length];
     float[] sample = new float[B.getElementCount()];
-    DistributedArrayPositionIterator itrInputArr
-    = new DistributedArrayPositionIterator(B, innerPosition,
+    DistributedArrayPositionIterator itrInputArr = new DistributedArrayPositionIterator(B, innerPosition,
         DistributedArrayPositionIterator.FORWARD, sampleScope);
 
     while (itrInputArr.hasNext()) {
       innerPosition = itrInputArr.next();
-      A.getSample(sample,outerPosition(innerPosition));
-      B.putSample(sample,innerPosition);
+      A.getSample(sample, outerPosition(innerPosition));
+      B.putSample(sample, innerPosition);
     }
   }
 
   /**
    * Select part of the image on logical depth
-   * @param sDepthIndex - Starting Depth Index Position
-   * @param eDepthIndex - Ending Depth Index Position
+   * 
+   * @param sDepthIndex
+   *          - Starting Depth Index Position
+   * @param eDepthIndex
+   *          - Ending Depth Index Position
    */
   public void setLogicalDepth(int sDepthIndex, int eDepthIndex) {
     int[] shapeB = B.getShape();
@@ -86,11 +88,8 @@ public class DAFrontendViewer {
     zoomEnd[0] = eDepthIndex;
 
     int diff = eDepthIndex - sDepthIndex;
-    shapeB[0] = diff + 1;
+    shapeB[0] = diff;
     B.setShape(shapeB);
-
-    float index = 0;
-    int oldtrace = 0;
 
     int[] pos = new int[A.getDimensions()];
 
@@ -99,42 +98,38 @@ public class DAFrontendViewer {
 
     while (itrInputArr.hasNext()) {
       pos = itrInputArr.next();
-      int[] outputPosition = pos.clone();
+      int[] outputPosition = new int[] { 0, 0, 0 };
 
-      if (pos[0] >= sDepthIndex && pos[0] < eDepthIndex) {
+      if (pos[0] >= sDepthIndex && pos[0] < eDepthIndex && pos[1] >= zoomBegin[1] && pos[1] < zoomEnd[1]
+          && pos[2] >= zoomBegin[2] && pos[2] < zoomEnd[2]) {
         float[] depth1 = new float[A.getElementCount()];
         A.getSample(depth1, pos);
         int[] pos2 = outputPosition;
-        pos2[0] = (int) index;
+        pos2[0] = pos[0] - zoomBegin[0];
+        pos2[1] = pos[1] - zoomBegin[1];
+        pos2[2] = pos[2] - zoomBegin[2];
         B.putSample(depth1, pos2);
-        index++;
-
       }
-
-      // Check if the current frame != old frame
-      if (pos[1] != oldtrace) {
-        index = 0;
-      }
-
-      // Set the frame
-      oldtrace = pos[1];
     }
   }
 
   /**
    * Select part of the image on logical trace
-   * @param sTraceIndex - Starting Trace Index Position
-   * @param eTraceIndex - Ending Trace Index Position
+   * 
+   * @param sTraceIndex
+   *          - Starting Trace Index Position
+   * @param eTraceIndex
+   *          - Ending Trace Index Position
    */
-  public void setLogicalTraces(int sTraceIndex, int eTraceIndex) {
+  public void setLogicalTrace(int sTraceIndex, int eTraceIndex) {
+    zoomBegin[1] = sTraceIndex;
+    zoomEnd[1] = eTraceIndex;
+
     int[] shapeB = B.getShape();
 
     int diff = eTraceIndex - sTraceIndex;
-    shapeB[1] = diff + 1;
+    shapeB[1] = diff;
     B.setShape(shapeB);
-
-    float index = 0;
-    int oldframe = 0;
 
     int[] pos = new int[A.getDimensions()];
 
@@ -143,42 +138,37 @@ public class DAFrontendViewer {
 
     while (itrInputArr.hasNext()) {
       pos = itrInputArr.next();
-      int[] outputPosition = pos.clone();
+      int[] outputPosition = new int[] { 0, 0, 0 };
 
-      if (pos[1] >= sTraceIndex && pos[1] < eTraceIndex) {
+      if (pos[1] >= sTraceIndex && pos[1] < eTraceIndex && pos[2] >= zoomBegin[1] && pos[2] < zoomEnd[1]) {
         float[] trace1 = new float[shapeB[0]];
         A.getTrace(trace1, pos);
         int[] pos2 = outputPosition;
-        pos2[1] = (int) index;
+        pos2[1] = pos[1] - zoomBegin[1];
+        pos2[2] = pos[2] - zoomBegin[2];
         B.putTrace(trace1, pos2);
-        index++;
-
       }
-
-      // Check if the current frame != old frame
-      if (pos[2] != oldframe) {
-        index = 0;
-      }
-
-      // Set the frame
-      oldframe = pos[2];
     }
   }
 
   /**
-   * Test this method not sure if right
-   * Select part of the image on logical frame
-   * @param sFrameIndex - Starting Frame Index Position
-   * @param eFrameIndex - Ending Frame Index Position
+   * Test this method not sure if right Select part of the image on logical
+   * frame
+   * 
+   * @param sFrameIndex
+   *          - Starting Frame Index Position
+   * @param eFrameIndex
+   *          - Ending Frame Index Position
    */
   public void setLogicalFrame(int sFrameIndex, int eFrameIndex) {
+    zoomBegin[2] = sFrameIndex;
+    zoomEnd[2] = eFrameIndex;
+
     int[] shapeB = B.getShape();
 
     int diff = eFrameIndex - sFrameIndex;
-    shapeB[2] = diff + 1;
+    shapeB[2] = diff;
     B.setShape(shapeB);
-
-    float index = 0;
 
     int[] pos = new int[A.getDimensions()];
 
@@ -187,77 +177,180 @@ public class DAFrontendViewer {
 
     while (itrInputArr.hasNext()) {
       pos = itrInputArr.next();
-      int[] outputPosition = pos.clone();
+      int[] outputPosition = new int[] { 0, 0, 0 };
 
       if (pos[2] >= sFrameIndex && pos[2] < eFrameIndex) {
         float[] frame1 = new float[shapeB[2]];
         A.getFrame(frame1, pos);
         int[] pos2 = outputPosition;
-        pos2[2] = (int) index;
+        pos2[2] = pos[2] - zoomBegin[2];
         B.putFrame(frame1, pos2);
-        index++;
-
       }
     }
   }
 
-  /**
-   * TODO:Implement
-   */
-  public void setLogicalDepthAxis() {
-
+  public void setAll(int[][] A) {
+    setLogicalFrame(A[0][0], A[0][1]);
+    setLogicalTrace(A[1][0], A[1][1]);
+    setLogicalDepth(A[2][0], A[2][1]);
   }
 
   /**
-   * TODO: Implement
-   */
-  public void setLogicalTraceAxis() {
-
-  }
-
-  /*
-   * TODO: Implement
-   */
-  public void setLogicalFrameAxis() {
-
-  }
-
-
-  /**
-   * Shows you the modified DA 
-   * @param title	- Title of your plot
+   * Shows you the modified DA
+   * 
+   * @param title
+   *          - Title of your plot
    */
   public void show(String title) {
     DABackendViewer.showAsModalDialog(B, title);
   }
 
+  private void checkFrame() {
+    JTestSampleInputCreator TestObject = new JTestSampleInputCreator(true);
+    DistributedArray TestArray = TestObject.getSeismicInput().getDistributedArray();
+    DAFrontendViewer viewObject = new DAFrontendViewer(TestArray);
+
+    // resize it along one axis to get B
+    viewObject.setLogicalFrame(75, 125);
+
+    // Check Get frame is correct
+    int[] position = new int[viewObject.B.getShape().length];
+    int direction = 1; // Forward
+    int scope = 2; // Frame
+    DistributedArrayPositionIterator viewObjItr = new DistributedArrayPositionIterator(viewObject.B, position,
+        direction, scope);
+
+    while (viewObjItr.hasNext()) {
+      position = viewObjItr.next();
+      float[] newFrame = new float[viewObject.A.getShape()[2]];
+      float[] originalFrame = new float[viewObject.A.getShape()[2]];
+      viewObject.B.getFrame(newFrame, position);
+
+      int[] orignalPos = position.clone();
+      orignalPos[2] += viewObject.zoomBegin[2];
+
+      viewObject.A.getFrame(originalFrame, orignalPos);
+
+      int i = 0;
+      float delta = 0.1f;
+      // check that frame for B is in A frame
+      // loop through the frame
+      while (newFrame[i] != 0) {
+        if (Math.abs(newFrame[i] - originalFrame[i]) > delta) {
+          Assert.fail();
+        }
+        i++;
+      }
+    }
+    System.out.println("Frame Axis Correct!");
+    TestObject = null;
+    TestArray = null;
+    viewObject = null;
+    System.gc(); // Just Do It - Objects may be extremely large
+  }
+
+  private void checkTrace() {
+    JTestSampleInputCreator TestObject = new JTestSampleInputCreator(true);
+    DistributedArray TestArray = TestObject.getSeismicInput().getDistributedArray();
+    DAFrontendViewer viewObject = new DAFrontendViewer(TestArray);
+
+    // resize it along one axis to get B
+    viewObject.setLogicalTrace(75, 125);
+
+    // Check Get frame is correct
+    int[] position = new int[viewObject.B.getShape().length];
+    int direction = 1; // Forward
+    int scope = 1; // Trace
+    DistributedArrayPositionIterator viewObjItr = new DistributedArrayPositionIterator(viewObject.B, position,
+        direction, scope);
+
+    while (viewObjItr.hasNext()) {
+      position = viewObjItr.next();
+      float[] newO = new float[viewObject.A.getShape()[1]];
+      float[] original = new float[viewObject.A.getShape()[1]];
+      viewObject.B.getFrame(newO, position);
+
+      int[] orignalPos = position.clone();
+      orignalPos[1] += viewObject.zoomBegin[1];
+      orignalPos[2] += viewObject.zoomBegin[2];
+
+      viewObject.A.getFrame(original, orignalPos);
+
+      int i = 0;
+      float delta = 0.1f;
+      while (newO[i] != 0) {
+        if (Math.abs(newO[i] - original[i]) > delta) {
+          Assert.fail();
+        }
+        i++;
+      }
+    }
+    System.out.println("Trace Axis Correct!");
+    TestObject = null;
+    TestArray = null;
+    viewObject = null;
+    System.gc(); // Just Do It - Objects may be extremely large
+  }
+
+  private void checkDepth() {
+    JTestSampleInputCreator TestObject = new JTestSampleInputCreator(true);
+    DistributedArray TestArray = TestObject.getSeismicInput().getDistributedArray();
+    DAFrontendViewer viewObject = new DAFrontendViewer(TestArray);
+
+    // resize it along one axis to get B
+    viewObject.setLogicalTrace(75, 125);
+
+    // Check Get frame is correct
+    int[] position = new int[viewObject.B.getShape().length];
+    int direction = 1; // Forward
+    int scope = 0; // Trace
+    DistributedArrayPositionIterator viewObjItr = new DistributedArrayPositionIterator(viewObject.B, position,
+        direction, scope);
+
+    while (viewObjItr.hasNext()) {
+      position = viewObjItr.next();
+      float[] newO = new float[viewObject.A.getShape()[0]];
+      float[] original = new float[viewObject.A.getShape()[0]];
+      viewObject.B.getFrame(newO, position);
+
+      int[] orignalPos = position.clone();
+      orignalPos[1] += viewObject.zoomBegin[0];
+      orignalPos[1] += viewObject.zoomBegin[1];
+      orignalPos[2] += viewObject.zoomBegin[2];
+
+      viewObject.A.getFrame(original, orignalPos);
+
+      int i = 0;
+      float delta = 0.1f;
+      while (newO[i] != 0) {
+        if (Math.abs(newO[i] - original[i]) > delta) {
+          Assert.fail();
+        }
+        i++;
+      }
+    }
+    System.out.println("Depth Axis Correct!");
+    TestObject = null;
+    TestArray = null;
+    viewObject = null;
+    System.gc(); // Just Do It - Objects may be extremely large
+  }
+
   public static void main(String args[]) {
 
     IParallelContext pc = new UniprocessorContext();
-    int[] lengths = new int[] {50,50,50};
-    DistributedArray da = new DistributedArray(pc,lengths);
+    int[] lengths = new int[] { 50, 50, 50 };
+    DistributedArray da = new DistributedArray(pc, lengths);
     DAFrontendViewer test = new DAFrontendViewer(da);
 
-    //Test the outerPosition method first
-    test.zoomBegin = new int[] {10,20,30};
-    Assert.assertArrayEquals(new int[] {20,30,40}
-    ,test.outerPosition(new int[] {10,10,10}));
+    // Test the outerPosition method first
+    test.zoomBegin = new int[] { 10, 20, 30 };
+    Assert.assertArrayEquals(new int[] { 20, 30, 40 }, test.outerPosition(new int[] { 10, 10, 10 }));
 
+    test.checkFrame();
+    test.checkTrace();
+    test.checkDepth();
 
-    int[] position = new int[da.getShape().length];
-    int direction = 1;
-    int scope = 0;
-    DistributedArrayPositionIterator dapi = new
-        DistributedArrayPositionIterator(da, position,direction,scope);
-    //get some distributedArray A
-    //resize it along one axis to get B
-    //iterate through the smaller array, checking that
-    //B[pos] = A[pos+zoomBegin] for all positions in B.
-
-    //resize it along another axis
-    //check again
-
-    //make it smaller along all 3 and check
-    //make it bigger along all 3 and check again.
   }
+
 }
