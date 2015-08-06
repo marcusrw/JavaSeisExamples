@@ -27,6 +27,7 @@ public class SeisFft3dNew {
   //Temporary view of the original data
   private DistributedArray realDataView;           
 
+  private final float[] inputPad;
   private final int[]      inputShape;
   private final int[]      fftLengths;
   private final int[]      fftShape;
@@ -108,6 +109,19 @@ public class SeisFft3dNew {
     this(pc, len, pad, isign, null);
   }
 
+  public SeisFft3dNew(SeisFft3dNew cloneMe) {
+    this(cloneMe.getArray().getParallelContext(),
+        cloneMe.getShape(),
+        cloneMe.getPad(),
+        cloneMe.getFftSigns(),
+        new DistributedArray(cloneMe.getArray()));
+  }
+
+  //TODO better way here.
+  private float[] getPad() {
+    return this.inputPad;
+  }
+
   /**
    * Allocate storage for a 3D distributed FFT if 'a' is null, otherwise use
    * 'a'.
@@ -127,6 +141,7 @@ public class SeisFft3dNew {
     assert isign.length > 2;
 
     fftSigns = new int[] { isign[0], isign[1], isign[2] };
+    this.inputPad = pad.clone();
 
     // Get fft lengths isign == 0 says don't actually FFT that axis,
     // but assume it is being handled separately.
@@ -208,6 +223,7 @@ public class SeisFft3dNew {
 
     int ret;
     int[] len = KyKxF.getShape();
+    inputPad = new float[3];
 
     fftSigns = new int[] { isign[0], isign[1], isign[2] };
 
