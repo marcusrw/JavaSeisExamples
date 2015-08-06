@@ -9,17 +9,17 @@ import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 
 public class ImagingCondition {
-  
+
   private static final Logger LOGGER = 
       Logger.getLogger(ImagingCondition.class.getName());
-  
+
   SeisFft3dNew shot;
   SeisFft3dNew rcvr;
-  
+
   DistributedArray imageDA;
-  
+
   IntervalTimer imagingTime;
-  
+
   public ImagingCondition(SeisFft3dNew shot,SeisFft3dNew rcvr,
       DistributedArray imageDA) {
     this.shot = shot;
@@ -27,7 +27,7 @@ public class ImagingCondition {
     this.imageDA = imageDA;
     imagingTime = new IntervalTimer();
   }
-  
+
   public void imagingCondition(DistributedArray imageDA,
       int zindx,double fMax) {
     imagingTime.start();
@@ -42,7 +42,7 @@ public class ImagingCondition {
 
 
     int[] fullShape = rcvrDA.getShape().clone();
-    LOGGER.info(Arrays.toString(fullShape));
+    LOGGER.info("Original DA Shape: " + Arrays.toString(fullShape));
 
     /*
     double fNY = 1/(2*0.002);
@@ -83,7 +83,7 @@ public class ImagingCondition {
     }
 
     //Get the source and receiver samples
-    LOGGER.info("\n\nShot DA shape: "
+    LOGGER.fine("\n\nShot DA shape: "
         + Arrays.toString(shotDA.getShape())
         + "\nShot DA sample count: "
         + shotDA.getTotalSampleCount()
@@ -99,7 +99,7 @@ public class ImagingCondition {
 
     imagingTime.stop();
   }
-  
+
   public double getImagingTime() {
     return imagingTime.total();
   }
