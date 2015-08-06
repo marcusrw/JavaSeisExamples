@@ -51,6 +51,7 @@ public class ToolContext {
   public SharedMap flowGlobal;
   public Map<String, Object> toolLocal;
   public Map<String, Object> flowLocal;
+  //don't use these grids, they don't work at all
   public GridDefinition inputGrid, outputGrid;
 
   public ToolContext() {
