@@ -10,8 +10,6 @@ import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 
-import org.javaseis.examples.plot.DistributedArrayViewer;
-import org.javaseis.examples.plot.SingleVolumeDAViewer;
 import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.ICheckedGrid;
@@ -101,8 +99,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     GridDefinition inputGrid = toolContext.inputGrid;
     ParameterService parms = toolContext.parms;
 
-    AxisDefinition[] imageAxes = new AxisDefinition[inputGrid
-                                                    .getNumDimensions()];
+    AxisDefinition[] imageAxes =
+        new AxisDefinition[inputGrid.getNumDimensions()];
 
     float zmin = Float.parseFloat(parms.getParameter("ZMIN", "0"));
     float zmax = Float.parseFloat(parms.getParameter("ZMAX", "2000"));
@@ -271,11 +269,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
       //testDAEquals(rcvr.getArray(),rcvrold.getArray());
       //testDAEquals(shot.getArray(),shotold.getArray());
 
-      //extrapolator.extrapolate((float) velocity, delz, zindx, fMax);
-      //logTimerOutput("Double Extrapolator Time: ",
-      //    extrapolator.getExtrapolationTime());
-
-      // TODO test code
       extrapR.reverseExtrapolate((float) velocity, delz, zindx, fMax);
       logTimerOutput("Receiver Extrapolator Time: ",
           extrapR.getExtrapolationTime());
@@ -287,10 +280,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       //testDAEquals(rcvr.getArray(),rcvrold.getArray());
       //testDAEquals(shot.getArray(),shotold.getArray());
 
-      LOGGER.info("Extrapolation finished");
-      //extrapolator.transformFromWavenumberToSpace();
-
-      // TODO Test Code
+      LOGGER.info("Extrapolation finished for depth " + depth);
       extrapR.transformFromWavenumberToSpace();
       extrapS.transformFromWavenumberToSpace();
 
@@ -322,10 +312,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     {
       //plot to check
-      DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
-          "Final Image.");
-      DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
-          "Velocity Model.");
+      //DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
+      //    "Final Image.");
+      //DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
+      //    "Velocity Model.");
 
       // example usage of Front End Viewer
       //DAFrontendViewer A = new DAFrontendViewer(output.getDistributedArray());
@@ -337,8 +327,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     logTimerOutput("Velocity Access Time", velocityAccessTime.total());
     logTimerOutput("Source Generation Time", sourceGenTime.total());
-    //logTimerOutput("Transform Time", extrapolator.getTransformTime());
-    //logTimerOutput("Extrapolation Time", extrapolator.getExtrapolationTime());
+    logTimerOutput("Transform Time",
+        extrapS.getTransformTime() + extrapR.getTransformTime());
+    logTimerOutput("Extrapolation Time",
+        extrapS.getTransformTime() + extrapR.getExtrapolationTime());
     logTimerOutput("Imaging Time", imagingCondition.getImagingTime());
 
     return true;
@@ -443,8 +435,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int scope = 1; // traces
 
     DistributedArrayPositionIterator dapi;
-    dapi = new DistributedArrayPositionIterator(vModelWindowed, position,
-        direction, scope);
+    dapi = new DistributedArrayPositionIterator(
+        vModelWindowed, position,direction, scope);
 
     while (dapi.hasNext()) {
       position = dapi.next();
@@ -481,7 +473,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //rcvrold.setTXYSampleRates(sampleRates);
     //shotold.setTXYSampleRates(sampleRates);
   }
-  */
+   */
 
   private PhaseShiftFFT3D createReceiverFFT(
       ToolContext toolContext, ISeismicVolume input) {
@@ -494,7 +486,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertNotNull("ParallelContext is null", pc);
     Assert.assertNotNull("Input Shape is null", inputShape);
     Assert.assertNotNull("Pad is null", pad);
-    PhaseShiftFFT3D rcvr = new PhaseShiftFFT3D(pc, inputShape, pad, DEFAULT_FFT_ORIENTATION);
+    PhaseShiftFFT3D rcvr = new PhaseShiftFFT3D(pc, inputShape, pad,
+        DEFAULT_FFT_ORIENTATION);
 
     // copy the receiver data into the rcvr object
     rcvr.getArray().copy(input.getDistributedArray());
@@ -563,8 +556,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
 
     // override the default behaviour if we're working on the test data
-    // which
-    // has no header information.
+    // which has no header information.
     if (usingTestData(toolContext)) {
       vmff = new VelocityInDepthModel(new double[] { 0, 1000, 2000 },
           new double[] { 2000, 3800 });

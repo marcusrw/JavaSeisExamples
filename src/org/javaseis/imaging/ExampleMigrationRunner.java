@@ -20,10 +20,10 @@ public class ExampleMigrationRunner {
 
   @Test
   public void test() throws FileNotFoundException {
-    String inputFileName = "100a-rawsynthpwaves.js";
+    //String inputFileName = "100a-rawsynthpwaves.js";
     //String inputFileName = "segshotno1.js";
-    //String inputFileName = "seg45shot.js";
-    String outputFileName = "twolayer.js";
+    String inputFileName = "seg45shot.js";
+    String outputFileName = "seg45image.js";
     String vModelFileName = "segsaltmodel.js";
 
     parms = new FindTestData(inputFileName,outputFileName).getParameterService();
