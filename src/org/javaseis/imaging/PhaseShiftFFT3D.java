@@ -26,9 +26,7 @@ import beta.javaseis.fft.SeisFft;
 public class PhaseShiftFFT3D implements Transformable3D {
 
   private static final int NUM_DIMENSIONS = 3;
-
   public static final float[] ZERO_PAD = new float[] { 0.0f, 0.0f, 0.0f };
-
   public static final int[] SEISMIC_FFT_ORIENTATION = new int[] { -1, 1, 1 };
 
   private static final Logger LOGGER =

@@ -24,12 +24,14 @@ public class PhaseShiftExtrapolator {
   private static final int EXTRAP_REVERSE = -1;
 
   PhaseShiftFFT3D wavefield;
+  double depth;
 
   IntervalTimer extrapTime;
   IntervalTimer transformTime;
 
-  public PhaseShiftExtrapolator(PhaseShiftFFT3D wavefield) {
+  public PhaseShiftExtrapolator(PhaseShiftFFT3D wavefield,double initialDepth) {
     this.wavefield = wavefield;
+    this.depth = initialDepth;
     this.extrapTime = new IntervalTimer();
     this.transformTime = new IntervalTimer();
   }

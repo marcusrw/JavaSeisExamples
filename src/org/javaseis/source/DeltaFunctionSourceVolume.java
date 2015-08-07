@@ -12,8 +12,10 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   double[] physicalSourceXYZ;
   float[] arraySourceXYZ;
   int[] AXIS_ORDER;
-
-  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot) {
+  
+  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid,
+      PhaseShiftFFT3D shot) {
+    
     // Get the physical source
     this.physicalSourceXYZ = CheckedGrid.getSourceXYZ();
     Assert.assertNotEquals("Source Depth should be 20",
@@ -33,7 +35,8 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
 
   }
 
-  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
+  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid,
+      PhaseShiftFFT3D shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
     // Get the physical source
     this.physicalSourceXYZ = physicalSourceXYZ;
 
@@ -47,7 +50,6 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
 
     // Generate
     generateSourceSignature(arraySourceXYZ);
-
   }
 
   private PhaseShiftFFT3D checkShotIsInFXY(PhaseShiftFFT3D shot) {
