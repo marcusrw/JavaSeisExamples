@@ -12,7 +12,7 @@ import java.util.Arrays;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
-import org.javaseis.test.testdata.JTestSampleInputCreator;
+import org.javaseis.test.testdata.SampleInputCreator;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
@@ -37,7 +37,7 @@ public class JTestVolumeEdgeVirtualization {
 
   @Before
   public void loadDataIntoVolume() {
-    JTestSampleInputCreator test = new JTestSampleInputCreator(false);
+    SampleInputCreator test = new SampleInputCreator(false);
     this.toolContext = test.getToolContext();
     this.seismicInput = test.getSeismicInput();
     this.checkGrid = test.getCheckGrid();

@@ -1,5 +1,6 @@
 package org.javaseis.examples.plot;
 
+import org.javaseis.test.testdata.SampleInputCreator;
 import org.junit.Assert;
 
 import beta.javaseis.distributed.DistributedArray;
@@ -217,7 +218,7 @@ public class DAFrontendViewer {
   }
 
   private void checkFrame() {
-    JTestSampleInputCreator TestObject = new JTestSampleInputCreator(true);
+    SampleInputCreator TestObject = new SampleInputCreator(true);
     DistributedArray TestArray = TestObject.getSeismicInput().getDistributedArray();
     DAFrontendViewer viewObject = new DAFrontendViewer(TestArray);
 
@@ -261,7 +262,7 @@ public class DAFrontendViewer {
   }
 
   private void checkTrace() {
-    JTestSampleInputCreator TestObject = new JTestSampleInputCreator(true);
+    SampleInputCreator TestObject = new SampleInputCreator(true);
     DistributedArray TestArray = TestObject.getSeismicInput().getDistributedArray();
     DAFrontendViewer viewObject = new DAFrontendViewer(TestArray);
 
@@ -304,7 +305,7 @@ public class DAFrontendViewer {
   }
 
   private void checkDepth() {
-    JTestSampleInputCreator TestObject = new JTestSampleInputCreator(true);
+    SampleInputCreator TestObject = new SampleInputCreator(true);
     DistributedArray TestArray = TestObject.getSeismicInput().getDistributedArray();
     DAFrontendViewer viewObject = new DAFrontendViewer(TestArray);
 

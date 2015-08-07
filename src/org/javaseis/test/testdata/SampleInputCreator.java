@@ -16,7 +16,7 @@ import beta.javaseis.distributed.IDistributedIOService;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
 
-public class JTestSampleInputCreator {
+public class SampleInputCreator {
 
   private IParallelContext pc;
   private ParameterService parms;
@@ -26,7 +26,7 @@ public class JTestSampleInputCreator {
   private GridDefinition globalGrid;
   private ICheckedGrid checkGrid;
 
-  public JTestSampleInputCreator(boolean loop) {
+  public SampleInputCreator(boolean loop) {
     pc = new UniprocessorContext();
 
     // Specify which data to load

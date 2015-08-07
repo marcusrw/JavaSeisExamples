@@ -4,7 +4,7 @@ import java.io.FileNotFoundException;
 
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 
-import org.javaseis.test.testdata.JTestSampleInputCreator;
+import org.javaseis.test.testdata.SampleInputCreator;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.velocity.IVelocityModel;
 import org.javaseis.velocity.VelocityModelFromFile;
@@ -23,7 +23,7 @@ public class JTestCheckedGrid {
 
 	@Before
 	public void loadDataIntoVolume() {
-		JTestSampleInputCreator test = new JTestSampleInputCreator(true);
+		SampleInputCreator test = new SampleInputCreator(true);
 		this.toolContext = test.getToolContext();
 		this.seismicInput = test.getSeismicInput();
 		this.checkGrid = test.getCheckGrid();
