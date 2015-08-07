@@ -144,13 +144,13 @@ public class JTestExampleMigration {
 
     //Bound Conditions
     //Test when Delta is larger or - than the iteration interval 
-    Assert.assertEquals(1, TestOBJ.computeDepthAxis(50, 0, 55));
-    Assert.assertEquals(1, TestOBJ.computeDepthAxis(50, -1, 55));
-    Assert.assertEquals(1, TestOBJ.computeDepthAxis(50, 100, 55));
+    Assert.assertEquals(1, TestOBJ.computeDepthAxisLength(50, 0, 55));
+    Assert.assertEquals(1, TestOBJ.computeDepthAxisLength(50, -1, 55));
+    Assert.assertEquals(1, TestOBJ.computeDepthAxisLength(50, 100, 55));
 
     //Test when Delta is smaller than the iteration interval
-    Assert.assertEquals(2, TestOBJ.computeDepthAxis(0, 51, 100));
-    Assert.assertEquals(4, TestOBJ.computeDepthAxis(0, 3, 10));
+    Assert.assertEquals(2, TestOBJ.computeDepthAxisLength(0, 51, 100));
+    Assert.assertEquals(4, TestOBJ.computeDepthAxisLength(0, 3, 10));
   }
 
 }

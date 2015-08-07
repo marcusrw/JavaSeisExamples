@@ -1,8 +1,11 @@
 package org.javaseis.imaging;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
+import org.javaseis.examples.scratch.ExampleMigration;
 import org.javaseis.examples.scratch.Transformable3D;
+import org.junit.Assert;
 
 import beta.javaseis.array.TransposeType;
 import beta.javaseis.distributed.Decomposition;
@@ -27,6 +30,9 @@ public class PhaseShiftFFT3D implements Transformable3D {
   public static final float[] ZERO_PAD = new float[] { 0.0f, 0.0f, 0.0f };
 
   public static final int[] SEISMIC_FFT_ORIENTATION = new int[] { -1, 1, 1 };
+
+  private static final Logger LOGGER =
+      Logger.getLogger(PhaseShiftFFT3D.class.getName());
 
   private final IFFT       fft1, fft2, fft3;
 
@@ -759,19 +765,25 @@ public class PhaseShiftFFT3D implements Transformable3D {
   //Plot the data in the time domain, transforming as necessary.
   public void plotInTime(String title) {
     boolean inverseTransformInSpace = isSpaceTransformed();
+    Assert.assertTrue(isTimeTransformed());
     boolean inverseTransformInTime = isTimeTransformed();
     //Go to the time domain
-    if (inverseTransformInSpace) {
-      this.inverseSpatial2D();
-      if (inverseTransformInTime) {
-        this.inverseTemporal();
+    if (inverseTransformInTime) {
+      if (inverseTransformInSpace) {
+        LOGGER.info("Inverse Spatial Transform");
+        this.inverseSpatial2D();
       }
+      LOGGER.info("Inverse Time Transform");
+      this.inverseTemporal();
     }
     DistributedArrayMosaicPlot.showAsModalDialog(this.getArray(), title);
     //Now go back
     if (inverseTransformInTime) {
+      //Assert.assertFalse(isTimeTransformed());
+      LOGGER.info("Forward Time Transform");
       this.forwardTemporal();
       if (inverseTransformInSpace) {
+        LOGGER.info("Forward Space Transform");
         this.forwardSpatial2D();
       }
     }
