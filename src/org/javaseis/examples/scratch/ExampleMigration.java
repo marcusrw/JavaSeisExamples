@@ -283,10 +283,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     {
       //plot to check
-      DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
-          "Final Image.");
-      DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
-          "Velocity Model.");
+      //DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
+      //    "Final Image.");
+      //DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
+      //    "Velocity Model.");
 
       // example usage of Front End Viewer
       //DAFrontendViewer A = new DAFrontendViewer(output.getDistributedArray());
