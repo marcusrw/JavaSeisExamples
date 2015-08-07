@@ -2,9 +2,12 @@ package org.javaseis.imaging;
 
 import java.util.Arrays;
 
+import org.javaseis.examples.scratch.Transformable3D;
+
 import beta.javaseis.array.TransposeType;
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
+import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.fft.IFFT;
 import beta.javaseis.fft.SeisFft;
@@ -17,7 +20,13 @@ import beta.javaseis.fft.SeisFft;
  * @author Chuck Mosher & Marcus Wilson for JavaSeis.org
  * 
  */
-public class PhaseShiftFFT3D {
+public class PhaseShiftFFT3D implements Transformable3D {
+
+  private static final int NUM_DIMENSIONS = 3;
+
+  public static final float[] ZERO_PAD = new float[] { 0.0f, 0.0f, 0.0f };
+
+  public static final int[] SEISMIC_FFT_ORIENTATION = new int[] { -1, 1, 1 };
 
   private final IFFT       fft1, fft2, fft3;
 
@@ -48,8 +57,8 @@ public class PhaseShiftFFT3D {
    * @param a pre-existing DistributedArray
    */
   public PhaseShiftFFT3D(int[] len, DistributedArray a) {
-    this(a.getParallelContext(), len, new float[] { 0.0f, 0.0f, 0.0f },
-        new int[] { -1, 1, 1 }, a);
+    this(a.getParallelContext(), len, ZERO_PAD,
+        SEISMIC_FFT_ORIENTATION, a);
   }
 
   /**
@@ -60,7 +69,7 @@ public class PhaseShiftFFT3D {
    */
   public PhaseShiftFFT3D(DistributedArray a) {
     this(a.getParallelContext(), a.getShape(),
-        new float[] { 0.0f, 0.0f, 0.0f }, new int[] { -1, 1, 1 }, a);
+        ZERO_PAD, SEISMIC_FFT_ORIENTATION, a);
   }
 
   /**
@@ -71,7 +80,7 @@ public class PhaseShiftFFT3D {
    * @param a pre-existing DistributedArray
    */
   public PhaseShiftFFT3D(int[] len, float[] pad, DistributedArray a) {
-    this(a.getParallelContext(), len, pad, new int[] { -1, 1, 1 }, a);
+    this(a.getParallelContext(), len, pad, SEISMIC_FFT_ORIENTATION, a);
   }
 
   /**
@@ -94,7 +103,7 @@ public class PhaseShiftFFT3D {
    * @param pad transform padding factor in percent for each axis
    */
   public PhaseShiftFFT3D(IParallelContext pc, int[] len, float[] pad) {
-    this(pc, len, pad, new int[] { -1, 1, 1 }, null);
+    this(pc, len, pad, SEISMIC_FFT_ORIENTATION, null);
   }
 
   /**
@@ -140,7 +149,7 @@ public class PhaseShiftFFT3D {
     assert pad.length > 2;
     assert isign.length > 2;
 
-    fftSigns = new int[] { isign[0], isign[1], isign[2] };
+    fftSigns = Arrays.copyOf(isign,NUM_DIMENSIONS);
     this.inputPad = pad.clone();
 
     // Get fft lengths isign == 0 says don't actually FFT that axis,
@@ -176,7 +185,7 @@ public class PhaseShiftFFT3D {
       // We need BLOCK in all dimensions to prepare for transpose
       int elementCount = 2;
       int[] d = { Decomposition.BLOCK, Decomposition.BLOCK, Decomposition.BLOCK };
-      da = new DistributedArray(pc, float.class, 3, elementCount, lengths, d);
+      da = new DistributedArray(pc, float.class, NUM_DIMENSIONS, elementCount, lengths, d);
 
       // Reset the element count to 1 and length of the first dimension back to
       // real numbers rather than complex so that the array can be loaded with
@@ -193,7 +202,7 @@ public class PhaseShiftFFT3D {
     fftShape[0] = 1 + fftLengths[0] / 2;
     padShape = inputShape.clone();
     fpadShape = fftShape.clone();
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < NUM_DIMENSIONS; i++) {
       padShape[i] = (int) Decomposition
           .paddedLength(inputShape[i], pc.size());
       fpadShape[i] = (int) Decomposition.paddedLength(fftShape[i], pc.size());
@@ -223,7 +232,7 @@ public class PhaseShiftFFT3D {
 
     int ret;
     int[] len = KyKxF.getShape();
-    inputPad = new float[3];
+    inputPad = new float[NUM_DIMENSIONS];
 
     fftSigns = new int[] { isign[0], isign[1], isign[2] };
 
@@ -317,7 +326,7 @@ public class PhaseShiftFFT3D {
    */
   public static int[] getTransformShape(int[] lengths, float[] pad, int size) {
 
-    int[] len = new int[3];
+    int[] len = new int[NUM_DIMENSIONS];
 
     int flen = SeisFft.getFftLength(lengths[0], pad[0], IFFT.Type.REAL);
     len[0] = (int) Decomposition.paddedLength(1 + flen / 2, size);
@@ -697,7 +706,7 @@ public class PhaseShiftFFT3D {
    */
   public void setTXYSampleRates(double[] sampleRates) {
     if (timeDomainSampleRate == null)
-      timeDomainSampleRate = new double[3];
+      timeDomainSampleRate = new double[NUM_DIMENSIONS];
     timeDomainSampleRate[0] = sampleRates[0];
     timeDomainSampleRate[1] = sampleRates[1];
     timeDomainSampleRate[2] = sampleRates[2];
@@ -745,6 +754,27 @@ public class PhaseShiftFFT3D {
     if (timeDomainSampleRate == null)
       throw new IllegalStateException(
           "You need to call setTXYSampleRates() before calling this method.");
+  }
+
+  //Plot the data in the time domain, transforming as necessary.
+  public void plotInTime(String title) {
+    boolean inverseTransformInSpace = isSpaceTransformed();
+    boolean inverseTransformInTime = isTimeTransformed();
+    //Go to the time domain
+    if (inverseTransformInSpace) {
+      this.inverseSpatial2D();
+      if (inverseTransformInTime) {
+        this.inverseTemporal();
+      }
+    }
+    DistributedArrayMosaicPlot.showAsModalDialog(this.getArray(), title);
+    //Now go back
+    if (inverseTransformInTime) {
+      this.forwardTemporal();
+      if (inverseTransformInSpace) {
+        this.forwardSpatial2D();
+      }
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-package org.javaseis.imaging;
+package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
 import java.util.logging.Level;
@@ -19,7 +19,7 @@ public class ExampleMigrationRunner {
   private static ParameterService parms;
 
   @Test
-  public void test() throws FileNotFoundException {
+  public void manualTest() throws FileNotFoundException {
     String inputFileName = "100a-rawsynthpwaves.js";
     //String inputFileName = "segshotno1.js";
     //String inputFileName = "seg45shot.js";

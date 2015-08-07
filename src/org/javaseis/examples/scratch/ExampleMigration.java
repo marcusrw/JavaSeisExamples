@@ -1,4 +1,4 @@
-package org.javaseis.imaging;
+package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
 import java.util.Arrays;
@@ -17,6 +17,9 @@ import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.ICheckedGrid;
 import org.javaseis.grid.ManualOverrideGrid;
 import org.javaseis.grid.VolumeEdgeIO;
+import org.javaseis.imaging.ImagingCondition;
+import org.javaseis.imaging.PhaseShiftExtrapolator;
+import org.javaseis.imaging.PhaseShiftFFT3D;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;
@@ -346,35 +349,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
   private boolean processFirstVolumeOnly(ToolContext toolContext) {
     return Boolean.parseBoolean(toolContext.getParameter("FIRSTVOLUME"));
-  }
-
-  private void plotSeisInTime(PhaseShiftFFT3D seisFFT,String title) {
-    seisFFT.inverseTemporal();
-    DistributedArrayMosaicPlot.showAsModalDialog(seisFFT.getArray(), title);
-    seisFFT.forwardTemporal();
-  }
-
-  private void testDAEquals(DistributedArray a, DistributedArray b) {
-    Assert.assertArrayEquals("Distributed Arrays are not the same shape",
-        a.getShape(), b.getShape());
-
-    int[] position = new int[a.getShape().length];
-    int direction = 1;
-    int scope = 0;
-    float floateps = 1e-7F;
-    DistributedArrayPositionIterator dapi;
-    dapi = new DistributedArrayPositionIterator(a, position, direction, scope);
-
-    float[] abuff = new float[a.getElementCount()];
-    float[] bbuff = new float[b.getElementCount()];
-    while (dapi.hasNext()) {
-      position = dapi.next();
-      a.getSample(abuff, position);
-      b.getSample(bbuff, position);
-      Assert.assertArrayEquals("Distributed Arrays differ at position: "
-          + Arrays.toString(position), abuff, bbuff, floateps);
-    }
-    LOGGER.info("Distributed Arrays match to error " + floateps);
   }
 
   private void checkOutputDAIsEmpty(ISeismicVolume input,

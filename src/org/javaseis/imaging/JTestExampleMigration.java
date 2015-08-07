@@ -2,6 +2,7 @@ package org.javaseis.imaging;
 
 import java.io.FileNotFoundException;
 
+import org.javaseis.examples.scratch.ExampleMigration;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.test.testdata.FindTestData;
