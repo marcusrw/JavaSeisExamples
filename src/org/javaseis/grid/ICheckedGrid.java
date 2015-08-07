@@ -1,8 +1,8 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.grid;
 
 import org.javaseis.grid.GridDefinition;
 
-public interface ICheckGrids {
+public interface ICheckedGrid {
 
 	/*
 	 * Gets the Modified Grid.

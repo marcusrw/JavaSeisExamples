@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.grid;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,6 +10,7 @@ import java.util.Arrays;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
+import org.javaseis.velocity.VelocityModelFromFile;
 import org.javaseis.volume.ISeismicVolume;
 import org.javaseis.volume.SeismicVolume;
 
@@ -27,7 +28,7 @@ public class VolumeEdgeIO {
   private IDistributedIOService ipio = null;
   private VelocityModelFromFile vff = null;
   private ISeismicVolume seismicInput;
-  private ICheckGrids checkGrid;
+  private ICheckedGrid checkGrid;
   private PrintWriter out = null;;
 
   public VolumeEdgeIO(IParallelContext pc, ToolContext toolContext) {
@@ -170,7 +171,7 @@ public class VolumeEdgeIO {
 
   // Write the Velo data to output specific file
   private void writeVelocityInformation(PrintWriter out) {
-    GridDefinition vmodelGrid = vff.vmodelGrid;
+    GridDefinition vmodelGrid = vff.getVModelGrid();
     // System.out.println("[VelocityInformation:] " +
     // vmodelGrid.toString());
     // System.out.println("[VelocityInformation:] " +
@@ -231,7 +232,7 @@ public class VolumeEdgeIO {
         + veloPos[0] * vmodelGrid.getAxisPhysicalDelta(ZAxis);
 
     out.println("[VelocityInformation]: " + "[s,t,f]: "
-    + Arrays.toString(veloPos) + " \t[x, y, d]: "
+        + Arrays.toString(veloPos) + " \t[x, y, d]: "
         + Arrays.toString(veloValue));
 
     out.println(" ");
@@ -282,7 +283,7 @@ public class VolumeEdgeIO {
         e.printStackTrace();
       }
 
-      checkGrid = new CheckGrids(seismicInput, toolContext);
+      checkGrid = new GridFromHeaders(seismicInput, toolContext);
 
       // Write the Grid Information to the file
       writeGridInformation(out);

@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.examples.plot;
 
 import java.awt.AWTException;
 import java.awt.BorderLayout;
@@ -31,6 +31,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
+import org.javaseis.examples.scratch.ImageGenerator;
 
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;

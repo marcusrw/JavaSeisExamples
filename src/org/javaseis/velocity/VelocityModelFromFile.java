@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.velocity;
 
 import java.io.FileNotFoundException;
 import java.util.Arrays;
@@ -176,6 +176,10 @@ public class VelocityModelFromFile implements IVelocityModel {
 
   private double[] getVModelGridDeltas() {
     return vmodelGrid.getAxisPhysicalDeltas();
+  }
+  
+  public GridDefinition getVModelGrid() {
+    return vmodelGrid;
   }
 
   //Temporary testing method, maybe

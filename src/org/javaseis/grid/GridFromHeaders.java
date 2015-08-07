@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.grid;
 
 import java.io.File;
 import java.util.Arrays;
@@ -17,9 +17,9 @@ import org.junit.Assert;
 import beta.javaseis.services.CoordinateType;
 import beta.javaseis.services.JSCoordinateService;
 
-public class CheckGrids implements ICheckGrids {
+public class GridFromHeaders implements ICheckedGrid {
 
-	private static final Logger LOGGER = Logger.getLogger(CheckGrids.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(GridFromHeaders.class.getName());
 
 	private ISeismicVolume input;
 	private ToolContext toolContext;
@@ -39,7 +39,7 @@ public class CheckGrids implements ICheckGrids {
 	// Source Position
 	private double[] sourceXYZ;
 
-	public CheckGrids(ISeismicVolume input, ToolContext toolContext) {
+	public GridFromHeaders(ISeismicVolume input, ToolContext toolContext) {
 		this.input = input;
 		this.toolContext = toolContext;
 

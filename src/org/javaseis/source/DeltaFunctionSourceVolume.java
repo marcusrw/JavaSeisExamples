@@ -1,17 +1,18 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.source;
 
+import org.javaseis.grid.ICheckedGrid;
 import org.javaseis.imaging.PhaseShiftFFT3D;
 
 import beta.javaseis.distributed.DistributedArray;
 
-public class SourceVolume implements ISourceVolume {
+public class DeltaFunctionSourceVolume implements ISourceVolume {
 
   PhaseShiftFFT3D shot;
   double[] physicalSourceXYZ;
   float[] arraySourceXYZ;
   int[] AXIS_ORDER;
 
-  public SourceVolume(ICheckGrids CheckedGrid, PhaseShiftFFT3D shot) {
+  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot) {
     // Get the physical source
     this.physicalSourceXYZ = CheckedGrid.getSourceXYZ();
 
@@ -29,7 +30,7 @@ public class SourceVolume implements ISourceVolume {
 
   }
 
-  public SourceVolume(ICheckGrids CheckedGrid, PhaseShiftFFT3D shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
+  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
     // Get the physical source
     this.physicalSourceXYZ = physicalSourceXYZ;
 
@@ -57,7 +58,7 @@ public class SourceVolume implements ISourceVolume {
   /*
    * Converts the physical coordinates to Array Coordinates
    */
-  public float[] covertPhysToArray(double[] sourceXYZ, ICheckGrids CheckedGrid) {
+  public float[] covertPhysToArray(double[] sourceXYZ, ICheckedGrid CheckedGrid) {
     //Correct
     //System.out.println("[covertPhysToArray]: " + Arrays.toString(sourceXYZ));
 

@@ -1,10 +1,10 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.grid;
 
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.volume.ISeismicVolume;
 
-public class ManualGrid implements ICheckGrids {
+public class ManualOverrideGrid implements ICheckedGrid {
 
   final ISeismicVolume input;
   final ToolContext toolContext;
@@ -19,7 +19,7 @@ public class ManualGrid implements ICheckGrids {
       {690,690,0}
       };
 
-  public ManualGrid(ISeismicVolume input,ToolContext toolContext) {
+  public ManualOverrideGrid(ISeismicVolume input,ToolContext toolContext) {
     this.input = input;
     this.toolContext = toolContext;
   }

@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.imaging;
 
 import java.io.FileNotFoundException;
 import java.util.logging.Level;

@@ -1,10 +1,11 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.test.testdata;
 
 import java.io.FileNotFoundException;
 
+import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
+import org.javaseis.grid.ICheckedGrid;
 import org.javaseis.services.ParameterService;
-import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
@@ -23,7 +24,7 @@ public class JTestSampleInputCreator {
   private ISeismicVolume seismicInput;
   private IDistributedIOService ipio = null;
   private GridDefinition globalGrid;
-  private ICheckGrids checkGrid;
+  private ICheckedGrid checkGrid;
 
   public JTestSampleInputCreator(boolean loop) {
     pc = new UniprocessorContext();
@@ -89,7 +90,7 @@ public class JTestSampleInputCreator {
         String vModelFileName = "segsaltmodel.js";
         parms.setParameter("vModelFilePath", vModelFileName);
         try {
-          checkGrid = new CheckGrids(inputVolume, toolContext);
+          checkGrid = new GridFromHeaders(inputVolume, toolContext);
         } catch (NullPointerException e) {
           System.out.println("It's possible that the current input has\n"
               + "no associated trace header file.");
@@ -125,7 +126,7 @@ public class JTestSampleInputCreator {
     return globalGrid;
   }
 
-  public ICheckGrids getCheckGrid() {
+  public ICheckedGrid getCheckGrid() {
     return checkGrid;
   }
 

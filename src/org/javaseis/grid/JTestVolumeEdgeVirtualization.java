@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.grid;
 
 import static org.junit.Assert.*;
 
@@ -12,6 +12,7 @@ import java.util.Arrays;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.test.testdata.JTestSampleInputCreator;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
@@ -32,7 +33,7 @@ public class JTestVolumeEdgeVirtualization {
   ToolContext toolContext;
   ISeismicVolume seismicInput;
   IDistributedIOService ipio = null;
-  ICheckGrids checkGrid;
+  ICheckedGrid checkGrid;
 
   @Before
   public void loadDataIntoVolume() {
@@ -59,7 +60,7 @@ public class JTestVolumeEdgeVirtualization {
       // or call CheckGrids on it
       String vModelFileName = "segsaltmodel.js";
       parms.setParameter("vModelFilePath", vModelFileName);
-      checkGrid = new CheckGrids(seismicInput, toolContext);
+      checkGrid = new GridFromHeaders(seismicInput, toolContext);
       // System.out.println(Arrays.toString(checkGrid.getSourceXYZ()));
 
       printVolumeEdges(checkGrid, seismicInput);
@@ -68,7 +69,7 @@ public class JTestVolumeEdgeVirtualization {
 
   }
 
-  public void printVolumeEdges(ICheckGrids CheckedGrid, ISeismicVolume input) {
+  public void printVolumeEdges(ICheckedGrid CheckedGrid, ISeismicVolume input) {
     String path = "//tmp//vEdge.txt";
     // check if file exists
 

@@ -10,6 +10,7 @@ import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
+import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.services.ParameterService;
 
 import beta.javaseis.distributed.DistributedArray;

@@ -1,19 +1,25 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.grid;
 
 import java.io.FileNotFoundException;
+
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
+
+import org.javaseis.test.testdata.JTestSampleInputCreator;
 import org.javaseis.tool.ToolContext;
+import org.javaseis.velocity.IVelocityModel;
+import org.javaseis.velocity.VelocityModelFromFile;
 import org.javaseis.volume.ISeismicVolume;
 import org.junit.Before;
 import org.junit.Test;
+
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.IDistributedIOService;
 
-public class JTestCheckGrids {
+public class JTestCheckedGrid {
 	ToolContext toolContext;
 	ISeismicVolume seismicInput;
 	IDistributedIOService ipio = null;
-	ICheckGrids checkGrid;
+	ICheckedGrid checkGrid;
 
 	@Before
 	public void loadDataIntoVolume() {
@@ -45,7 +51,7 @@ public class JTestCheckGrids {
 	 * Checks if all the sources are the same for all the traces over a specific
 	 * volume.
 	 */
-	private boolean sourcesEqual(ICheckGrids CheckGrid, ISeismicVolume input) {
+	private boolean sourcesEqual(ICheckedGrid CheckGrid, ISeismicVolume input) {
 		// check if the input DistArray Sources match the computed source
 		DistributedArray inputDistArr = input.getDistributedArray();
 
@@ -93,7 +99,7 @@ public class JTestCheckGrids {
 	}
 
 	// Helper method
-	private IVelocityModel getVelocityModelObject(ICheckGrids CheckGrid, ToolContext toolContext) {
+	private IVelocityModel getVelocityModelObject(ICheckedGrid CheckGrid, ToolContext toolContext) {
 		IVelocityModel vmff = null;
 		try {
 			vmff = new VelocityModelFromFile(toolContext);
@@ -105,7 +111,7 @@ public class JTestCheckGrids {
 		return vmff;
 	}
 
-	private boolean testCoords(ISeismicVolume input, ICheckGrids CheckGrid, ToolContext toolContext) {
+	private boolean testCoords(ISeismicVolume input, ICheckedGrid CheckGrid, ToolContext toolContext) {
 
 		IVelocityModel vmff = getVelocityModelObject(CheckGrid, toolContext);
 

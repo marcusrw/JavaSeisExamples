@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.velocity;
 
 import java.util.Arrays;
 

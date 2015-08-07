@@ -1,4 +1,4 @@
-package org.javaseis.examples.scratch;
+package org.javaseis.imaging;
 
 import java.io.FileNotFoundException;
 import java.util.Arrays;
@@ -12,19 +12,25 @@ import beta.javaseis.parallel.IParallelContext;
 
 import org.javaseis.examples.plot.DistributedArrayViewer;
 import org.javaseis.examples.plot.SingleVolumeDAViewer;
+import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
-import org.javaseis.imaging.ImagingCondition;
-import org.javaseis.imaging.PhaseShiftExtrapolator;
-import org.javaseis.imaging.PhaseShiftFFT3D;
+import org.javaseis.grid.ICheckedGrid;
+import org.javaseis.grid.ManualOverrideGrid;
+import org.javaseis.grid.VolumeEdgeIO;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;
 import org.javaseis.properties.Units;
 import org.javaseis.services.ParameterService;
+import org.javaseis.source.ISourceVolume;
+import org.javaseis.source.DeltaFunctionSourceVolume;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.IntervalTimer;
 import org.javaseis.util.SeisException;
+import org.javaseis.velocity.IVelocityModel;
+import org.javaseis.velocity.VelocityInDepthModel;
+import org.javaseis.velocity.VelocityModelFromFile;
 import org.javaseis.volume.ISeismicVolume;
 import org.junit.Assert;
 
@@ -174,7 +180,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertNotNull(output.getGlobalGrid());
 
     // Instantiate a checked grid which fixes any misplaced receivers
-    ICheckGrids gridFromHeaders = verifyGridOriginsAndDeltas(toolContext, input);
+    ICheckedGrid gridFromHeaders = verifyGridOriginsAndDeltas(toolContext, input);
 
     GridDefinition imageGrid = computeImageGrid(toolContext);
     toolContext.outputGrid = imageGrid;
@@ -210,7 +216,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //plotSeisInTime(shot,"Empty Source Array (TXY)");
 
     // This has to be after the time transform.
-    ISourceVolume srcVol = new SourceVolume(gridFromHeaders, shot);
+    ISourceVolume srcVol = new DeltaFunctionSourceVolume(gridFromHeaders, shot);
     shot = srcVol.getShot();
 
     // Plot to check
@@ -405,17 +411,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
         new int[input.getVolumePosition().length]);
   }
 
-  private ICheckGrids verifyGridOriginsAndDeltas(ToolContext toolContext,
+  private ICheckedGrid verifyGridOriginsAndDeltas(ToolContext toolContext,
       ISeismicVolume input) {
-    ICheckGrids gridFromHeaders;
+    ICheckedGrid gridFromHeaders;
     try {
-      gridFromHeaders = new CheckGrids(input, toolContext);
+      gridFromHeaders = new GridFromHeaders(input, toolContext);
     } catch (NullPointerException e) {
       LOGGER.info(e.getMessage());
       LOGGER.info("It's possible that the input dataset has no associated,\n"
           + "trace header file, so that trying to open the coordinate\n"
           + "service failed.");
-      gridFromHeaders = new ManualGrid(input, toolContext);
+      gridFromHeaders = new ManualOverrideGrid(input, toolContext);
     }
 
     // Set the Modified Grid = input Grid, since we can't set it in the
@@ -568,7 +574,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
   }
 
   private void orientSeismicInVelocityModel(IVelocityModel vmff,
-      ICheckGrids inputGridObj) {
+      ICheckedGrid inputGridObj) {
     vmff.orientSeismicVolume(inputGridObj.getModifiedGrid(),
         inputGridObj.getAxisOrder());
   }
