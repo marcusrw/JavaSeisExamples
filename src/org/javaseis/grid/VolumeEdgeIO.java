@@ -1,13 +1,20 @@
 package org.javaseis.grid;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.javaseis.grid.GridDefinition;
+import org.javaseis.properties.AxisDefinition;
+import org.javaseis.properties.AxisLabel;
+import org.javaseis.properties.DataDomain;
+import org.javaseis.properties.Units;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 import org.javaseis.velocity.VelocityModelFromFile;
@@ -22,14 +29,25 @@ import beta.javaseis.parallel.IParallelContext;
 
 public class VolumeEdgeIO {
 
-  private static int volumeNumber = 0; // Start at 0 volume
+  private int volumeNumber = 0; // Start at 0 volume
   private ToolContext toolContext;
   private String originalPN;
   private IDistributedIOService ipio = null;
   private VelocityModelFromFile vff = null;
   private ISeismicVolume seismicInput;
   private ICheckedGrid checkGrid;
-  private PrintWriter out = null;;
+
+  // Writer vars
+  private PrintWriter out = null;
+
+  // Reader vars
+  private FileReader FiletoRead = null;
+  private BufferedReader bufRead = null;
+  private ArrayList<AxisLabel> ListofAxisLabels = new ArrayList<AxisLabel>();
+
+  public VolumeEdgeIO() {
+
+  }
 
   public VolumeEdgeIO(IParallelContext pc, ToolContext toolContext) {
 
@@ -46,12 +64,10 @@ public class VolumeEdgeIO {
       e.printStackTrace();
     }
 
-    originalPN = toolContext.getParameter(ToolContext.OUTPUT_FILE_SYSTEM)
-        + "//"
-        + toolContext.getParameter(ToolContext.OUTPUT_FILE_PATH)
-        + "//vEdge";
+    originalPN = toolContext.getParameter(ToolContext.OUTPUT_FILE_SYSTEM) + "//"
+        + toolContext.getParameter(ToolContext.OUTPUT_FILE_PATH) + "//vEdge";
 
-    //System.out.println(originalPN);
+    // System.out.println(originalPN);
 
     // Get the global grid definition
     GridDefinition globalGrid = ipio.getGridDefinition();
@@ -69,6 +85,7 @@ public class VolumeEdgeIO {
   }
 
   // Generate the file path for each volume
+  // Change volumeNumber to static if you want this functionallity
   private String generateNextPath() {
     // take the original file path and set it to the new one
     String newPN = originalPN;
@@ -76,13 +93,14 @@ public class VolumeEdgeIO {
     // the VolNum
     newPN += volumeNumber;
 
-    // Inc the global volume number
-    volumeNumber++;
+    // Inc in writeGridInfo
+    // volumeNumber++;
 
     // Make it a txt file
     newPN += ".txt";
 
     // Expected string form [generateNextPath(0) = //tmp//vEdge0.txt]
+    // generatedFilePaths.add(newPN);
     return newPN;
   }
 
@@ -96,76 +114,36 @@ public class VolumeEdgeIO {
     int[] volumePosIndex = new int[3];
 
     // Iterate over the Volume - Scope = 3
-    DistributedArrayPositionIterator itrInputArr 
-    = new DistributedArrayPositionIterator(curArray, volumePosIndex,
+    DistributedArrayPositionIterator itrInputArr = new DistributedArrayPositionIterator(curArray, volumePosIndex,
         DistributedArrayPositionIterator.FORWARD, 3);
 
     // source and receiver arrays
-    double[] rXYZ = new double[3];
+    // double[] rXYZ = new double[3];
 
-    out.println("[getVolumeEdges]: Volume Index: "
-        + Arrays.toString(globalPosIndex));
+    out.println("<VolumeGlobalGridstr>");
 
-    out.println("[getVolumeEdges]: Axis Order: "
-        + Arrays.toString(checkGrid.getAxisOrder()));
+    out.println("{ getVolumeEdges } : Volume Index: " + Arrays.toString(globalPosIndex));
+
+    out.println("{ getVolumeEdges } : Axis Order: " + Arrays.toString(checkGrid.getAxisOrder()));
 
     // Start location of volume
-    out.println("[getVolumeEdges]: Volume Source Location: "
-        + Arrays.toString(checkGrid.getSourceXYZ()));
+    // out.println("{ getVolumeEdges } : Volume Source Location: " +
+    // Arrays.toString(checkGrid.getSourceXYZ()));
 
     while (itrInputArr.hasNext()) {
+      //out.println("<VolumeGridstr>");
       globalPosIndex[0] = 0;
       volumePosIndex = itrInputArr.next();
       for (int k = 1; k < 3; k++) {
         globalPosIndex[k] = volumePosIndex[k];
       }
 
-      // Get the receiver & source at [0, axislength - 1, axislength - 1,
-      // v]
-      long X = seismicInput.getGlobalGrid().getAxisLength(checkGrid.getAxisOrder()[0]) - 1;
-      long Y = seismicInput.getGlobalGrid().getAxisLength(checkGrid.getAxisOrder()[1]) - 1;
-
-      // Example x = 0, y = 0;
-      globalPosIndex[1] = 0;
-      globalPosIndex[2] = 0;
-
-      rXYZ = checkGrid.getReceiverXYZ(globalPosIndex);
-
-      out.println("[getVolumeEdges]: [s,t,f,v]: " + Arrays.toString(globalPosIndex) + " \tReceiverXYZ: "
-          + Arrays.toString(rXYZ));
-
-      // Example x = 200, y = 0
-      globalPosIndex[1] = (int) X;
-      globalPosIndex[2] = 0;
-
-      rXYZ = checkGrid.getReceiverXYZ(globalPosIndex);
-
-      // Get bottom right coords
-      out.println("[getVolumeEdges]: [s,t,f,v]: " 
-          + Arrays.toString(globalPosIndex) + " \tReceiverXYZ: "
-          + Arrays.toString(rXYZ));
-
-      // Get top left
-      // Example x = 0, y = 200
-      globalPosIndex[1] = 0;
-      globalPosIndex[2] = (int) Y;
-
-      rXYZ = checkGrid.getReceiverXYZ(globalPosIndex);
-      out.println("[getVolumeEdges]: [s,t,f,v]: " 
-          + Arrays.toString(globalPosIndex) + " \tReceiverXYZ: "
-          + Arrays.toString(rXYZ));
-
-      // Get top right
-      // Example x = 200, y = 200
-      globalPosIndex[1] = (int) X;
-      globalPosIndex[2] = (int) Y;
-
-      rXYZ = checkGrid.getReceiverXYZ(globalPosIndex);
-      out.println("[getVolumeEdges]: [s,t,f,v]: " 
-          + Arrays.toString(globalPosIndex) + " \tReceiverXYZ: "
-          + Arrays.toString(rXYZ));
+      out.println(checkGrid.toString());
+      //out.println("<VolumeGridend>");
 
     }
+
+    out.println("<VolumeGlobalGridend>");
 
   }
 
@@ -191,55 +169,15 @@ public class VolumeEdgeIO {
     veloPos[1] = 0; // velocity cross axis - y
     veloPos[2] = 0; // velocity inline axis - x
 
-    out.println("Velocity Grid Information");
+    // out.println("VolumeNum : " + " [ " + Arrays.toString(globalPosIndex) + "
+    // ] ");
+    out.println("<VelocityGridstr>\n" + vmodelGrid.toString());
+    out.println("<VelocityGridend>");
 
-    // Velo at [0,0,0]
-    veloValue[0] = vmodelGrid.getAxisPhysicalOrigin(XAxis) + veloPos[2] * vmodelGrid.getAxisPhysicalDelta(XAxis);
-    veloValue[1] = vmodelGrid.getAxisPhysicalOrigin(YAxis) + veloPos[1] * vmodelGrid.getAxisPhysicalDelta(YAxis);
-    veloValue[2] = vmodelGrid.getAxisPhysicalOrigin(ZAxis) + veloPos[0] * vmodelGrid.getAxisPhysicalDelta(ZAxis);
-
-    out.println("[VelocityInformation]: " + "[s,t,f]: " + Arrays.toString(veloPos) + " \t[x, y, d]: "
-        + Arrays.toString(veloValue));
-
-    // Velo at [0, 675, 0]
-    veloPos[1] = (int) (lengthY - 1); // velocity cross axis - y
-    veloPos[2] = 0; // velocity inline axis - x
-    veloValue[0] = vmodelGrid.getAxisPhysicalOrigin(XAxis) + veloPos[2] * vmodelGrid.getAxisPhysicalDelta(XAxis);
-    veloValue[1] = vmodelGrid.getAxisPhysicalOrigin(YAxis) + veloPos[1] * vmodelGrid.getAxisPhysicalDelta(YAxis);
-    veloValue[2] = vmodelGrid.getAxisPhysicalOrigin(ZAxis) + veloPos[0] * vmodelGrid.getAxisPhysicalDelta(ZAxis);
-
-    out.println("[VelocityInformation]: " + "[s,t,f]: " + Arrays.toString(veloPos) + " \t[x, y, d]: "
-        + Arrays.toString(veloValue));
-
-    // Velo at [0, 0, 675]
-    veloPos[1] = 0; // velocity cross axis - y
-    veloPos[2] = (int) (lengthX - 1); // velocity inline axis - x
-    veloValue[0] = vmodelGrid.getAxisPhysicalOrigin(XAxis) + veloPos[2] * vmodelGrid.getAxisPhysicalDelta(XAxis);
-    veloValue[1] = vmodelGrid.getAxisPhysicalOrigin(YAxis) + veloPos[1] * vmodelGrid.getAxisPhysicalDelta(YAxis);
-    veloValue[2] = vmodelGrid.getAxisPhysicalOrigin(ZAxis) + veloPos[0] * vmodelGrid.getAxisPhysicalDelta(ZAxis);
-
-    out.println("[VelocityInformation]: " + "[s,t,f]: " + Arrays.toString(veloPos) + " \t[x, y, d]: "
-        + Arrays.toString(veloValue));
-
-    // Velo at [0, 675, 675]
-    veloPos[1] = (int) (lengthY - 1); // velocity cross axis - y
-    veloPos[2] = (int) (lengthX - 1); // velocity inline axis - x
-    veloValue[0] = vmodelGrid.getAxisPhysicalOrigin(XAxis)
-        + veloPos[2] * vmodelGrid.getAxisPhysicalDelta(XAxis);
-    veloValue[1] = vmodelGrid.getAxisPhysicalOrigin(YAxis)
-        + veloPos[1] * vmodelGrid.getAxisPhysicalDelta(YAxis);
-    veloValue[2] = vmodelGrid.getAxisPhysicalOrigin(ZAxis)
-        + veloPos[0] * vmodelGrid.getAxisPhysicalDelta(ZAxis);
-
-    out.println("[VelocityInformation]: " + "[s,t,f]: "
-        + Arrays.toString(veloPos) + " \t[x, y, d]: "
-        + Arrays.toString(veloValue));
-
-    out.println(" ");
-
+    // volumeNumber++;
   }
 
-  private void initalizeWriter(){
+  private void initalizeWriter() {
     File f = new File(originalPN);
     if (f.exists() && !f.isDirectory()) {
       f.delete();
@@ -253,7 +191,7 @@ public class VolumeEdgeIO {
     }
   }
 
-  private void closeWriter(){
+  private void closeWriter() {
     if (out != null) {
       out.close();
     }
@@ -293,6 +231,350 @@ public class VolumeEdgeIO {
     }
 
     closeWriter();
+  }
+
+  private void initalizeReader() {
+    try {
+      FiletoRead = new FileReader(generateNextPath());
+      bufRead = new BufferedReader(FiletoRead);
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
+
+  private void closeReader() {
+    try {
+      bufRead.close();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    try {
+      FiletoRead.close();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * This function read the total number of volumes
+   * 
+   * @return Total Number of Volumes
+   */
+  public int readVolume() {
+    initalizeReader();
+
+    String myLine = null;
+    int vNum = 0;
+    try {
+      while ((myLine = bufRead.readLine()) != null) {
+
+        String[] array1 = myLine.split(" ");
+
+        // System.out.println(Arrays.toString(array1));
+        for (int i = 0; i < array1.length; i++) {
+          if (array1[i].equalsIgnoreCase("VolumeNum")) {
+            vNum = Integer.parseInt(array1[4]);
+          }
+        }
+      }
+
+    } catch (NumberFormatException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+    closeReader();
+    return vNum;
+  }
+
+  private int[] strArrayToIntArray(String[] A) {
+    int[] results = new int[A.length];
+
+    for (int i = 0; i < A.length; i++) {
+      try {
+        results[i] = Integer.parseInt(A[i]);
+      } catch (NumberFormatException nfe) {
+      }
+      ;
+    }
+
+    return results;
+
+  }
+
+  private boolean deepCompare(int[] A, int[] B) {
+    Object[] arr1 = { A };
+    Object[] arr2 = { B };
+    if (Arrays.deepEquals(arr1, arr2)) {
+      return true;
+    } else {
+      return false;
+    }
+
+  }
+
+  /**
+   * This function sets your read pointer to the Volume Index line
+   * @param vNm Volume Index
+   */
+  private BufferedReader setReadPtr(int[] vNm, BufferedReader readBuffer1) {
+    initalizeReader();
+    String myLine = null;
+    try {
+      while ((myLine = readBuffer1.readLine()) != null) {
+        String[] array1 = myLine.split(" ");
+        String[] array2 = "<VolumeGlobalGridstr>".split(" ");
+
+        for (int i = 0, j = 0; i < array1.length && j < array2.length; i++, j++) {
+          if (array1[i].equalsIgnoreCase(array2[j])) {
+            // location is found
+            // Volume Index Line
+            myLine = readBuffer1.readLine();
+            String[] volPosCurStr = myLine.replace("{ getVolumeEdges } : Volume Index: ", "").replaceAll(" ", "")
+                .replaceAll("\\[", "").replaceAll("\\]", "").split(",");
+            int[] volPosCur = strArrayToIntArray(volPosCurStr);
+            if (deepCompare(volPosCur, vNm)){
+              //return readBuffer
+              //System.out.println("Element FOUND");
+              return readBuffer1;
+            }
+             
+          }
+        }
+      }
+      
+      //If volume specified does not exist in file
+      if (myLine == null){
+        throw new ArithmeticException("Volume Specified Cannot Be Found!");
+      }
+
+    } catch (NumberFormatException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } finally{
+      closeReader();
+    }
+    return null;
+  }
+  
+  
+  /**
+   * Returns the Axis Order for a Specific Volume
+   * @param vNm Volume Index
+   * @return int[]
+   */
+  public int[] getAxisOrder(int[] vNm){
+    initalizeReader();
+    String myLine = null;
+    
+    //This Sets your pointer to the volume index vNm
+    bufRead = setReadPtr(vNm, bufRead);
+    
+    try {
+      myLine = bufRead.readLine();
+      String[] axisOrderStr = myLine.replace("{ getVolumeEdges } : Axis Order: ", "").replaceAll(" ", "")
+          .replaceAll("\\[", "").replaceAll("\\]", "").split(",");
+      int[] axisOrderInt = strArrayToIntArray(axisOrderStr);
+      return axisOrderInt;
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } finally{
+      closeReader();
+    }
+    
+    //Should never reach here
+    return null;
+  }
+  
+  /**
+   * Returns a GridDefinition of N-Dimensions 
+   * @param bufferReader - Reader
+   * @param numDims - Number of Dimensions
+   * @return Volume GridDefinition
+   * @throws IOException
+   */
+  private GridDefinition readAxisDefinitionFromFile(BufferedReader bufferReader, int numDims) throws IOException{
+    //Axes of the Grid
+    ArrayList<AxisDefinition> Axes = new ArrayList<AxisDefinition>();
+    for (int k = 0; k < numDims; k++) {
+      
+      // Since Axis has 2 line per axis in file
+      String axisline1 = bufferReader.readLine();
+      String axisline2 = bufferReader.readLine();
+
+      String[] myLineA = axisline1.split("=? ");
+      String[] myLineB = axisline2.split("=? ");
+      String[] myLineC = null;
+      String[] myLineD = null;
+
+      ArrayList<String> AxisElementList = new ArrayList<String>();
+
+      for (int ii = 0; ii < myLineA.length; ii++) {
+        myLineC = myLineA[ii].split("=");
+        for (int jj = 0; jj < myLineC.length - 1; jj++) {
+          //System.out.println(myLineC[jj+1]);
+          AxisElementList.add(myLineC[jj + 1]);
+        }
+      }
+
+      for (int jj = 0; jj < myLineB.length; jj++) {
+        myLineD = myLineB[jj].split("=");
+        for (int ii = 0; ii < myLineD.length - 1; ii++) {
+          //System.out.println(myLineD[ii+1]);
+          AxisElementList.add(myLineD[ii + 1]);
+        }
+      }
+
+      // Create the Axis here
+      AxisLabel label = covertStringtoAxisLabel(AxisElementList.get(0));
+      Units units = Units.get(AxisElementList.get(1));
+      DataDomain datadomain = DataDomain.get(AxisElementList.get(2));
+      long length = Long.parseLong(AxisElementList.get(3));
+      long logicalOrigin = Long.parseLong(AxisElementList.get(4));
+      long logicalDelta = Long.parseLong(AxisElementList.get(5));
+      double physicalOrigin = Double.parseDouble(AxisElementList.get(6));
+      double physicalDelta = Double.parseDouble(AxisElementList.get(7));
+
+      Axes.add(new AxisDefinition(label, units, datadomain, length, logicalOrigin, logicalDelta, physicalOrigin,
+          physicalDelta));
+    }
+    AxisDefinition[] arrayAxis = new AxisDefinition[Axes.size()];
+    for (int yy = 0; yy < Axes.size(); yy++) {
+      arrayAxis[yy] = Axes.get(yy);
+    }
+
+    return new GridDefinition(numDims, arrayAxis);
+  }
+  
+  /**
+   * Returns you the grid for a specific Volume Index 
+   * @param vNm Volume Index
+   * @return GridDefinition for that specific volume
+   */
+  public GridDefinition readVolumeGrid(int[] vNm){
+    initalizeReader();
+    String myLine = null;
+    //Dims of the Grid
+    int numOfDims = -1;
+    
+    //Set the read ptr to the volume index specified
+    bufRead = setReadPtr(vNm, bufRead);
+    
+    try {
+      myLine = bufRead.readLine();
+      String numDimLine = bufRead.readLine();
+      String[] dimStrArray = numDimLine.split(" ");
+      //Assumed that this is where dim number is stored based on toString
+      numOfDims = Integer.parseInt(dimStrArray[2]);
+      
+      return readAxisDefinitionFromFile(bufRead, numOfDims);
+      
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } finally{
+      closeReader();
+    }
+    
+    
+    
+    return null;
+    
+    
+  }
+
+  
+  /**
+   * Read Velocity Grid from file
+   * 
+   * Assumed Velocity is at the start of file
+   * 
+   * @return GridDefinition of Velocity Grid
+   */
+  public GridDefinition readVelocityGrid() {
+    initalizeReader();
+    String myLine = null;
+    int numOfDims = -1;
+
+    // Don't set any pointers as we only have one velo model
+    // setVolumePtr(vN, bufRead);
+
+    try {
+        //First line of file
+        myLine = bufRead.readLine();
+      
+        String[] array1 = myLine.split(" ");
+        String[] array2 = "<VelocityGridstr>".split(" ");
+
+        // numOfDims to be loaded
+        for (int i = 0, j = 0; i < array1.length && j < array2.length; i++, j++) {
+          if (array1[i].equalsIgnoreCase(array2[j])) {
+            //Second line is the start of our Velocity Grid Def
+            String secondLine = bufRead.readLine();
+            
+            String[] dimStrArray = secondLine.split(" ");
+            numOfDims = Integer.parseInt(dimStrArray[2]);
+
+            return readAxisDefinitionFromFile(bufRead, numOfDims);
+          }
+        }
+
+    } catch (NumberFormatException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } finally{
+    closeReader();
+    }
+    return null;
+  }
+
+  private AxisLabel covertStringtoAxisLabel(String string) {
+
+    ListofAxisLabels.add(AxisLabel.UNDEFINED);
+    ListofAxisLabels.add(AxisLabel.TIME);
+    ListofAxisLabels.add(AxisLabel.DEPTH);
+    ListofAxisLabels.add(AxisLabel.OFFSET);
+    ListofAxisLabels.add(AxisLabel.OFFSET_BIN);
+    ListofAxisLabels.add(AxisLabel.CROSSLINE);
+    ListofAxisLabels.add(AxisLabel.INLINE);
+    ListofAxisLabels.add(AxisLabel.SOURCE);
+    ListofAxisLabels.add(AxisLabel.CMP);
+    ListofAxisLabels.add(AxisLabel.RECEIVER);
+    ListofAxisLabels.add(AxisLabel.RECEIVER_LINE);
+    ListofAxisLabels.add(AxisLabel.CHANNEL);
+    ListofAxisLabels.add(AxisLabel.SAIL_LINE);
+    ListofAxisLabels.add(AxisLabel.VOLUME);
+    ListofAxisLabels.add(AxisLabel.ANGLE_BIN);
+    //TODO: find out what is discript actually is
+    ListofAxisLabels.add(new AxisLabel("R_XLINE", "Fill this"));
+    ListofAxisLabels.add(new AxisLabel("R_ILINE", "Fill this"));
+
+    for (int i = 0; i < ListofAxisLabels.size(); i++) {
+      String AxisString = ListofAxisLabels.get(i).getName();
+      if (AxisString.equalsIgnoreCase(string)) {
+        return ListofAxisLabels.get(i);
+      }
+    }
+    return null;
+  }
+
+  public void read() throws IOException {
+    initalizeReader();
+
+    closeReader();
   }
 
 }

@@ -4,6 +4,8 @@ import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
+import org.javaseis.grid.GridDefinition;
+import org.javaseis.grid.VolumeEdgeIO;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
@@ -14,6 +16,7 @@ import org.javaseis.volume.ISeismicVolume;
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
+import beta.javaseis.parallel.IParallelContext;
 
 public class ExampleStack extends StandAloneVolumeTool {
 
@@ -21,18 +24,28 @@ public class ExampleStack extends StandAloneVolumeTool {
       Logger.getLogger(ExampleStack.class.getName());
 
   static ParameterService parms;
-
+  
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    String inputFileName = "seg45shot.js";
+    //String inputFileName = "seg45shot.js";
+    String inputFileName = "segshotno1.js";
     String vModelFileName = "segsaltmodel.js";
-    parms = new FindTestData(inputFileName).getParameterService();
+    String outputFileName = "test.js";
+    //parms = new FindTestData(inputFileName).getParameterService();
+    parms = new FindTestData(inputFileName,outputFileName).getParameterService();
     parms.setParameter("vModelFilePath",vModelFileName);
+    parms.setParameter("outputFileMode","create");
     ExampleStack.exec(parms,new ExampleStack());
   }
 
   @Override
   public void serialInit(ToolContext serialToolContext) {
     // TODO Auto-generated method stub
+    
+    IParallelContext pc = serialToolContext.pc;
+    
+    // Write the volume information to a file
+    //VolumeEdgeIO veIO = new VolumeEdgeIO(pc, serialToolContext);
+    //veIO.write();
 
   }
 
@@ -50,10 +63,27 @@ public class ExampleStack extends StandAloneVolumeTool {
         input.getDistributedArray(),"title");
 
     //figure out how many volumes there are
+    //int numVols = veIO.getVolumeNumber();
+    VolumeEdgeIO veIO = new VolumeEdgeIO(toolContext.pc, toolContext);
+    
+   // int numVol = veIO.readVolume();
+    
+    //System.out.println(numVol);
+    
     //make an array of somethings to store the grid properties from vEdge
+    
     //make a distributed array big enough to fit all of them 
     //OR make a distributed array the size of the velocity model.
     
+    GridDefinition veloGrid =  veIO.readVelocityGrid();
+    System.out.println(veloGrid.toString());
+    int[] vNm = new int[] {0,0,0,1};
+    
+    //int[] AxisOrder = veIO.getAxisOrder(vNm);
+    //System.out.println(Arrays.toString(AxisOrder));
+    
+    GridDefinition volGrid =  veIO.readVolumeGrid(vNm);
+    System.out.println(volGrid.toString());
     //the somethings are something like a physicalOrigin/Delta pair I guess?
 
     //Check that what you've got so far is empty
