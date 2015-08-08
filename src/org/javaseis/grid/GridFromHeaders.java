@@ -251,4 +251,13 @@ public class GridFromHeaders implements ICheckedGrid {
 	public double[] getSourceXYZ() {
 		return sourceXYZ;
 	}
+	
+	public String toString() {
+    StringBuffer buf = new StringBuffer(this.getClass().getCanonicalName());
+    buf.append(": numDimensions " + modifiedGrid._numDimensions);
+    for (int i = 0; i < modifiedGrid._numDimensions; i++) {
+      buf.append("\n Axis[" + i + "]: " + modifiedGrid._axis[i]);
+    }
+    return buf.toString();
+  }
 }
