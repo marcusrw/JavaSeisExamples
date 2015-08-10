@@ -537,7 +537,7 @@ public class VolumeEdgeIO {
         String[] array1 = myLine.split(" ");
         String[] array2 = "<TotalVolumes>".split(" ");
 
-        //System.out.println(myLine);
+        // System.out.println(myLine);
 
         // numOfDims to be loaded
         for (int i = 0, j = 0; i < array1.length && j < array2.length; i++, j++) {
