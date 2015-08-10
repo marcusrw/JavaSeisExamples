@@ -27,8 +27,8 @@ public class ExampleStack extends StandAloneVolumeTool {
   static ParameterService parms;
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    String inputFileName = "seg45shot.js";
-    //String inputFileName = "segshotno1.js";
+    //String inputFileName = "seg45shot.js";
+     String inputFileName = "segshotno1.js";
     String vModelFileName = "segsaltmodel.js";
     String outputFileName = "test.js";
     // parms = new FindTestData(inputFileName).getParameterService();
@@ -57,6 +57,7 @@ public class ExampleStack extends StandAloneVolumeTool {
   }
 
   /**
+   * TODO:Fix logics
    * Converts the dataPosition location and maps it to the VelocityModel Postion
    * Location
    * 
@@ -68,31 +69,54 @@ public class ExampleStack extends StandAloneVolumeTool {
    *          The Volume Model GridDefinition
    * @return The mapping to the Velocity Model Location
    */
-  public int[] convertDataPosToVModelPos(int[] dataPos, GridDefinition VeloGrid, GridDefinition VolGrid) {
+  public int[] convertDataPosToVModelPos(int[] dataPos, int[] axis_order, GridDefinition VeloGrid,
+      GridDefinition VolGrid) {
     int[] vModelPos = new int[dataPos.length];
+
     
-    int[] V_MODEL_AXIS_ORDER = {2,1,0};
+     int[] v_model_axis = {2,1,0};
 
-    // calculate the trace-axis maps only
-    // don't care about the time axis as we are setting actual traces
-    vModelPos[0] = 0;
+    // axis_order
 
-    // Ex: Axis Index = 1 - CrossLine Axis
-    // Axis Index = 2 - Inline Axis
-    for (int i = 1; i < dataPos.length - 1; i++) {
-      // One Axis from Volume
-      AxisDefinition VolumeAxis = VolGrid.getAxis(i);
-      // Same Axis from Velocity Model
-      AxisDefinition VelocityAxis = VeloGrid.getAxis(i);
+    // Get Z Axis
+    // One Axis from Volume
+    AxisDefinition VolumeAxis = VolGrid.getAxis(axis_order[2]);
+    // Same Axis from Velocity Model
+    AxisDefinition VelocityAxis = VeloGrid.getAxis(v_model_axis[2]);
 
-      // data physical origin + data delta * index data - velocity model
-      // physical origin
-      double DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[i]
-          - VelocityAxis.getPhysicalOrigin();
+    // data physical origin + data delta * index data - velocity model
+    // physical origin
+    double DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[2]]
+        - VelocityAxis.getPhysicalOrigin();
 
-      vModelPos[i] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
-    }
+    vModelPos[v_model_axis[2]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
 
+    // Get X Axis
+    // One Axis from Volume
+    VolumeAxis = VolGrid.getAxis(axis_order[0]);
+    // Same Axis from Velocity Model
+    VelocityAxis = VeloGrid.getAxis(v_model_axis[0]);
+
+    // data physical origin + data delta * index data - velocity model
+    // physical origin
+    DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[0]]
+        - VelocityAxis.getPhysicalOrigin();
+
+    vModelPos[v_model_axis[0]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
+
+    // Get Y Axis
+    // One Axis from Volume
+    VolumeAxis = VolGrid.getAxis(axis_order[1]);
+    // Same Axis from Velocity Model
+    VelocityAxis = VeloGrid.getAxis(v_model_axis[1]);
+
+    // data physical origin + data delta * index data - velocity model
+    // physical origin
+    DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[1]]
+        - VelocityAxis.getPhysicalOrigin();
+
+    vModelPos[v_model_axis[1]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
+    
     // TODO:
     // Set the Volume to nth index
     vModelPos[3] = dataPos[3];
@@ -145,7 +169,7 @@ public class ExampleStack extends StandAloneVolumeTool {
       // set the new Volume Position
       volumePosIndex = input.getVolumePosition();
       volumePosIndex[3] = j;
-      
+
       System.out.println("Volume #" + Arrays.toString(volumePosIndex));
 
       DistributedArray inputDA = input.getDistributedArray();
@@ -153,6 +177,9 @@ public class ExampleStack extends StandAloneVolumeTool {
 
       GridDefinition volumeGrid = veIO.readVolumeGrid(volumePosIndex);
       // System.out.println(volumeGrid.toString());
+      
+      int[] axis_order = veIO.getAxisOrder(volumePosIndex);
+      System.out.println("Axis: " + Arrays.toString(axis_order));
 
       // Iterate over the Trace - Scope = 1
       DistributedArrayPositionIterator itrInputArr = new DistributedArrayPositionIterator(inputDA, volumePosIndex,
@@ -163,25 +190,27 @@ public class ExampleStack extends StandAloneVolumeTool {
         // int[] pos = itrInputArr.getPosition();
         int[] pos = itrInputArr.next();
 
+        // Get the axis order of the individual volume
         System.out.println("Global Volume Grid: " + Arrays.toString(pos));
 
         // TODO: May not be true if not square
         float[] buf = new float[inputDA.getShape()[0]];
         float[] vmodbuf = new float[eDA.getShape()[0]];
-        //Assert.assertEquals("Data trace and model trace are different lengths",
-         //   buf.length,vmodbuf.length);
+        // Assert.assertEquals("Data trace and model trace are different
+        // lengths",
+        // buf.length,vmodbuf.length);
 
         // get the trace from the input array at dataPos
         inputDA.getTrace(buf, pos);
 
         // Calculate the map for the velocityDistArray Position
-        int[] veloPos = convertDataPosToVModelPos(pos, velocityGrid, volumeGrid);
+        int[] veloPos = convertDataPosToVModelPos(pos, axis_order, velocityGrid, volumeGrid);
 
         System.out.println("Velocity Index: " + Arrays.toString(veloPos));
 
         // put the proper traces into the eda
-        eDA.getTrace(vmodbuf,veloPos);
-        vmodbuf = addSecondArgToFirst(vmodbuf,buf);
+        eDA.getTrace(vmodbuf, veloPos);
+        vmodbuf = addSecondArgToFirst(vmodbuf, buf);
         eDA.putTrace(vmodbuf, veloPos);
       }
 
@@ -193,11 +222,11 @@ public class ExampleStack extends StandAloneVolumeTool {
 
     return true;
   }
-  
-  private float[] addSecondArgToFirst(float[] trace1,float[] trace2) {
+
+  private float[] addSecondArgToFirst(float[] trace1, float[] trace2) {
     Assert.assertTrue(trace1.length <= trace2.length);
     float[] out = new float[trace1.length];
-    for (int k = 0 ; k < out.length ; k++) {
+    for (int k = 0; k < out.length; k++) {
       out[k] = trace1[k] + trace2[k];
     }
     return out;
