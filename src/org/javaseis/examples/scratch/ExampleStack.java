@@ -27,8 +27,8 @@ public class ExampleStack extends StandAloneVolumeTool {
   static ParameterService parms;
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    //String inputFileName = "seg45shot.js";
-     String inputFileName = "segshotno1.js";
+    // String inputFileName = "seg45shot.js";
+    String inputFileName = "segshotno1.js";
     String vModelFileName = "segsaltmodel.js";
     String outputFileName = "test.js";
     // parms = new FindTestData(inputFileName).getParameterService();
@@ -45,8 +45,13 @@ public class ExampleStack extends StandAloneVolumeTool {
     IParallelContext pc = serialToolContext.pc;
 
     // Write the volume information to a file
+    // VolumeEdgeIO veIO = new VolumeEdgeIO(pc, serialToolContext);
+    // veIO.write();
+
     VolumeEdgeIO veIO = new VolumeEdgeIO(pc, serialToolContext);
-    veIO.write();
+    GridDefinition volumeGrid = veIO.readVelocityGrid();
+
+    serialToolContext.putFlowGlobal(ToolContext.OUTPUT_GRID, volumeGrid);
 
   }
 
@@ -57,9 +62,8 @@ public class ExampleStack extends StandAloneVolumeTool {
   }
 
   /**
-   * TODO:Fix logics
-   * Converts the dataPosition location and maps it to the VelocityModel Postion
-   * Location
+   * TODO:Fix logics Converts the dataPosition location and maps it to the
+   * VelocityModel Postion Location
    * 
    * @param dataPos
    *          [?, ?, ?, ? ...]
@@ -73,8 +77,7 @@ public class ExampleStack extends StandAloneVolumeTool {
       GridDefinition VolGrid) {
     int[] vModelPos = new int[dataPos.length];
 
-    
-     int[] v_model_axis = {2,1,0};
+    int[] v_model_axis = { 2, 1, 0 };
 
     // axis_order
 
@@ -86,8 +89,8 @@ public class ExampleStack extends StandAloneVolumeTool {
 
     // data physical origin + data delta * index data - velocity model
     // physical origin
-    double DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[2]]
-        - VelocityAxis.getPhysicalOrigin();
+    double DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin()
+        + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[2]] - VelocityAxis.getPhysicalOrigin();
 
     vModelPos[v_model_axis[2]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
 
@@ -116,7 +119,7 @@ public class ExampleStack extends StandAloneVolumeTool {
         - VelocityAxis.getPhysicalOrigin();
 
     vModelPos[v_model_axis[1]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
-    
+
     // TODO:
     // Set the Volume to nth index
     vModelPos[3] = dataPos[3];
@@ -132,10 +135,34 @@ public class ExampleStack extends StandAloneVolumeTool {
     return B;
   }
 
+  public void checkPublicGrids(ToolContext toolContext) {
+    GridDefinition inputGrid = toolContext.inputGrid;
+    if (inputGrid == null) {
+      LOGGER.severe("The public field toolContext.inputGrid is null, "
+          + "doesn't get shared between parallel tasks, and is a huge "
+          + "violation of object encapsulation.  You shouldn't use it.");
+      inputGrid = (GridDefinition) toolContext.getFlowGlobal(ToolContext.INPUT_GRID);
+      toolContext.inputGrid = inputGrid;
+    }
+    GridDefinition outputGrid = toolContext.outputGrid;
+    if (outputGrid == null) {
+      LOGGER.severe("The public field toolContext.outputGrid is null, "
+          + "doesn't get shared between parallel tasks, and is a huge "
+          + "violation of object encapsulation.  You shouldn't use it.");
+      outputGrid = (GridDefinition) toolContext.getFlowGlobal(ToolContext.OUTPUT_GRID);
+      toolContext.outputGrid = outputGrid;
+    }
+  }
+
   @Override
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input, ISeismicVolume output) {
 
-    DistributedArrayMosaicPlot.showAsModalDialog(input.getDistributedArray(), "title");
+    Assert.assertNotNull(output.getGlobalGrid());
+
+    checkPublicGrids(toolContext);
+
+    // DistributedArrayMosaicPlot.showAsModalDialog(input.getDistributedArray(),
+    // "title");
 
     // figure out how many volumes there are
     // int numVols = veIO.getVolumeNumber();
@@ -153,7 +180,9 @@ public class ExampleStack extends StandAloneVolumeTool {
     // OR make a distributed array the size of the velocity model.
 
     // Create a new empty distributed array
-    DistributedArray eDA = new DistributedArray(toolContext.pc, int_lengths);
+    // DistributedArray eDA = new DistributedArray(toolContext.pc, int_lengths);
+
+    DistributedArray eDA = output.getDistributedArray();
 
     // The starting position volume
     int[] volumePosIndex = input.getVolumePosition();
@@ -165,21 +194,20 @@ public class ExampleStack extends StandAloneVolumeTool {
     // iterate over volumes
 
     for (int j = 0; j < totalVolumes; j++) {
-
       // set the new Volume Position
       volumePosIndex = input.getVolumePosition();
       volumePosIndex[3] = j;
 
-      System.out.println("Volume #" + Arrays.toString(volumePosIndex));
+      // System.out.println("Volume #" + Arrays.toString(volumePosIndex));
 
       DistributedArray inputDA = input.getDistributedArray();
       // System.out.println(inputDA.toString());
 
       GridDefinition volumeGrid = veIO.readVolumeGrid(volumePosIndex);
       // System.out.println(volumeGrid.toString());
-      
+
       int[] axis_order = veIO.getAxisOrder(volumePosIndex);
-      System.out.println("Axis: " + Arrays.toString(axis_order));
+      // System.out.println("Axis: " + Arrays.toString(axis_order));
 
       // Iterate over the Trace - Scope = 1
       DistributedArrayPositionIterator itrInputArr = new DistributedArrayPositionIterator(inputDA, volumePosIndex,
@@ -206,7 +234,7 @@ public class ExampleStack extends StandAloneVolumeTool {
         // Calculate the map for the velocityDistArray Position
         int[] veloPos = convertDataPosToVModelPos(pos, axis_order, velocityGrid, volumeGrid);
 
-        System.out.println("Velocity Index: " + Arrays.toString(veloPos));
+        // System.out.println("Velocity Index: " + Arrays.toString(veloPos));
 
         // put the proper traces into the eda
         eDA.getTrace(vmodbuf, veloPos);
