@@ -190,8 +190,18 @@ public class ExampleMigration extends StandAloneVolumeTool {
     PhaseShiftFFT3D rcvr = createReceiverFFT(toolContext,input);
     PhaseShiftFFT3D shot = createSourceFFT(rcvr);
 
-    PhaseShiftExtrapolator extrapR = new PhaseShiftExtrapolator(rcvr);
-    PhaseShiftExtrapolator extrapS = new PhaseShiftExtrapolator(shot);
+    //get any source/receiver XYZ, because we just need the depth.
+    //this position needs to be as big as the global grid, and have
+    //the right volume associated with it.  That's probably dumb.
+    //the checkgrids object should probably handle that sort of thing.
+    int[] gridPos = input.getVolumePosition();
+    double receiverDepth = gridFromHeaders.getReceiverXYZ(gridPos)[2];
+    double sourceDepth = gridFromHeaders.getSourceXYZ()[2];
+    
+    PhaseShiftExtrapolator extrapR =
+        new PhaseShiftExtrapolator(rcvr,receiverDepth);
+    PhaseShiftExtrapolator extrapS =
+        new PhaseShiftExtrapolator(shot,sourceDepth);
 
     // Initialize Imaging Condition
     ImagingCondition imagingCondition = new ImagingCondition(shot, rcvr,
@@ -276,10 +286,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     vmff.close();
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time", singleVolumeTime.total());
-    Assert.assertTrue((boolean) toolContext
-        .getFlowGlobal(ToolContext.HAS_INPUT));
-    Assert.assertTrue((boolean) toolContext
-        .getFlowGlobal(ToolContext.HAS_OUTPUT));
+    assert (boolean) toolContext.getFlowGlobal(ToolContext.HAS_INPUT);
+    assert (boolean) toolContext.getFlowGlobal(ToolContext.HAS_OUTPUT);
 
     {
       //plot to check
@@ -341,7 +349,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
   }
 
-  //TODO debugging code that allowd different treatment for volume 1
+  //TODO debugging code that allows different treatment for volume 1
   private boolean isFirstVolume(ISeismicVolume input) {
     return Arrays.equals(input.getVolumePosition(),
         new int[input.getVolumePosition().length]);
