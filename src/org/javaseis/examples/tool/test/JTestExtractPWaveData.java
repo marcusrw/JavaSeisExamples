@@ -48,17 +48,17 @@ public class JTestExtractPWaveData {
 
   }
 
-  @Test
+  //@Test
   public void testSingleThread() {
 
   }
 
-  @Test
+  //@Test
   public void testDoubleThread() {
 
   }
 
-  @Test
+  //@Test
   public void testTripleThread() {
 
   }

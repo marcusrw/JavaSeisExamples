@@ -2,6 +2,7 @@ package org.javaseis.source;
 
 import org.javaseis.grid.ICheckedGrid;
 import org.javaseis.imaging.PhaseShiftFFT3D;
+import org.junit.Assert;
 
 import beta.javaseis.distributed.DistributedArray;
 
@@ -15,6 +16,8 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot) {
     // Get the physical source
     this.physicalSourceXYZ = CheckedGrid.getSourceXYZ();
+    Assert.assertNotEquals("Source Depth should be 20",
+        0,this.physicalSourceXYZ[0]);
 
     // Get the Axis Order
     this.AXIS_ORDER = CheckedGrid.getAxisOrder();
@@ -59,8 +62,6 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
    * Converts the physical coordinates to Array Coordinates
    */
   public float[] covertPhysToArray(double[] sourceXYZ, ICheckedGrid CheckedGrid) {
-    //Correct
-    //System.out.println("[covertPhysToArray]: " + Arrays.toString(sourceXYZ));
 
     // output buffer
     float[] vS = new float[AXIS_ORDER.length];
@@ -75,16 +76,8 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   }
 
   private void generateSourceSignature(float[] sourceXYZ) {
-    //System.out.println("[generateSourceSignature]: " + Arrays.toString(sourceXYZ));
     if (sourceXYZ.length != 3)
       throw new IllegalArgumentException("Wrong number of elements for sourceXYZ");
-
-    //TODO: !!!!!THIS IS NOT CORRECT FIX IT AT SOME POINT!!!!!
-    if (sourceXYZ[2] > 0){
-      sourceXYZ[2] = 0;
-      System.out.println("Source Depth changed to: " + sourceXYZ[2]);
-      //throw new UnsupportedOperationException("Sources at Depths besides zero not yet implemented");
-    }
 
     int sourceX = (int) Math.floor(sourceXYZ[0]);
     while (sourceX < sourceXYZ[0] + 1) {
