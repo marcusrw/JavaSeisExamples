@@ -13,6 +13,7 @@ import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
+import org.junit.Assert;
 
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayMosaicPlot;
@@ -26,8 +27,8 @@ public class ExampleStack extends StandAloneVolumeTool {
   static ParameterService parms;
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    // String inputFileName = "seg45shot.js";
-    String inputFileName = "segshotno1.js";
+    String inputFileName = "seg45shot.js";
+    //String inputFileName = "segshotno1.js";
     String vModelFileName = "segsaltmodel.js";
     String outputFileName = "test.js";
     // parms = new FindTestData(inputFileName).getParameterService();
@@ -140,7 +141,10 @@ public class ExampleStack extends StandAloneVolumeTool {
     for (int j = 0; j < totalVolumes; j++) {
 
       // set the new Volume Position
+      volumePosIndex = input.getVolumePosition();
       volumePosIndex[3] = j;
+      
+      System.out.println("Volume #" + Arrays.toString(volumePosIndex));
 
       DistributedArray inputDA = input.getDistributedArray();
       // System.out.println(inputDA.toString());
@@ -160,7 +164,10 @@ public class ExampleStack extends StandAloneVolumeTool {
         System.out.println("Global Volume Grid: " + Arrays.toString(pos));
 
         // TODO: May not be true if not square
-        float[] buf = new float[inputDA.getShape()[1]];
+        float[] buf = new float[inputDA.getShape()[0]];
+        float[] vmodbuf = new float[eDA.getShape()[0]];
+        //Assert.assertEquals("Data trace and model trace are different lengths",
+         //   buf.length,vmodbuf.length);
 
         // get the trace from the input array at dataPos
         inputDA.getTrace(buf, pos);
@@ -171,7 +178,9 @@ public class ExampleStack extends StandAloneVolumeTool {
         System.out.println("Velocity Index: " + Arrays.toString(veloPos));
 
         // put the proper traces into the eda
-        eDA.putTrace(buf, veloPos);
+        eDA.getTrace(vmodbuf,veloPos);
+        vmodbuf = addSecondArgToFirst(vmodbuf,buf);
+        eDA.putTrace(vmodbuf, veloPos);
       }
 
     }
@@ -181,6 +190,15 @@ public class ExampleStack extends StandAloneVolumeTool {
     // let that output to a file by setting return to true
 
     return true;
+  }
+  
+  private float[] addSecondArgToFirst(float[] trace1,float[] trace2) {
+    Assert.assertTrue(trace1.length <= trace2.length);
+    float[] out = new float[trace1.length];
+    for (int k = 0 ; k < out.length ; k++) {
+      out[k] = trace1[k] + trace2[k];
+    }
+    return out;
   }
 
   private void checkOutputDAIsEmpty(ISeismicVolume input, ISeismicVolume output) {
