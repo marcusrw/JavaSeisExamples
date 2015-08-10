@@ -10,6 +10,8 @@ import javax.swing.*;
 
 public class ImageGenerator {
 	private static List<String> filetypes = Arrays.asList( ImageIO.getWriterFileSuffixes() );
+	private static int index = 0;
+	
 	
 	public static BufferedImage createImage(JComponent component)
 	{
@@ -75,14 +77,17 @@ public class ImageGenerator {
 		File X = new File(A);
 		int index = 0;
 		while (X.exists()){
+		  index++;
 			int offset2 = A.lastIndexOf("//");
 			String fileN = A.substring(0, offset2);
 			fileN += "//";
 			fileN += index;
+			fileN += ".";
 			fileN += Type;
-			index++;
+			//System.out.println(fileN);
 			X = new File(fileN);
 		}
+		
 		return X.getName();
 	}
 	
@@ -100,7 +105,17 @@ public class ImageGenerator {
 
 		String type = path.substring(offset + 1);
 		
-		genNewStr(path, type);
+		//System.out.println(path);
+		int offset2 = path.lastIndexOf("//");
+		
+		String strtoOffset = path.substring(0, offset2);
+		
+	  path = genNewStr(path, type);
+		
+	  strtoOffset += "//";
+	  strtoOffset += path;
+	  
+	  path = strtoOffset;
 		
 		if (filetypes.contains(type))
 		{
