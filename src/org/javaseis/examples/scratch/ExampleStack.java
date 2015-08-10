@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.VolumeEdgeIO;
+import org.javaseis.properties.AxisDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
@@ -43,8 +44,8 @@ public class ExampleStack extends StandAloneVolumeTool {
     IParallelContext pc = serialToolContext.pc;
 
     // Write the volume information to a file
-    // VolumeEdgeIO veIO = new VolumeEdgeIO(pc, serialToolContext);
-    // veIO.write();
+    VolumeEdgeIO veIO = new VolumeEdgeIO(pc, serialToolContext);
+    veIO.write();
 
   }
 
@@ -52,6 +53,56 @@ public class ExampleStack extends StandAloneVolumeTool {
   public void parallelInit(ToolContext toolContext) {
     // TODO Auto-generated method stub
 
+  }
+
+  /**
+   * Converts the dataPosition location and maps it to the VelocityModel Postion
+   * Location
+   * 
+   * @param dataPos
+   *          [?, ?, ?, ? ...]
+   * @param VeloGrid
+   *          The Velocity Model GridDefinition
+   * @param VolGrid
+   *          The Volume Model GridDefinition
+   * @return The mapping to the Velocity Model Location
+   */
+  public int[] convertDataPosToVModelPos(int[] dataPos, GridDefinition VeloGrid, GridDefinition VolGrid) {
+    int[] vModelPos = new int[dataPos.length];
+
+    // calculate the trace-axis maps only
+    // don't care about the time axis as we are setting actual traces
+    vModelPos[0] = 0;
+
+    // Ex: Axis Index = 1 - CrossLine Axis
+    // Axis Index = 2 - Inline Axis
+    for (int i = 1; i < dataPos.length - 1; i++) {
+      // One Axis from Volume
+      AxisDefinition VolumeAxis = VolGrid.getAxis(i);
+      // Same Axis from Velocity Model
+      AxisDefinition VelocityAxis = VeloGrid.getAxis(i);
+
+      // data physical origin + data delta * index data - velocity model
+      // physical origin
+      double DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[i]
+          - VelocityAxis.getPhysicalOrigin();
+
+      vModelPos[i] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
+    }
+
+    // TODO:
+    // Set the Volume to nth index
+    vModelPos[3] = dataPos[3];
+
+    return vModelPos;
+  }
+
+  private int[] convertLongArrayToIntArray(long[] A) {
+    int[] B = new int[A.length];
+    for (int i = 0; i < A.length; i++) {
+      B[i] = (int) A[i];
+    }
+    return B;
   }
 
   @Override
@@ -63,50 +114,69 @@ public class ExampleStack extends StandAloneVolumeTool {
     // int numVols = veIO.getVolumeNumber();
     VolumeEdgeIO veIO = new VolumeEdgeIO(toolContext.pc, toolContext);
 
-    // make a distributed array big enough to fit all of them
-    // OR make a distributed array the size of the velocity model.
-
-    // Create a new empty distributed array
-    output.getDistributedArray().zeroCompletely();
-
-    // Check that what you've got so far is empty
-    // you may or may not have to set the output GlobalGrid at some point.
-    checkOutputDAIsEmpty(input, output);
-
-    DistributedArray eDA = (DistributedArray) output.getDistributedArray().clone();
-
     // Read the velocity model
     GridDefinition velocityGrid = veIO.readVelocityGrid();
     // System.out.println(velocityGrid.toString());
 
-    // Read volume grid at position ?
-    int[] volPos = new int[] { 0, 0, 0, 0 };
-    // int[] AxisOrder = veIO.getAxisOrder(volPos);
-    // System.out.println(Arrays.toString(AxisOrder));
-    GridDefinition volumeGrid = veIO.readVolumeGrid(volPos);
-    // System.out.println(volumeGrid.toString());
+    long[] long_lengths = velocityGrid.getAxisLengths();
+
+    int[] int_lengths = convertLongArrayToIntArray(long_lengths);
+
+    // make a distributed array big enough to fit all of them
+    // OR make a distributed array the size of the velocity model.
+
+    // Create a new empty distributed array
+    DistributedArray eDA = new DistributedArray(toolContext.pc, int_lengths);
+
+    // The starting position volume
+    int[] volumePosIndex = input.getVolumePosition();
+    // int[] volPos = new int[] { 0, 0, 0, 0 };
 
     int totalVolumes = veIO.getTotalVolumes();
     // System.out.println(totalVolumes);
 
-    // Read the data into that new distributed array in the right place.
-    // (trace iterator would work here - but check that the traces aren't
-    // too long)
+    // iterate over volumes
 
-    int[] volumePosIndex = input.getVolumePosition();
+    for (int j = 0; j < totalVolumes; j++) {
 
-    // Iterate over the Trace - Scope = 1
-    DistributedArrayPositionIterator itrInputArr = new DistributedArrayPositionIterator(input.getDistributedArray(),
-        volumePosIndex, DistributedArrayPositionIterator.FORWARD, 1);
+      // set the new Volume Position
+      volumePosIndex[3] = j;
 
-    while (itrInputArr.hasNext()) {
+      DistributedArray inputDA = input.getDistributedArray();
+      // System.out.println(inputDA.toString());
 
-      //get the sample from the input array
-      
-      //put the proper traces into the eda
-      
+      GridDefinition volumeGrid = veIO.readVolumeGrid(volumePosIndex);
+      // System.out.println(volumeGrid.toString());
+
+      // Iterate over the Trace - Scope = 1
+      DistributedArrayPositionIterator itrInputArr = new DistributedArrayPositionIterator(inputDA, volumePosIndex,
+          DistributedArrayPositionIterator.FORWARD, 1);
+
+      while (itrInputArr.hasNext()) {
+
+        // int[] pos = itrInputArr.getPosition();
+        int[] pos = itrInputArr.next();
+
+        System.out.println("Global Volume Grid: " + Arrays.toString(pos));
+
+        // TODO: May not be true if not square
+        float[] buf = new float[inputDA.getShape()[1]];
+
+        // get the trace from the input array at dataPos
+        inputDA.getTrace(buf, pos);
+
+        // Calculate the map for the velocityDistArray Position
+        int[] veloPos = convertDataPosToVModelPos(pos, velocityGrid, volumeGrid);
+
+        System.out.println("Velocity Index: " + Arrays.toString(veloPos));
+
+        // put the proper traces into the eda
+        eDA.putTrace(buf, veloPos);
+      }
 
     }
+
+    DistributedArrayMosaicPlot.showAsModalDialog(eDA, "Velo");
 
     // let that output to a file by setting return to true
 
@@ -138,15 +208,16 @@ public class ExampleStack extends StandAloneVolumeTool {
     }
   }
 
-  private boolean distributedArrayIsEmpty(DistributedArray da) {
-    int[] position = new int[da.getShape().length];
+  private boolean distributedArrayIsEmpty(DistributedArray distributedArray) {
+    int[] position = new int[distributedArray.getShape().length];
     int direction = 1; // forward
     int scope = 0; // sample scope
-    float[] buffer = new float[da.getElementCount()];
-    DistributedArrayPositionIterator dapi = new DistributedArrayPositionIterator(da, position, direction, scope);
+    float[] buffer = new float[distributedArray.getElementCount()];
+    DistributedArrayPositionIterator dapi = new DistributedArrayPositionIterator(distributedArray, position, direction,
+        scope);
     while (dapi.hasNext()) {
       position = dapi.next();
-      da.getSample(buffer, position);
+      distributedArray.getSample(buffer, position);
       for (float element : buffer) {
         if (element != 0) {
           LOGGER.info("DA is not empty at position: " + Arrays.toString(position));
