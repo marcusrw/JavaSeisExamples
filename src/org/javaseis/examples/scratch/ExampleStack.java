@@ -70,6 +70,8 @@ public class ExampleStack extends StandAloneVolumeTool {
    */
   public int[] convertDataPosToVModelPos(int[] dataPos, GridDefinition VeloGrid, GridDefinition VolGrid) {
     int[] vModelPos = new int[dataPos.length];
+    
+    int[] V_MODEL_AXIS_ORDER = {2,1,0};
 
     // calculate the trace-axis maps only
     // don't care about the time axis as we are setting actual traces
