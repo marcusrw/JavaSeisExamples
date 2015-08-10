@@ -193,12 +193,10 @@ public class ExampleMigration extends StandAloneVolumeTool {
     //get any source/receiver XYZ, because we just need the depth.
     //this position needs to be as big as the global grid, and have
     //the right volume associated with it.  That's probably dumb.
+    //the checkgrids object should probably handle that sort of thing.
     int[] gridPos = input.getVolumePosition();
     double receiverDepth = gridFromHeaders.getReceiverXYZ(gridPos)[2];
     double sourceDepth = gridFromHeaders.getSourceXYZ()[2];
-    LOGGER.info(String.format("Receiver depth: %5.1f.",receiverDepth));
-    LOGGER.info(String.format("Source Depth: %5.1f.",sourceDepth));
-    Assert.fail();
     
     PhaseShiftExtrapolator extrapR =
         new PhaseShiftExtrapolator(rcvr,receiverDepth);
