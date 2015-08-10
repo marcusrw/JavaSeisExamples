@@ -8,7 +8,6 @@ import java.util.logging.Logger;
 import org.javaseis.io.Seisio;
 import org.javaseis.array.MultiArray;
 import org.javaseis.examples.plot.JavaSeisMovieRunner;
-import org.javaseis.examples.plot.test.JTestDistributedArrayViewer;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
@@ -31,7 +30,7 @@ import edu.mines.jtk.util.ArrayMath;
 public class ExampleRandomDataset {
 
   private static final Logger LOGGER =
-      Logger.getLogger(JTestDistributedArrayViewer.class.getName());  
+      Logger.getLogger(ExampleRandomDataset.class.getName());  
 
   private static final int DEFAULT_NUM_DIMENSIONS = 5;
   public static final String defaultPath = defaultDataLocation();

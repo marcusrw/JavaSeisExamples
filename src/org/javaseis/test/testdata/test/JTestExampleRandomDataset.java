@@ -7,7 +7,6 @@ import java.util.logging.Logger;
 
 import org.javaseis.array.IMultiArray;
 import org.javaseis.array.MultiArray;
-import org.javaseis.examples.plot.test.JTestDistributedArrayViewer;
 import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.util.SeisException;
 import org.junit.After;
@@ -16,9 +15,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class JTestExampleRandomDataset {
-  
+
   private static final Logger LOGGER =
-      Logger.getLogger(JTestDistributedArrayViewer.class.getName());
+      Logger.getLogger(JTestExampleRandomDataset.class.getName());
 
   private ExampleRandomDataset dataset;
   private MultiArray workFrame;
@@ -172,9 +171,9 @@ public class JTestExampleRandomDataset {
     }
     return false; //if every element is zero.
   }
-  
+
   private boolean floatEqualsZero(float f) {
     return Float.floatToRawIntBits(f) == 0;
   }
-  
+
 }

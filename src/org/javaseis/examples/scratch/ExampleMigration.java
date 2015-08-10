@@ -260,7 +260,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
       logTimerOutput("Source Extrapolator Time: ",
           extrapS.getExtrapolationTime());
 
-      LOGGER.info("Extrapolation finished");
+      LOGGER.info("Extrapolation finished for depth " + depth);
 
       extrapR.transformFromWavenumberToSpace();
       extrapS.transformFromWavenumberToSpace();
@@ -388,8 +388,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int scope = 1; // traces
 
     DistributedArrayPositionIterator dapi;
-    dapi = new DistributedArrayPositionIterator(vModelWindowed, position,
-        direction, scope);
+    dapi = new DistributedArrayPositionIterator(
+        vModelWindowed, position,direction, scope);
 
     while (dapi.hasNext()) {
       position = dapi.next();
@@ -414,7 +414,8 @@ public class ExampleMigration extends StandAloneVolumeTool {
     Assert.assertNotNull("ParallelContext is null", pc);
     Assert.assertNotNull("Input Shape is null", inputShape);
     Assert.assertNotNull("Pad is null", pad);
-    PhaseShiftFFT3D rcvr = new PhaseShiftFFT3D(pc, inputShape, pad, FFT_ORIENTATION);
+    PhaseShiftFFT3D rcvr = new PhaseShiftFFT3D(pc, inputShape, pad,
+        FFT_ORIENTATION);
 
     // copy the receiver data into the rcvr object
     rcvr.getArray().copy(input.getDistributedArray());
@@ -483,8 +484,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
 
     // override the default behaviour if we're working on the test data
-    // which
-    // has no header information.
+    // which has no header information.
     if (usingTestData(toolContext)) {
       vmff = new VelocityInDepthModel(new double[] { 0, 1000, 2000 },
           new double[] { 2000, 3800 });
