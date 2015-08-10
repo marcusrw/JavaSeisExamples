@@ -63,33 +63,50 @@ public class ExampleStack extends StandAloneVolumeTool {
     // int numVols = veIO.getVolumeNumber();
     VolumeEdgeIO veIO = new VolumeEdgeIO(toolContext.pc, toolContext);
 
-    // int numVol = veIO.readVolume();
-
-    // System.out.println(numVol);
-
-    // make an array of somethings to store the grid properties from vEdge
-
     // make a distributed array big enough to fit all of them
     // OR make a distributed array the size of the velocity model.
 
-    GridDefinition veloGrid = veIO.readVelocityGrid();
-    System.out.println(veloGrid.toString());
-    int[] vNm = new int[] { 0, 0, 0, 1 };
-
-    // int[] AxisOrder = veIO.getAxisOrder(vNm);
-    // System.out.println(Arrays.toString(AxisOrder));
-
-    GridDefinition volGrid = veIO.readVolumeGrid(vNm);
-    System.out.println(volGrid.toString());
-    // the somethings are something like a physicalOrigin/Delta pair I guess?
+    // Create a new empty distributed array
+    output.getDistributedArray().zeroCompletely();
 
     // Check that what you've got so far is empty
     // you may or may not have to set the output GlobalGrid at some point.
     checkOutputDAIsEmpty(input, output);
 
+    DistributedArray eDA = (DistributedArray) output.getDistributedArray().clone();
+
+    // Read the velocity model
+    GridDefinition velocityGrid = veIO.readVelocityGrid();
+    // System.out.println(velocityGrid.toString());
+
+    // Read volume grid at position ?
+    int[] volPos = new int[] { 0, 0, 0, 0 };
+    // int[] AxisOrder = veIO.getAxisOrder(volPos);
+    // System.out.println(Arrays.toString(AxisOrder));
+    GridDefinition volumeGrid = veIO.readVolumeGrid(volPos);
+    // System.out.println(volumeGrid.toString());
+
+    int totalVolumes = veIO.getTotalVolumes();
+    // System.out.println(totalVolumes);
+
     // Read the data into that new distributed array in the right place.
     // (trace iterator would work here - but check that the traces aren't
     // too long)
+
+    int[] volumePosIndex = input.getVolumePosition();
+
+    // Iterate over the Trace - Scope = 1
+    DistributedArrayPositionIterator itrInputArr = new DistributedArrayPositionIterator(input.getDistributedArray(),
+        volumePosIndex, DistributedArrayPositionIterator.FORWARD, 1);
+
+    while (itrInputArr.hasNext()) {
+
+      //get the sample from the input array
+      
+      //put the proper traces into the eda
+      
+
+    }
 
     // let that output to a file by setting return to true
 
@@ -113,7 +130,7 @@ public class ExampleStack extends StandAloneVolumeTool {
       }
     }
 
-    output.getDistributedArray().zeroCompletely();
+    // output.getDistributedArray().zeroCompletely();
 
     // Make sure the output DA is empty.
     if (!distributedArrayIsEmpty(output.getDistributedArray())) {

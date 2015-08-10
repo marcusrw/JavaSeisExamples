@@ -29,7 +29,9 @@ import beta.javaseis.parallel.IParallelContext;
 
 public class VolumeEdgeIO {
 
-  private int volumeNumber = 0; // Start at 0 volume
+  // This is the file number which is the equivalent of
+  private static int fileNumber = 0;
+
   private ToolContext toolContext;
   private String originalPN;
   private IDistributedIOService ipio = null;
@@ -85,16 +87,27 @@ public class VolumeEdgeIO {
   }
 
   // Generate the file path for each volume
-  // Change volumeNumber to static if you want this functionallity
-  private String generateNextPath() {
+  private String generateNextPath(boolean isWriter) {
     // take the original file path and set it to the new one
     String newPN = originalPN;
+    int oldFileNumber = 0;
 
     // the VolNum
-    newPN += volumeNumber;
+    if (!isWriter) {
+      // check if fileNumber is 0
+      if (fileNumber > 0) {
+        oldFileNumber = fileNumber - 1;
+      } else {
+        oldFileNumber = 0;
+      }
+      newPN += oldFileNumber;
+    }
 
-    // Inc in writeGridInfo
-    // volumeNumber++;
+    if (isWriter) {
+      // Next write will be vEdge0 -> vEdge1 ...
+      newPN += oldFileNumber;
+      fileNumber++;
+    }
 
     // Make it a txt file
     newPN += ".txt";
@@ -173,8 +186,6 @@ public class VolumeEdgeIO {
     // ] ");
     out.println("<VelocityGridstr>\n" + vmodelGrid.toString());
     out.println("<VelocityGridend>");
-
-    // volumeNumber++;
   }
 
   private void initalizeWriter() {
@@ -183,7 +194,7 @@ public class VolumeEdgeIO {
       f.delete();
     }
     try {
-      FileWriter fWrtr = new FileWriter(generateNextPath());
+      FileWriter fWrtr = new FileWriter(generateNextPath(true));
       out = new PrintWriter(fWrtr);
     } catch (IOException e) {
       // TODO Auto-generated catch block
@@ -200,6 +211,8 @@ public class VolumeEdgeIO {
   // Write to external file
   public void write() {
     initalizeWriter();
+
+    int totalVols = 0;
 
     // Write the Volume Information to the file
     try {
@@ -226,16 +239,19 @@ public class VolumeEdgeIO {
       // Write the Grid Information to the file
       writeGridInformation(out);
 
-      // for Readability
-      out.println(" ");
+      totalVols++;
     }
+
+    out.println("<TotalVolumes>");
+    // write totalVols to file
+    out.println("Total Volumes = " + totalVols);
 
     closeWriter();
   }
 
   private void initalizeReader() {
     try {
-      FiletoRead = new FileReader(generateNextPath());
+      FiletoRead = new FileReader(generateNextPath(false));
       bufRead = new BufferedReader(FiletoRead);
     } catch (FileNotFoundException e) {
       // TODO Auto-generated catch block
@@ -256,41 +272,6 @@ public class VolumeEdgeIO {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-  }
-
-  /**
-   * This function read the total number of volumes
-   * 
-   * @return Total Number of Volumes
-   */
-  public int readVolume() {
-    initalizeReader();
-
-    String myLine = null;
-    int vNum = 0;
-    try {
-      while ((myLine = bufRead.readLine()) != null) {
-
-        String[] array1 = myLine.split(" ");
-
-        // System.out.println(Arrays.toString(array1));
-        for (int i = 0; i < array1.length; i++) {
-          if (array1[i].equalsIgnoreCase("VolumeNum")) {
-            vNum = Integer.parseInt(array1[4]);
-          }
-        }
-      }
-
-    } catch (NumberFormatException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-
-    closeReader();
-    return vNum;
   }
 
   private int[] strArrayToIntArray(String[] A) {
@@ -543,6 +524,44 @@ public class VolumeEdgeIO {
       closeReader();
     }
     return null;
+  }
+
+  @SuppressWarnings("finally")
+  public int getTotalVolumes() {
+    initalizeReader();
+    String myLine = null;
+    int totalVolumes = 0;
+
+    try {
+      while ((myLine = bufRead.readLine()) != null) {
+        String[] array1 = myLine.split(" ");
+        String[] array2 = "<TotalVolumes>".split(" ");
+
+        //System.out.println(myLine);
+
+        // numOfDims to be loaded
+        for (int i = 0, j = 0; i < array1.length && j < array2.length; i++, j++) {
+          if (array1[i].equalsIgnoreCase(array2[j])) {
+            // First line of file
+            myLine = bufRead.readLine();
+            // Second line is the start of our Velocity Grid Def
+            String[] secondLineArray = myLine.split("=");
+            String numberVolStr = secondLineArray[1].replace(" ", "");
+            totalVolumes = Integer.parseInt(numberVolStr);
+          }
+        }
+      }
+
+    } catch (NumberFormatException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    } finally {
+      closeReader();
+      return totalVolumes;
+    }
   }
 
   private AxisLabel covertStringtoAxisLabel(String string) {
