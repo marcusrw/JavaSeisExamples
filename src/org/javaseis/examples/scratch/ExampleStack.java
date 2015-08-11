@@ -27,8 +27,8 @@ public class ExampleStack extends StandAloneVolumeTool {
   static ParameterService parms;
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    // String inputFileName = "seg45shot.js";
-    String inputFileName = "segshotno1.js";
+    String inputFileName = "seg45image.js";
+    //String inputFileName = "segshotno1.js";
     String vModelFileName = "segsaltmodel.js";
     String outputFileName = "test.js";
     // parms = new FindTestData(inputFileName).getParameterService();
@@ -193,10 +193,8 @@ public class ExampleStack extends StandAloneVolumeTool {
 
     // iterate over volumes
 
-    for (int j = 0; j < totalVolumes; j++) {
       // set the new Volume Position
       volumePosIndex = input.getVolumePosition();
-      volumePosIndex[3] = j;
 
       // System.out.println("Volume #" + Arrays.toString(volumePosIndex));
 
@@ -240,11 +238,9 @@ public class ExampleStack extends StandAloneVolumeTool {
         eDA.getTrace(vmodbuf, veloPos);
         vmodbuf = addSecondArgToFirst(vmodbuf, buf);
         eDA.putTrace(vmodbuf, veloPos);
-      }
-
     }
 
-    DistributedArrayMosaicPlot.showAsModalDialog(eDA, "Velo");
+    //DistributedArrayMosaicPlot.showAsModalDialog(eDA, "Velo");
 
     // let that output to a file by setting return to true
 
