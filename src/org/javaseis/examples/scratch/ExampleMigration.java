@@ -197,7 +197,7 @@ public class ExampleMigration extends StandAloneVolumeTool {
     int[] gridPos = input.getVolumePosition();
     double receiverDepth = gridFromHeaders.getReceiverXYZ(gridPos)[2];
     double sourceDepth = gridFromHeaders.getSourceXYZ()[2];
-    
+
     PhaseShiftExtrapolator extrapR =
         new PhaseShiftExtrapolator(rcvr,receiverDepth);
     PhaseShiftExtrapolator extrapS =
@@ -254,8 +254,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
           + "  Velocity is %5.1f", depth, velocity));
 
       extrapR.reverseExtrapolate((float) velocity, delz, zindx, fMax);
-      logTimerOutput("Receiver Extrapolator Time: ",
-          extrapR.getExtrapolationTime());
       extrapS.forwardExtrapolate((float) velocity, delz, zindx, fMax);
       logTimerOutput("Source Extrapolator Time: ",
           extrapS.getExtrapolationTime());
@@ -264,6 +262,13 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       extrapR.transformFromWavenumberToSpace();
       extrapS.transformFromWavenumberToSpace();
+      
+      extrapR.reverseThinLens(windowedSlice,velocity,delz);
+      logTimerOutput("Receiver Extrapolator Time: ",
+          extrapR.getExtrapolationTime());
+      extrapS.forwardThinLens(windowedSlice,velocity,delz);
+      logTimerOutput("Source Extrapolator Time: ",
+          extrapS.getExtrapolationTime());
 
       {
         //TODO test code - plot to check

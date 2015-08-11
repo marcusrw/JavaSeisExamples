@@ -1,5 +1,6 @@
 package org.javaseis.imaging;
 
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.javaseis.util.IntervalTimer;
@@ -41,15 +42,15 @@ public class PhaseShiftExtrapolator {
 
   public void forwardExtrapolate(float velocity,double delz,
       int zindx,double fMax) {
-    extrapolate(velocity,delz,zindx,fMax,EXTRAP_FORWARD);
+    phaseShift(velocity,delz,zindx,fMax,EXTRAP_FORWARD);
   }
 
   public void reverseExtrapolate(float velocity,double delz,
       int zindx,double fMax) {
-    extrapolate(velocity,delz,zindx,fMax,EXTRAP_REVERSE);
+    phaseShift(velocity,delz,zindx,fMax,EXTRAP_REVERSE);
   }
 
-  public void extrapolate(float velocity,double delz,
+  public void phaseShift(float velocity,double delz,
       int zindx,double fMax,int direction) {
     extrapTime.start();
 
@@ -148,6 +149,81 @@ public class PhaseShiftExtrapolator {
     if (!wavefield.isTimeTransformed() && !wavefield.isSpaceTransformed())
       return "TXY";
     throw new NullPointerException("This shouldn't happen");
+  }
+
+  public void thinLens(double[][] velocitySlice,
+      double avgVelocity, double delz, int direction) {
+
+    extrapTime.start();
+    //verify FXY domain
+    if (getDomain() != "FXY") {
+      throw new IllegalStateException("You can only apply the thinLens "
+          + "term in the FXY domain");
+    }
+
+    //compute the time shift
+    double[][] timeShift = computeTimeShift(velocitySlice, avgVelocity, delz);
+
+    //Iterate over positions
+    int arrayNumDimensions = wavefield.getShape().length;
+
+    int[] position = new int[arrayNumDimensions];
+    float[] sampleIn = new float[arrayNumDimensions];
+    float[] sampleOut = new float[arrayNumDimensions];
+    DistributedArray wavefieldDA = wavefield.getArray();
+    DistributedArrayPositionIterator dapi =
+        new DistributedArrayPositionIterator(
+            wavefieldDA,position,ITERATE_FORWARD,SAMPLE_SCOPE);
+
+    while (dapi.hasNext()) {
+      position = dapi.next();
+      wavefieldDA.getSample(sampleIn, position);
+      double frequency = wavefield.getFrequencyForPosition(position);
+      //System.out.println("Position: " + Arrays.toString(position));
+      //System.out.println("Frequency: " + frequency);
+      int tracePosition = position[1];
+      int framePosition = position[2];
+
+      //skip if we're over the data threshold.
+      //TODO put this back when you have a proper band limited source.
+      //if (frequency > fMax) continue;
+
+      double exponent = 2*Math.PI*frequency*
+          timeShift[tracePosition][framePosition];
+
+      //TODO use complex math methods instead of doing it manually
+      sampleOut[0] = (float) (sampleIn[0]*Math.cos(direction*exponent)
+          - sampleIn[1]*Math.sin(direction*exponent));
+      sampleOut[1] = (float) (sampleIn[1]*Math.cos(direction*exponent)
+          + sampleIn[0]*Math.sin(direction*exponent));
+
+      wavefieldDA.putSample(sampleOut, position);
+    }
+    extrapTime.stop();
+  }
+
+  private double[][] computeTimeShift(double[][] velocitySlice, double avgVelocity,
+      double delz) {
+    int traceSize = velocitySlice.length;
+    int frameSize = velocitySlice[0].length;
+    double[][] timeShift = new double[traceSize][frameSize];
+    for (int trace = 0 ; trace < traceSize ; trace++) {
+      for (int frame = 0 ; frame < frameSize ; frame++) {
+        timeShift[trace][frame] = 
+            delz/velocitySlice[trace][frame] - delz/avgVelocity;
+      }
+    }
+    return timeShift;
+  }
+
+  public void reverseThinLens(double[][] windowedSlice, double velocity,
+      double delz) {
+    thinLens(windowedSlice,velocity,delz,EXTRAP_REVERSE);
+  }
+
+  public void forwardThinLens(double[][] windowedSlice, double velocity,
+      double delz) {
+    thinLens(windowedSlice,velocity,delz,EXTRAP_FORWARD);
   }
 
 }
