@@ -36,6 +36,9 @@ public class VelocityInDepthModel implements IVelocityModel {
   public void open(String openMode) {
     // Does nothing, as there is no file to open.
   }
+  
+  @Override
+  public void debugPrint() {}
 
   @Override
   public void orientSeismicVolume(GridDefinition seismicVolumeGrid,

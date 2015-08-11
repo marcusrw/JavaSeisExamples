@@ -16,6 +16,8 @@ public interface IVelocityModel {
       int[] axisOrder);
 
   public abstract void close();
+  
+  public abstract void debugPrint();
 
   public abstract long[] getVModelGridLengths();
 

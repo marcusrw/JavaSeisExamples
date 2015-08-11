@@ -43,6 +43,40 @@ public class VelocityModelFromFile implements IVelocityModel {
 
   //TODO TEST IDEA: Pass in a model and seismic volume with different grid
   //                spacings.  You expect an ArithmeticException.
+  
+  public void debugPrint() {
+    System.out.println("Seismic Volume information: ");
+    System.out.println(volumeGrid.toString());
+    
+    int[] pos = {0,0,0};
+    System.out.print("Velocity Model Position for data "
+        + Arrays.toString(pos) + ": ");
+    int[] vModelIndx =
+        mapSeimicVolumeIndexToVelocityVolumeIndex(pos);
+    System.out.println(Arrays.toString(vModelIndx));
+    System.out.print("Physical Location: ");
+    System.out.println(Arrays.toString(modelXYZForIndex(vModelIndx)));
+    
+    pos[1] = (int)volumeGrid.getAxisLength(1)-1;
+    System.out.print("Velocity Model Position for data "
+        + Arrays.toString(pos) + ": ");
+    vModelIndx =
+        mapSeimicVolumeIndexToVelocityVolumeIndex(pos);
+    System.out.println(Arrays.toString(vModelIndx));
+    System.out.print("Physical Location: ");
+    System.out.println(Arrays.toString(modelXYZForIndex(vModelIndx)));
+    pos[1] = 0;
+    
+    pos[2] = (int)volumeGrid.getAxisLength(2)-1;
+    System.out.print("Velocity Model Position for data "
+        + Arrays.toString(pos) + ": ");
+    vModelIndx =
+        mapSeimicVolumeIndexToVelocityVolumeIndex(pos);
+    System.out.println(Arrays.toString(vModelIndx));
+    System.out.print("Physical Location: ");
+    System.out.println(Arrays.toString(modelXYZForIndex(vModelIndx)));
+    pos[2] = 0;
+  }
 
   public VelocityModelFromFile(IParallelContext pc,String folder,String file)
       throws FileNotFoundException {
@@ -226,7 +260,7 @@ public class VelocityModelFromFile implements IVelocityModel {
             + "mathematical integer.  Some interpolation is called for here, "
             + "(Not implemented)");
       }
-      vModelIndex[k] = (int)vModelIndexD;
+      vModelIndex[vIndx] = (int)vModelIndexD;
     }
     return vModelIndex;
   }
@@ -238,10 +272,10 @@ public class VelocityModelFromFile implements IVelocityModel {
     double[] vmodelGridDeltas = getVModelGridDeltas();
 
     double[] modelXYZ = new double[VOLUME_NUM_AXES];
-    for (int k = 0 ; k < modelXYZ.length ; k++) {
-      int gridIndex = AXIS_ORDER[k];
-      modelXYZ[k] = vmodelGridOrigins[gridIndex]
-          + vmodelGridDeltas[gridIndex]*vModelPositionIndex[k];
+    for (int xyzIndx = 0 ; xyzIndx < modelXYZ.length ; xyzIndx++) {
+      int gridIndex = AXIS_ORDER[xyzIndx];
+      modelXYZ[xyzIndx] = vmodelGridOrigins[gridIndex]
+          + vmodelGridDeltas[gridIndex]*vModelPositionIndex[gridIndex];
     }
 
     return modelXYZ;
@@ -347,22 +381,22 @@ public class VelocityModelFromFile implements IVelocityModel {
     return depthSlice;
   }
 
-  private long[] convertLocationToArrayIndex(double[] location) {
+  private long[] convertLocationToArrayIndex(double[] stfLocation) {
     double[] vModelOrigin = getVModelGridOrigins();
     double[] vModelDeltas = getVModelGridDeltas();
 
     long[] posIndx = new long[VOLUME_NUM_AXES];
-    for (int k = 0 ; k < VOLUME_NUM_AXES ; k++) {
-      double doubleIndex = (location[k] - vModelOrigin[k])/vModelDeltas[k];
+    for (int xyzIndex = 0 ; xyzIndex < VOLUME_NUM_AXES ; xyzIndex++) {
+      double doubleIndex = (stfLocation[xyzIndex] - vModelOrigin[xyzIndex])/vModelDeltas[xyzIndex];
       if (doubleIndex != Math.rint(doubleIndex)) {
         LOGGER.info("Index: " + doubleIndex);
         LOGGER.info("Nearest Integer: " + Math.rint(doubleIndex));
         throw new ArithmeticException("Got an noninteger array index");
       }
-      posIndx[k] = (int)Math.rint(doubleIndex);
+      posIndx[xyzIndex] = (int)Math.rint(doubleIndex);
     }
     LOGGER.fine("Array index for position: "
-        + Arrays.toString(location) + " is " 
+        + Arrays.toString(stfLocation) + " is " 
         + Arrays.toString(posIndx));
     return posIndx;
   }
