@@ -725,10 +725,6 @@ public class PhaseShiftFFT3D implements Transformable3D {
   public void getTXYCoordinatesForPosition(int[] position, double[] buf) {
   }
 
-  //TODO implement
-  public void getFXYCoordinatesForPosition(int[] position,double[] buf) {
-  }
-
   /**
    * Converts array indices to physical (Ky, Kx, F) coordinates (cycles/ft and
    * cycles/sec, for example).
@@ -739,6 +735,9 @@ public class PhaseShiftFFT3D implements Transformable3D {
    */
   public void getKyKxFCoordinatesForPosition(int[] position, double[] buf) {
     exceptionIfTXYareUnset();
+    if (!isTimeTransformed() || !isSpaceTransformed()) {
+      throw new IllegalStateException("Data is not in the KyKxF domain");
+    }
 
     int pos0 = position[0]; // Ky position
     int pos1 = position[1]; // Kx position
@@ -752,6 +751,22 @@ public class PhaseShiftFFT3D implements Transformable3D {
     buf[0] = pos0 / (timeDomainSampleRate[2] * fftLengths[2]);
     buf[1] = pos1 / (timeDomainSampleRate[1] * fftLengths[1]);
     buf[2] = pos2 / (timeDomainSampleRate[0] * fftLengths[0]);
+  }
+
+  public double getFrequencyForPosition(int[] position) {
+    exceptionIfNotInFXY();
+    int frequencyDimension = 0;
+    int frequencyPosition = position[frequencyDimension]; // F dimension
+    //System.out.println("FFTLengths: " + Arrays.toString(fftLengths));
+    return frequencyPosition / (timeDomainSampleRate[frequencyDimension]
+        * fftLengths[frequencyDimension]);
+  }
+
+  private void exceptionIfNotInFXY() {
+    if (!isTimeTransformed() || isSpaceTransformed()) {
+      throw new IllegalStateException("The thin lens term must be applied in the "
+          + "Frequency/Space domain");
+    }
   }
 
   private void exceptionIfTXYareUnset() {
