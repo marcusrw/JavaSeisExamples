@@ -43,11 +43,11 @@ public class VelocityModelFromFile implements IVelocityModel {
 
   //TODO TEST IDEA: Pass in a model and seismic volume with different grid
   //                spacings.  You expect an ArithmeticException.
-  
+
   public void debugPrint() {
     System.out.println("Seismic Volume information: ");
     System.out.println(volumeGrid.toString());
-    
+
     int[] pos = {0,0,0};
     System.out.print("Velocity Model Position for data "
         + Arrays.toString(pos) + ": ");
@@ -56,7 +56,7 @@ public class VelocityModelFromFile implements IVelocityModel {
     System.out.println(Arrays.toString(vModelIndx));
     System.out.print("Physical Location: ");
     System.out.println(Arrays.toString(modelXYZForIndex(vModelIndx)));
-    
+
     pos[1] = (int)volumeGrid.getAxisLength(1)-1;
     System.out.print("Velocity Model Position for data "
         + Arrays.toString(pos) + ": ");
@@ -66,7 +66,7 @@ public class VelocityModelFromFile implements IVelocityModel {
     System.out.print("Physical Location: ");
     System.out.println(Arrays.toString(modelXYZForIndex(vModelIndx)));
     pos[1] = 0;
-    
+
     pos[2] = (int)volumeGrid.getAxisLength(2)-1;
     System.out.print("Velocity Model Position for data "
         + Arrays.toString(pos) + ": ");
@@ -211,7 +211,7 @@ public class VelocityModelFromFile implements IVelocityModel {
   private double[] getVModelGridDeltas() {
     return vmodelGrid.getAxisPhysicalDeltas();
   }
-  
+
   public GridDefinition getVModelGrid() {
     return vmodelGrid;
   }
@@ -343,39 +343,57 @@ public class VelocityModelFromFile implements IVelocityModel {
     //TODO we need to know the axis orders in order to get this right.
     long[] depthIndex = convertLocationToArrayIndex(windowOrigin);
     //loop over window lengths
-    int xIndex = AXIS_ORDER[0];
-    int yIndex = AXIS_ORDER[1];
-    int zIndex = AXIS_ORDER[2];
+    int sampleDim = 0;
+    int traceDim = 1;
+    int frameDim = 2;
 
-    long x0 = depthIndex[xIndex];
-    long y0 = depthIndex[yIndex];
-    long z0 = depthIndex[zIndex];
+    int xDim = AXIS_ORDER[0];
+    int yDim = AXIS_ORDER[1];
+    int zDim = AXIS_ORDER[2];
+
+    long x0 = depthIndex[xDim];
+    long y0 = depthIndex[yDim];
+    long z0 = depthIndex[zDim];
 
     //TODO maybe this should be a float array
+    //this slice should be in the domain v[trace][frame] of the input data
     double[][] depthSlice =
-        new double[windowLength[xIndex]]
-            [windowLength[yIndex]];
+        new double[windowLength[traceDim]]
+            [windowLength[frameDim]];
 
     int[] pos = new int[VOLUME_NUM_AXES];
-    pos[zIndex] = (int)z0;
+    pos[zDim] = (int)z0;
     float[] buffer = new float[1];
 
     //This loop checks the sign of the seismic deltas but not the magnitude
     //TODO check and account for that at some point.
-    for (int xindx = 0 ; xindx < windowLength[xIndex] ; xindx++) {
-      if (getVolumeGridDeltas()[xIndex] < 0) {
+    for (int xindx = 0 ; xindx < windowLength[xDim] ; xindx++) {
+      if (getVolumeGridDeltas()[xDim] < 0) {
         pos[V_AXIS_ORDER[0]] = (int)(x0 - xindx);
       } else {
         pos[V_AXIS_ORDER[0]] = (int)(x0 + xindx);
       }
-      for (int yindx = 0 ; yindx < windowLength[yIndex] ; yindx++) {
-        if (getVolumeGridDeltas()[yIndex] < 0) {
+      for (int yindx = 0 ; yindx < windowLength[yDim] ; yindx++) {
+        if (getVolumeGridDeltas()[yDim] < 0) {
           pos[V_AXIS_ORDER[1]] = (int)(y0 - yindx);
         } else {
           pos[V_AXIS_ORDER[1]] = (int)(y0 + yindx);
         }
         vModelData.getSample(buffer,pos);
-        depthSlice[xindx][yindx] = buffer[0];
+        //TODO hackity hack hack
+        boolean written = false;
+        if ((xDim == traceDim) && (yDim == frameDim)) {
+          depthSlice[xindx][yindx] = buffer[0];
+          written = true;
+        }
+        if ((xDim == frameDim) && (yDim == traceDim)) {
+          depthSlice[yindx][xindx] = buffer[0];
+          written = true;
+        }
+        if (!written) {
+          throw new IllegalArgumentException("Unable to reconcile trace/frame "
+              + "with X/Y");
+        }
       }
     }
     return depthSlice;
