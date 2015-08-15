@@ -2,6 +2,7 @@ package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
 
+import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
@@ -20,7 +21,7 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
   static ParameterService parms;
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    String inputFileName = "twolayer.js";
+    String inputFileName = "seg45i2.js";
     parms = new FindTestData(inputFileName).getParameterService();
     ExampleSaveScreenshots.exec(parms,new ExampleSaveScreenshots());
   }
@@ -41,11 +42,13 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
   public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
       ISeismicVolume output) {
 
-    DistributedArrayMosaicPlot.showAsModalDialog(
-        input.getDistributedArray(),"title");
+    //DistributedArrayMosaicPlot.showAsModalDialog(
+      //input.getDistributedArray(),"title");
     
     //save a screenshot of each volume in the .js folder
-
+    DAFrontendViewer A = new DAFrontendViewer(input.getDistributedArray(), toolContext);
+    A.show("TEST");
+    
     return false;
   }
 
