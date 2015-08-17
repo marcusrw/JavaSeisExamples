@@ -1,12 +1,21 @@
 package org.javaseis.examples.scratch;
 
-import java.awt.*;
-import java.awt.image.*;
-import java.io.*;
+import java.awt.AWTException;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Robot;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Arrays;
-import javax.imageio.*;
-import javax.swing.*;
+import javax.imageio.ImageIO;
+import javax.swing.JComponent;
+import javax.swing.SwingUtilities;
 
 public class ImageGenerator {
   private static List<String> filetypes = Arrays.asList(ImageIO.getWriterFileSuffixes());
