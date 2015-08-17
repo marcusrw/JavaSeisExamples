@@ -21,8 +21,10 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
   static ParameterService parms;
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    String inputFileName = "seg45i2.js";
-    parms = new FindTestData(inputFileName).getParameterService();
+    String inputFileName = "segshotno1.js";
+    String outputFileName = "testimg.js";
+    parms = new FindTestData(inputFileName, outputFileName).getParameterService();
+    parms.setParameter("outputFileMode", "create");
     ExampleSaveScreenshots.exec(parms,new ExampleSaveScreenshots());
   }
 
