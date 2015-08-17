@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
+import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.VolumeEdgeIO;
 import org.javaseis.properties.AxisDefinition;
@@ -168,6 +169,7 @@ public class ExampleStack extends StandAloneVolumeTool {
 			toolContext.outputGrid = outputGrid;
 		}
 	}
+	
 
 	@Override
 	public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
@@ -258,7 +260,18 @@ public class ExampleStack extends StandAloneVolumeTool {
 		}
 
 		// DistributedArrayMosaicPlot.showAsModalDialog(eDA, "Velo");
-
+		DAFrontendViewer A = new DAFrontendViewer(eDA, toolContext);
+		
+		A.setSliders(338, 128, 1);
+		A.setClipRange(-30, 30);
+		A.setAmpFactor(1);
+		
+		A.show("TEST");
+		A = null;
+		eDA = null;
+		
+		
+		
 		// let that output to a file by setting return to true
 
 		return true;

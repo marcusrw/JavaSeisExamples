@@ -1152,6 +1152,9 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       _saveWindowSize = f.getSize();
 
       plot[0].getGlobalTraceAccessor().killWorkers(0);
+      
+      //gridPanel = null;
+      //mainPanel = null;
     }
   }
 

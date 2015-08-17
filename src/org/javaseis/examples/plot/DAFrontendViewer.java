@@ -37,7 +37,8 @@ public class DAFrontendViewer {
 
 	public DAFrontendViewer(DistributedArray A, ToolContext toolContext) {
 		this.A = A;
-		this.B = (DistributedArray) A.clone();
+		//Don't clone here you will run out of memory
+		this.B = A;
 		this.toolContext = toolContext;
 
 		// Set trivial zoom
