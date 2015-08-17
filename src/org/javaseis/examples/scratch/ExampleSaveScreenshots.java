@@ -25,7 +25,7 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
     String outputFileName = "testimg.js";
     parms = new FindTestData(inputFileName, outputFileName).getParameterService();
     parms.setParameter("outputFileMode", "create");
-    ExampleSaveScreenshots.exec(parms,new ExampleSaveScreenshots());
+    ExampleSaveScreenshots.exec(parms, new ExampleSaveScreenshots());
   }
 
   @Override
@@ -41,16 +41,25 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
   }
 
   @Override
-  public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
-      ISeismicVolume output) {
+  public boolean processVolume(ToolContext toolContext, ISeismicVolume input, ISeismicVolume output) {
 
-    //DistributedArrayMosaicPlot.showAsModalDialog(
-      //input.getDistributedArray(),"title");
-    
-    //save a screenshot of each volume in the .js folder
+    // DistributedArrayMosaicPlot.showAsModalDialog(
+    // input.getDistributedArray(),"title");
+
+    // save a screenshot of each volume in the .js folder
     DAFrontendViewer A = new DAFrontendViewer(input.getDistributedArray(), toolContext);
+
+    A.setSliders(75, 25, 100);
+
+    //To set ampFactor you must set the clip range
+    
+    A.setClipRange(-10, 10);
+    A.setAmpFactor(1.0f);
+    
     A.show("TEST");
     
+    A.show("TEST");
+
     return false;
   }
 

@@ -675,11 +675,10 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
     private static final long serialVersionUID = 1L;
 
-    private final static JTextField _ampScaleField = new JTextField(8);
-
-    private final static JTextField _ampClipMinField = new JTextField(8);
-
-    private final static JTextField _ampClipMaxField = new JTextField(8);
+    //Need to be able to change these but this is not the best option
+    private static JTextField _ampScaleField = new JTextField(8);
+    private static JTextField _ampClipMinField = new JTextField(8);
+    private static JTextField _ampClipMaxField = new JTextField(8);
 
     private final static JRadioButton _scaleFactorButton = new JRadioButton("Use amplitude scale factor:");
 
@@ -921,8 +920,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    * @param title
    *          JFrame title
    */
-  public static void showAsModalDialog(DistributedArray a, String title, ToolContext toolContext) {
-    showAsModalDialog(a, null, null, title, a.getParallelContext().rank(), -1, toolContext);
+  public static void showAsModalDialog(DistributedArray a, String title, ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+    showAsModalDialog(a, null, null, title, a.getParallelContext().rank(), -1, toolContext, sliderArray, clipRange, ampFactor);
   }
 
   /**
@@ -936,8 +935,9 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    * @param rank
    *          mpi task #
    */
-  public static void showAsModalDialog(DistributedArray a, String title, int rank, ToolContext toolContext) {
-    showAsModalDialog(a, null, null, title, rank, -1, toolContext);
+  public static void showAsModalDialog(DistributedArray a, String title, int rank, ToolContext toolContext,
+      int[] sliderArray, int [] clipRange, float ampFactor) {
+    showAsModalDialog(a, null, null, title, rank, -1, toolContext, sliderArray, clipRange, ampFactor);
   }
 
   /**
@@ -952,8 +952,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    */
   public static void showAsModalDialog(DistributedArray a, String title, int rank, int elementOffset,
-      ToolContext toolContext) {
-    showAsModalDialog(a, null, null, title, rank, elementOffset, toolContext);
+      ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+    showAsModalDialog(a, null, null, title, rank, elementOffset, toolContext, sliderArray, clipRange, ampFactor);
   }
 
   /**
@@ -972,11 +972,13 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    */
   public static void showAsModalDialog(DistributedArray a, long[] axisLogicalOrigins, long[] axisLogicalDeltas,
-      String title, int rank, ToolContext toolContext) {
-    showAsModalDialog(a, axisLogicalOrigins, axisLogicalDeltas, title, rank, -1, toolContext);
+      String title, int rank, ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+    showAsModalDialog(a, axisLogicalOrigins, axisLogicalDeltas, title, rank, -1, toolContext, sliderArray, clipRange, ampFactor);
   }
 
   /**
+   * Don't ever use this method directly use FrontendViewer
+   * 
    * Here's a static method to add a JFrame around a DistributedArrayMosaicPlot.
    * 
    * @param a
@@ -991,9 +993,11 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    * @param elementOffset
    *          use this element or, if negative, plot envelope amplitude
+   * @param toolContext
+   *          user specified params
    */
   public static void showAsModalDialog(DistributedArray a, long[] axisLogicalOrigins, long[] axisLogicalDeltas,
-      String title, int rank, int elementOffset, ToolContext toolContext) {
+      String title, int rank, int elementOffset, ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
 
     _plotCounter++;
 
@@ -1020,6 +1024,19 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
       plot[nviews] = new DABackendViewer(a, traceAccessor, ORIENTATION_FRAME, axisLogicalOrigins, axisLogicalDeltas,
           elementOffset);
+      if (sliderArray != null) {
+        plot[nviews]._slider.setValue(sliderArray[0]);
+      }
+      if (clipRange != null){
+        plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0], clipRange[1]);
+        Integer minC = clipRange[0];
+        Integer maxC = clipRange[1];
+        _myControlPanel._ampClipMinField.setText(minC.toString());
+        _myControlPanel._ampClipMaxField.setText(maxC.toString());
+        if (ampFactor != 1 && ampFactor > 0){
+          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0]/ampFactor, clipRange[1]/ampFactor);
+        }
+      }
       nviews++;
     }
     if (SHOW_CROSSFRAME_VIEW) {
@@ -1029,6 +1046,19 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
       plot[nviews] = new DABackendViewer(a, traceAccessor, ORIENTATION_CROSSFRAME, axisLogicalOrigins,
           axisLogicalDeltas, elementOffset);
+      if (sliderArray != null) {
+        plot[nviews]._slider.setValue(sliderArray[1]);
+      }
+      if (clipRange != null){
+        plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0], clipRange[1]);
+        Integer minC = clipRange[0];
+        Integer maxC = clipRange[1];
+        _myControlPanel._ampClipMinField.setText(minC.toString());
+        _myControlPanel._ampClipMaxField.setText(maxC.toString());
+        if (ampFactor != 1 && ampFactor > 0){
+          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0]/ampFactor, clipRange[1]/ampFactor);
+        }
+      }
       nviews++;
     }
     if (SHOW_SLICE_VIEW) {
@@ -1038,6 +1068,19 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
       plot[nviews] = new DABackendViewer(a, traceAccessor, ORIENTATION_SLICE, axisLogicalOrigins, axisLogicalDeltas,
           elementOffset);
+      if (sliderArray != null) {
+        plot[nviews]._slider.setValue(sliderArray[2]);
+      }
+      if (clipRange != null){
+        plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0], clipRange[1]);
+        Integer minC = clipRange[0];
+        Integer maxC = clipRange[1];
+        _myControlPanel._ampClipMinField.setText(minC.toString());
+        _myControlPanel._ampClipMaxField.setText(maxC.toString());
+        if (ampFactor != 1 && ampFactor > 0){
+          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0]/ampFactor, clipRange[1]/ampFactor);
+        }
+      }
       nviews++;
     }
 
@@ -1074,9 +1117,6 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         f.setSize(new Dimension(1500, 500));
       }
 
-      // f.setLocation(A);
-      // f.setSize(B);
-
       f.pack();
       f.setVisible(false);
 
@@ -1105,7 +1145,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         // TODO Auto-generated catch block
         e1.printStackTrace();
       }
-
+      
       f.dispose();
 
       _saveWindowLocation = f.getLocation();
@@ -1189,9 +1229,9 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
     // Pop up a plot of the current DistributedArray.
     long[] logicalOrigins = new long[] { 0, 0, 0 };
     long[] logicalDeltas = new long[] { 1, 1, 1 };
-    DABackendViewer.showAsModalDialog(da, logicalOrigins, logicalDeltas, "Distributed Array Plot Test", pc.rank(),
-        null);
-    DABackendViewer.showAsModalDialog(da, logicalOrigins, logicalDeltas, "Distributed Array Plot Test", pc.rank(),
-        null);
+    DABackendViewer.showAsModalDialog(da, logicalOrigins, logicalDeltas, "Distributed Array Plot Test", pc.rank(), null,
+        null, null, 1);
+    DABackendViewer.showAsModalDialog(da, logicalOrigins, logicalDeltas, "Distributed Array Plot Test", pc.rank(), null,
+        null, null, 1);
   }
 }

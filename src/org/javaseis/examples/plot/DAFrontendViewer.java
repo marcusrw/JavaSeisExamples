@@ -1,5 +1,7 @@
 package org.javaseis.examples.plot;
 
+import java.util.Arrays;
+
 import org.javaseis.test.testdata.SampleInputCreator;
 import org.javaseis.tool.ToolContext;
 import org.junit.Assert;
@@ -22,6 +24,9 @@ public class DAFrontendViewer {
 	private DistributedArray A;
 	private DistributedArray B;
 	private ToolContext toolContext;
+	private int[] sArray = null;
+	private int[] cArray = null;
+	private float ampFactor = 1.0f;
 
 	private int[] zoomBegin;
 	private int[] zoomEnd;
@@ -212,6 +217,32 @@ public class DAFrontendViewer {
 		setLogicalTrace(Array[1][0], Array[1][1]);
 		setLogicalDepth(Array[2][0], Array[2][1]);
 	}
+	
+	/**
+	 * Sets the Slider Values of the Desired Image
+	 * 
+	 * @param Frame
+	 * @param Crossframe
+	 * @param Slice
+	 */
+	public void setSliders(int frame, int cross, int slice){
+	  int[] nArray = new int[3];
+	  nArray[0] = frame;
+	  nArray[1] = cross;
+	  nArray[2] = slice;	  
+	  sArray = nArray;
+	}
+	
+	public void setClipRange(int minClip, int maxClip){
+    int[] nArray = new int[2];
+    nArray[0] = minClip;
+    nArray[1] = maxClip; 
+    cArray = nArray;
+  }
+	
+	public void setAmpFactor(float d){
+	  ampFactor = d;
+	}
 
 	/**
 	 * Shows you the modified DA
@@ -221,7 +252,13 @@ public class DAFrontendViewer {
 	 * @return
 	 */
 	public void show(String title) {
-		DABackendViewer.showAsModalDialog(B, title, toolContext);
+		DABackendViewer.showAsModalDialog(B, title, toolContext, sArray, cArray, ampFactor);
+		
+		//Hack
+		//Needed because D Hall code does not redraw 
+		//unneeded axis and this causes a problem for us
+		//setClipRange(cArray[0], cArray[1]);
+		
 	}
 
 	private void checkFrame() {
