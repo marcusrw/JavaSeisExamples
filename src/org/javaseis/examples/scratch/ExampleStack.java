@@ -263,7 +263,7 @@ public class ExampleStack extends StandAloneVolumeTool {
 		DAFrontendViewer A = new DAFrontendViewer(eDA, toolContext);
 		
 		A.setSliders(338, 128, 1);
-		A.setClipRange(-30, 30);
+		A.setClipRange(-1000, 1000);
 		A.setAmpFactor(1);
 		
 		A.show("TEST");

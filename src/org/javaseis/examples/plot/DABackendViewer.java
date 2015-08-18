@@ -3,6 +3,7 @@ package org.javaseis.examples.plot;
 import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Toolkit;
@@ -16,6 +17,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.IndexColorModel;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
@@ -193,7 +195,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       setUpGUI();
 
       // Show a center cut.
-      switch (_plotOrientation) {
+     /* switch (_plotOrientation) {
       case ORIENTATION_FRAME:
         _slider.setValue(_nFrames / 2);
         break;
@@ -203,7 +205,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       case ORIENTATION_SLICE:
         _slider.setValue(_nSamples / 2);
         break;
-      }
+      }*/
     }
   }
 
@@ -291,8 +293,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
     JPanel mouseTrackingPanel = new JPanel();
     _mouseTrackingField = new JTextField(25);
     _mouseTrackingField.setHorizontalAlignment(SwingConstants.LEFT);
-    mouseTrackingPanel.add(new JLabel("Position:"));
-    mouseTrackingPanel.add(_mouseTrackingField);
+    //mouseTrackingPanel.add(new JLabel("Position:"));
+    //mouseTrackingPanel.add(_mouseTrackingField);
 
     // Create panel to hold control widgets
     JPanel widgetPanel = new JPanel(new BorderLayout());
@@ -302,8 +304,10 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
     add(BorderLayout.CENTER, _plotPanel);
     add(BorderLayout.SOUTH, widgetPanel);
-    widgetPanel.add(BorderLayout.NORTH, _slider);
+    //widgetPanel.add(BorderLayout.NORTH, _slider);
     widgetPanel.add(BorderLayout.SOUTH, accessoryPanel);
+    
+    //repaint();
   }
 
   /**
@@ -659,9 +663,10 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       _pixelsView.setInterpolation(PixelsView.Interpolation.LINEAR);
       _pixelsView.setColorModel(_indexColorModel);
 
+      
       repaint();
     }
-
+    
   }
 
   /**
@@ -810,6 +815,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       }
       return clipMax;
     }
+    
+    
   }
 
   /**
@@ -1008,7 +1015,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
     // We do NOT prepare min-max information (we're using local, not global
     // scaling).
     DistributedArrayGlobalTraceAccessor traceAccessor = new DistributedArrayGlobalTraceAccessor(
-        "DistributedArrayMosaicPlot", 999, a, true);
+        "DistributedArrayMosaicPlot", 999, a, false);
 
     // Plots share common control panel.
     if (rank == 0 && _myControlPanel == null) {
@@ -1093,22 +1100,23 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         int[] shape = tempshape;
         title += String.format("    Shape = %d %d %d", shape[0], shape[1], shape[2]);
       }
-
-      // JFrame A = new JFrame();
-      // JDialog f = new JDialog(A, title, false);
-      JWindow f = new JWindow();
-      // f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-
+      
+      
+       JWindow f = new JWindow();
+       //f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+       
       JPanel gridPanel = new JPanel(new GridLayout(1, nviews));
       for (int i = 0; i < nviews; i++) {
+      	//System.out.println(plot[i]._rank);
         gridPanel.add(plot[i]);
       }
+      
       JPanel mainPanel = new JPanel(new BorderLayout());
       mainPanel.add(BorderLayout.CENTER, gridPanel);
-
+      
       mainPanel.add(BorderLayout.SOUTH, _myControlPanel);
       f.getContentPane().add(mainPanel);
-
+      
       // There might have a previous preferred location.
       if (_saveWindowLocation != null && _saveWindowSize != null) {
         f.setLocation(_saveWindowLocation);
@@ -1116,12 +1124,11 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       } else {
         f.setSize(new Dimension(1500, 500));
       }
-
+      
       f.pack();
       f.setVisible(false);
-
       try {
-        BufferedImage img = ImageGenerator.createImage(mainPanel);
+        BufferedImage img = ImageGenerator.createImage(mainPanel.getRootPane());
         if (toolContext == null) {
           ImageGenerator.writeImage(img, "tmp//0.png");
         } else {
@@ -1146,15 +1153,15 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         e1.printStackTrace();
       }
       
-      f.dispose();
-
       _saveWindowLocation = f.getLocation();
       _saveWindowSize = f.getSize();
-
-      plot[0].getGlobalTraceAccessor().killWorkers(0);
       
-      //gridPanel = null;
-      //mainPanel = null;
+      f.dispose();
+      f = null;
+      gridPanel = null;
+      mainPanel = null;
+      
+      plot[0].getGlobalTraceAccessor().killWorkers(0);
     }
   }
 
