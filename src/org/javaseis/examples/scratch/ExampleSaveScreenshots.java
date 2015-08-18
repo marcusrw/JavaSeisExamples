@@ -2,6 +2,7 @@ package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
 
+import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
@@ -20,9 +21,11 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
   static ParameterService parms;
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
-    String inputFileName = "twolayer.js";
-    parms = new FindTestData(inputFileName).getParameterService();
-    ExampleSaveScreenshots.exec(parms,new ExampleSaveScreenshots());
+    String inputFileName = "segshotno1.js";
+    String outputFileName = "testimg.js";
+    parms = new FindTestData(inputFileName, outputFileName).getParameterService();
+    parms.setParameter("outputFileMode", "create");
+    ExampleSaveScreenshots.exec(parms, new ExampleSaveScreenshots());
   }
 
   @Override
@@ -38,13 +41,24 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
   }
 
   @Override
-  public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
-      ISeismicVolume output) {
+  public boolean processVolume(ToolContext toolContext, ISeismicVolume input, ISeismicVolume output) {
 
-    DistributedArrayMosaicPlot.showAsModalDialog(
-        input.getDistributedArray(),"title");
+    // DistributedArrayMosaicPlot.showAsModalDialog(
+    // input.getDistributedArray(),"title");
+
+    // save a screenshot of each volume in the .js folder
+    DAFrontendViewer A = new DAFrontendViewer(input.getDistributedArray(), toolContext);
+
+    A.setSliders(75, 25, 100);
+
+    //To set ampFactor you must set the clip range
     
-    //save a screenshot of each volume in the .js folder
+    A.setClipRange(-10, 10);
+    A.setAmpFactor(1.0f);
+    
+    A.show("TEST");
+    
+    A.show("TEST");
 
     return false;
   }

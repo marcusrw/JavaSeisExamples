@@ -1,8 +1,11 @@
 package org.javaseis.examples.tool;
 
+import java.io.FileNotFoundException;
+
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.services.ParameterService;
+import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolContext;
 import org.javaseis.util.IntervalTimer;
@@ -20,15 +23,11 @@ public class ExtractPWaveData extends StandAloneVolumeTool {
   private int componentAxis;
   private int pwaveComponentNumber;
 
-  public static void main(String[] args) {
-    ParameterService parms = new ParameterService(args);
-    setParameterIfUnset(parms,"inputFileSystem","/home/wilsonmr/javaseis");
-    setParameterIfUnset(parms,"inputFilePath","100-rawsyntheticdata.js");
-    setParameterIfUnset(parms,"outputFileSystem","/home/wilsonmr/javaseis");
-    setParameterIfUnset(parms,"outputFilePath","100a-rawsynthpwaves.js");
-    //TODO if you set threadCount to 2, half of the data will be missing
-    // the task fails outright if you set it higher than 2.
-    setParameterIfUnset(parms,"threadCount","1");
+  public static void main(String[] args) throws FileNotFoundException {
+    String inputFilePath = "100-rawsyntheticdata.js";
+    ParameterService parms = new FindTestData(inputFilePath).getParameterService();
+
+    parms.setParameter("taskCount", "1");
     try {
       exec(parms, new ExtractPWaveData());
     } catch (SeisException e) {
