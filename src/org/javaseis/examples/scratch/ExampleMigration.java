@@ -62,6 +62,20 @@ public class ExampleMigration extends StandAloneVolumeTool {
     }
   }
 
+  @Override
+  public void serialInit(ToolContext toolContext) {
+    checkPublicGrids(toolContext);
+    // TODO this method should check that toolContext contains enough
+    // information to do a basic extrapolation.
+    // Run main for more information. (ex: inputGrid returns null)
+
+    // redundant, until we figure out the design of the toolContext
+    GridDefinition imageGrid = computeImageGrid(toolContext);
+    toolContext.outputGrid = imageGrid;  //This one doesn't get saved.
+    toolContext.putFlowGlobal(ToolContext.OUTPUT_GRID, imageGrid);
+    saveVolumeEdgesIfTraceHeadersExist(toolContext);
+  }
+
   //Figure out if the public inputGrid and outputGrid are populated
   //and populate them if they aren't.
   private void checkPublicGrids(ToolContext toolContext) {
@@ -83,20 +97,6 @@ public class ExampleMigration extends StandAloneVolumeTool {
           .getFlowGlobal(ToolContext.OUTPUT_GRID);
       toolContext.outputGrid = outputGrid;
     }
-  }
-
-  @Override
-  public void serialInit(ToolContext toolContext) {
-    checkPublicGrids(toolContext);
-    // TODO this method should check that toolContext contains enough
-    // information to do a basic extrapolation.
-    // Run main for more information. (ex: inputGrid returns null)
-
-    // redundant, until we figure out the design of the toolContext
-    GridDefinition imageGrid = computeImageGrid(toolContext);
-    toolContext.outputGrid = imageGrid;  //This one doesn't get saved.
-    toolContext.putFlowGlobal(ToolContext.OUTPUT_GRID, imageGrid);
-    saveVolumeEdgesIfTraceHeadersExist(toolContext);
   }
 
   private GridDefinition computeImageGrid(ToolContext toolContext) {
