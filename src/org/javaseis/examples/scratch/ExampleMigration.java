@@ -10,6 +10,7 @@ import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 
+import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.ICheckedGrid;
@@ -255,18 +256,17 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
       extrapR.reverseExtrapolate((float) velocity, delz, zindx, fMax);
       extrapS.forwardExtrapolate((float) velocity, delz, zindx, fMax);
-      logTimerOutput("Source Extrapolator Time: ",
-          extrapS.getExtrapolationTime());
 
       LOGGER.info("Extrapolation finished for depth " + depth);
 
       extrapR.transformFromWavenumberToSpace();
       extrapS.transformFromWavenumberToSpace();
-      
-      extrapR.reverseThinLens(windowedSlice,velocity,delz);
+
+      //TODO turn off thin lens to speed up calculation
+      //extrapR.reverseThinLens(windowedSlice,velocity,delz);
       logTimerOutput("Receiver Extrapolator Time: ",
           extrapR.getExtrapolationTime());
-      extrapS.forwardThinLens(windowedSlice,velocity,delz);
+      //extrapS.forwardThinLens(windowedSlice,velocity,delz);
       logTimerOutput("Source Extrapolator Time: ",
           extrapS.getExtrapolationTime());
 
@@ -296,18 +296,18 @@ public class ExampleMigration extends StandAloneVolumeTool {
 
     {
       //plot to check
-      //DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
-      //    "Final Image.");
-      //DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
-      //    "Velocity Model.");
-
-      // example usage of Front End Viewer
-      //DAFrontendViewer A = new DAFrontendViewer(output.getDistributedArray());
-      // A.setLogicalTraces(75, 125);
-      // A.setLogicalDepth(0, 250);
-      // A.setLogicalFrame(75, 125);
-      //A.show("Final Image.");
-    }
+      DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
+          "Final Image.");
+      DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
+          "Velocity Model.");
+       
+      /*
+      DAFrontendViewer dataView = new DAFrontendViewer(output.getDistributedArray());
+      dataView.show("Image");
+      DAFrontendViewer modelView = new DAFrontendViewer(vModelWindowed);
+      modelView.show("Model"); 
+      */
+    }   
 
     logTimerOutput("Velocity Access Time", velocityAccessTime.total());
     logTimerOutput("Source Generation Time", sourceGenTime.total());
