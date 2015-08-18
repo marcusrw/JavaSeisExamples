@@ -1,16 +1,24 @@
 package org.javaseis.examples.scratch;
 
-import java.awt.*;
-import java.awt.image.*;
-import java.io.*;
+import java.awt.AWTException;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Robot;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Arrays;
-import javax.imageio.*;
-import javax.swing.*;
+import javax.imageio.ImageIO;
+import javax.swing.JComponent;
+import javax.swing.SwingUtilities;
 
 public class ImageGenerator {
   private static List<String> filetypes = Arrays.asList(ImageIO.getWriterFileSuffixes());
-  private static int index = 0;
 
   public static BufferedImage createImage(JComponent component) {
     Dimension dim = component.getSize();
@@ -33,7 +41,7 @@ public class ImageGenerator {
         component.setSize(dim);
       }
 
-      layoutComponent(component);
+      // layoutComponent(component);
     }
 
     BufferedImage image = new BufferedImage(region.width, region.height, BufferedImage.TYPE_INT_RGB);
@@ -68,13 +76,13 @@ public class ImageGenerator {
     File X = new File(A);
     int index = 0;
     while (X.exists()) {
-      index++;
       int offset2 = A.lastIndexOf("//");
       String fileN = A.substring(0, offset2);
       fileN += "//";
       fileN += index;
       fileN += ".";
       fileN += Type;
+      index++;
       // System.out.println(fileN);
       X = new File(fileN);
     }
@@ -106,6 +114,7 @@ public class ImageGenerator {
     strtoOffset += path;
 
     path = strtoOffset;
+    //System.out.println(path);
 
     if (filetypes.contains(type)) {
       ImageIO.write(img, type, new File(path));
