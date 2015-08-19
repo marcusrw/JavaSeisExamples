@@ -8,7 +8,7 @@ import org.javaseis.array.ElementType;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
 
 import beta.javaseis.distributed.Decomposition;
@@ -83,11 +83,11 @@ public class VelocityModelFromFile implements IVelocityModel {
     startFileSystemIOService(pc, folder, file);
   }
 
-  public VelocityModelFromFile(ToolContext toolContext)
+  public VelocityModelFromFile(IParallelContext pc,ToolState toolState)
       throws FileNotFoundException {
-    pc = toolContext.getParallelContext();
-    folder = toolContext.getParameter("inputFileSystem");
-    file =  toolContext.getParameter("vModelFilePath");
+    this.pc = pc;
+    this.folder = toolState.getParameter("inputFileSystem");
+    this.file =  toolState.getParameter("vModelFilePath");
     errorMessageIfVModelNotSpecified();
     startFileSystemIOService(pc, folder, file);
   }
@@ -159,7 +159,7 @@ public class VelocityModelFromFile implements IVelocityModel {
   }
 
   private void loadVelocityModelIntoArray() {
-    vModelPIO.setDistributedArray(vModelData);
+    vModelPIO.setDataArray(vModelData);
     try {
       //read the volume
       vModelPIO.read();
@@ -429,8 +429,7 @@ public class VelocityModelFromFile implements IVelocityModel {
       e1.printStackTrace();
     }
     IParallelContext pc = new UniprocessorContext();
-    ToolContext toolContext = new ToolContext(parms);
-    toolContext.setParallelContext(pc);
+    ToolState toolContext = new ToolState(parms,VelocityModelFromFile.class);
 
     VelocityModelFromFile vmff = null;
     try {

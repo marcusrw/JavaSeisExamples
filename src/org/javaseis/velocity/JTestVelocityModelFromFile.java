@@ -4,7 +4,7 @@ import java.io.FileNotFoundException;
 
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,7 +16,7 @@ public class JTestVelocityModelFromFile {
 
   ParameterService parms = null;
   IParallelContext pc = null;
-  ToolContext toolContext = null;
+  ToolState toolState = null;
 
   @Before
   public void InitializeDefaultInputs() {
@@ -29,8 +29,7 @@ public class JTestVelocityModelFromFile {
       Assert.fail("Unable to locate test datasets");
     }
     pc = new UniprocessorContext();
-    toolContext = new ToolContext(parms);
-    toolContext.setParallelContext(pc);    
+    toolState = new ToolState(parms,VelocityModelFromFile.class);  
   }
 
   @Test
@@ -53,7 +52,7 @@ public class JTestVelocityModelFromFile {
 
     IVelocityModel vmff = null;
     try {
-      vmff = new VelocityModelFromFile(toolContext);
+      vmff = new VelocityModelFromFile(toolState);
     } catch (FileNotFoundException e) {
       System.out.println("Reading dataset failed.");
       e.printStackTrace();

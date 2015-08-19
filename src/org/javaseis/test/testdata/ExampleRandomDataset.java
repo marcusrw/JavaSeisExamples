@@ -7,7 +7,6 @@ import java.util.logging.Logger;
 
 import org.javaseis.io.Seisio;
 import org.javaseis.array.MultiArray;
-import org.javaseis.examples.plot.JavaSeisMovieRunner;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
@@ -48,7 +47,6 @@ public class ExampleRandomDataset {
   //basic sanity check only.  Make sure the data is there after you make it.
   public static void main(String[] args) {
     ExampleRandomDataset test = new ExampleRandomDataset();
-    JavaSeisMovieRunner.showMovie(defaultPath);
     try {
       test.deleteJavaSeisData();
     } catch (SeisException e) {

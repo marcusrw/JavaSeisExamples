@@ -56,7 +56,7 @@ public class SingleVolumeDAViewer {
   //TODO StandaloneVolumeTool is currently broken for complex volumes
   //     because elementCount is hard coded to 1.
   public SingleVolumeDAViewer(ISeismicVolume input) {
-    DataDomain[] domains = input.getLocalGrid().getAxisDomains();
+    DataDomain[] domains = input.getGlobalGrid().getAxisDomains();
     shiftDimensions = determineAxesToShift(domains);
 
     //Get the input distributed array.  If no shifts are necessary, we are done.

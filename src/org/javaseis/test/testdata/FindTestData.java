@@ -16,8 +16,20 @@ import org.javaseis.services.ParameterService;
  */
 public class FindTestData {
 
+  private static final Logger LOGGER =
+      Logger.getLogger(FindTestData.class.getName());
+
+
+  private static final String INPUT_FILE_SYSTEM = "inputFileSystem";
   private static final String INPUT_FILE_PATH = "inputFilePath";
-  private static final Logger LOGGER = Logger.getLogger(FindTestData.class.getName());
+  private static final String INPUT_FILE_NAME = "inputFileName";
+
+  private static final String OUTPUT_FILE_SYSTEM = "outputFileSystem";
+  private static final String OUTPUT_FILE_PATH = "outputFilePath";
+  private static final String OUTPUT_FILE_NAME = "outputFileName";
+  
+  //NOTE:  People tend to change what they want these fields to be called,
+  //       so I overloaded it.
 
   private ParameterService parms;
 
@@ -36,21 +48,22 @@ public class FindTestData {
 
   public FindTestData(String inputFilePath) throws FileNotFoundException {
     initializeParameterServiceAndFindInput(inputFilePath);
-
-    //Will output in the home job directory within the tmp folder
-    String outputFilePath = "//tmp//";
-    setParameterIfUnset(parms, "outputFilePath", outputFilePath);
-    LOGGER.log(Level.SEVERE, "No Output Path Set, " + "Any output will be placed in the Job's Home Directory");
+    //unset the output file parameters so nobody thinks we have output
+    parms.setParameter(OUTPUT_FILE_SYSTEM, "null");
+    parms.setParameter(OUTPUT_FILE_PATH,"null");
+    parms.setParameter(OUTPUT_FILE_NAME,"null");
   }
 
   public FindTestData(String inputFilePath, String outputFilePath) throws FileNotFoundException {
     initializeParameterServiceAndFindInput(inputFilePath);
-    setParameterIfUnset(parms, "outputFilePath", outputFilePath);
+    setParameterIfUnset(parms, OUTPUT_FILE_PATH, outputFilePath);
+    setParameterIfUnset(parms, OUTPUT_FILE_NAME, outputFilePath);    
   }
 
   private void initializeParameterServiceAndFindInput(String inputFilePath) throws FileNotFoundException {
     parms = new ParameterService(new String[0]);
     setParameterIfUnset(parms, INPUT_FILE_PATH, inputFilePath);
+    setParameterIfUnset(parms, INPUT_FILE_NAME, inputFilePath);
     findAndSetDataFolder(parms, inputFilePath);
   }
 
@@ -66,7 +79,7 @@ public class FindTestData {
 
   private void findAndSetDataFolder(ParameterService parms, String filename) throws FileNotFoundException {
 
-    if (parameterIsSet(parms, "inputFileSystem")) {
+    if (parameterIsSet(parms, INPUT_FILE_SYSTEM)) {
       LOGGER.info("Getting input directory from Parameter Service.");
       return;
     }
@@ -77,8 +90,8 @@ public class FindTestData {
         File file = new File(candidate + File.separator + filename);
         if (file.exists()) {
           LOGGER.fine("JavaSeis folder located at " + file.getAbsolutePath() + "\n");
-          setParameterIfUnset(parms, "inputFileSystem", candidate);
-          setParameterIfUnset(parms, "outputFileSystem", candidate);
+          setParameterIfUnset(parms, INPUT_FILE_SYSTEM, candidate);
+          setParameterIfUnset(parms, OUTPUT_FILE_SYSTEM, candidate);
           return;
         }
       }
