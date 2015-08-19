@@ -3,7 +3,7 @@ package org.javaseis.examples.plot;
 import java.util.Arrays;
 
 import org.javaseis.test.testdata.SampleInputCreator;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.junit.Assert;
 
 import beta.javaseis.distributed.DistributedArray;
@@ -23,7 +23,7 @@ import beta.javaseis.parallel.UniprocessorContext;
 public class DAFrontendViewer {
 	private DistributedArray A;
 	private DistributedArray B;
-	private ToolContext toolContext;
+	private ToolState toolContext;
 	private int[] sArray = null;
 	private int[] cArray = null;
 	private float ampFactor = 1.0f;
@@ -35,7 +35,7 @@ public class DAFrontendViewer {
 
 	}
 
-	public DAFrontendViewer(DistributedArray A, ToolContext toolContext) {
+	public DAFrontendViewer(DistributedArray A, ToolState toolContext) {
 		this.A = A;
 		//Don't clone here you will run out of memory
 		this.B = A;

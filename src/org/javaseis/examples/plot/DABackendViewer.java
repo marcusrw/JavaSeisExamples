@@ -38,7 +38,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.javaseis.examples.scratch.ImageGenerator;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
+import org.javaseis.tool.ToolState;
 
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
@@ -927,7 +928,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    * @param title
    *          JFrame title
    */
-  public static void showAsModalDialog(DistributedArray a, String title, ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+  public static void showAsModalDialog(DistributedArray a, String title, ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
     showAsModalDialog(a, null, null, title, a.getParallelContext().rank(), -1, toolContext, sliderArray, clipRange, ampFactor);
   }
 
@@ -942,7 +943,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    * @param rank
    *          mpi task #
    */
-  public static void showAsModalDialog(DistributedArray a, String title, int rank, ToolContext toolContext,
+  public static void showAsModalDialog(DistributedArray a, String title, int rank, ToolState toolContext,
       int[] sliderArray, int [] clipRange, float ampFactor) {
     showAsModalDialog(a, null, null, title, rank, -1, toolContext, sliderArray, clipRange, ampFactor);
   }
@@ -959,7 +960,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    */
   public static void showAsModalDialog(DistributedArray a, String title, int rank, int elementOffset,
-      ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+      ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
     showAsModalDialog(a, null, null, title, rank, elementOffset, toolContext, sliderArray, clipRange, ampFactor);
   }
 
@@ -979,7 +980,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    */
   public static void showAsModalDialog(DistributedArray a, long[] axisLogicalOrigins, long[] axisLogicalDeltas,
-      String title, int rank, ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+      String title, int rank, ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
     showAsModalDialog(a, axisLogicalOrigins, axisLogicalDeltas, title, rank, -1, toolContext, sliderArray, clipRange, ampFactor);
   }
 
@@ -1004,7 +1005,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          user specified params
    */
   public static void showAsModalDialog(DistributedArray a, long[] axisLogicalOrigins, long[] axisLogicalDeltas,
-      String title, int rank, int elementOffset, ToolContext toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+      String title, int rank, int elementOffset, ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
 
     _plotCounter++;
 
@@ -1132,8 +1133,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         if (toolContext == null) {
           ImageGenerator.writeImage(img, "tmp//0.png");
         } else {
-          String outLocation = toolContext.getParameter(ToolContext.OUTPUT_FILE_SYSTEM) + "//"
-              + toolContext.getParameter(ToolContext.OUTPUT_FILE_PATH);
+          String outLocation = toolContext.getParameter(ToolState.OUTPUT_FILE_SYSTEM) + "//"
+              + toolContext.getParameter(ToolState.OUTPUT_FILE_NAME);
           outLocation += "//";
           outLocation += "Images";
 
