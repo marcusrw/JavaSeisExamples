@@ -14,24 +14,21 @@ import org.junit.Test;
 //A wrapper script to run the example migration and save/visualize the results
 public class DistributedArrayViewerRunner {
 
-	private static final Logger LOGGER = Logger
-			.getLogger(DistributedArrayViewerRunner.class.getName());
+  private static final Logger LOGGER = Logger
+      .getLogger(DistributedArrayViewerRunner.class.getName());
 
-	private static ParameterService parms;
+  private static ParameterService parms;
 
-	@Test
-	public void programTerminates() throws FileNotFoundException {
-		String inputFileName = "seg45stack.js";
+  @Test
+  public void programTerminates() throws FileNotFoundException {
+    String inputFileName = "seg45stack.js";
 
-		parms = new FindTestData(inputFileName).getParameterService();
+    parms = new FindTestData(inputFileName).getParameterService();
 
-		try {
-			// Always View in Serial
-			StandAloneVolumeTool.StandAloneVolumeTask.shotNumber = -1;
-
-			DistributedArrayViewer.exec(parms, new DistributedArrayViewer());
-		} catch (SeisException e) {
-			LOGGER.log(Level.SEVERE, e.getMessage(), e);
-		}
-	}
+    try {
+      DistributedArrayViewer.exec(parms, new DistributedArrayViewer());
+    } catch (SeisException e) {
+      LOGGER.log(Level.SEVERE, e.getMessage(), e);
+    }
+  }
 }
