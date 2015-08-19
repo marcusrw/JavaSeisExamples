@@ -38,6 +38,7 @@ public class DAFrontendViewer {
 	public DAFrontendViewer(DistributedArray A, ToolContext toolContext) {
 		this.A = A;
 		//Don't clone here you will run out of memory
+		//this.B = (DistributedArray) A.clone();
 		this.B = A;
 		this.toolContext = toolContext;
 
