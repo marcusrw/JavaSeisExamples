@@ -2,6 +2,7 @@ package org.javaseis.source;
 
 import org.javaseis.grid.ICheckedGrid;
 import org.javaseis.imaging.PhaseShiftFFT3D;
+import org.javaseis.volume.ISeismicVolume;
 import org.junit.Assert;
 
 import beta.javaseis.distributed.DistributedArray;
@@ -12,14 +13,12 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   double[] physicalSourceXYZ;
   float[] arraySourceXYZ;
   int[] AXIS_ORDER;
-  
-  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid,
-      PhaseShiftFFT3D shot) {
-    
+
+  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot) {
+
     // Get the physical source
     this.physicalSourceXYZ = CheckedGrid.getSourceXYZ();
-    Assert.assertNotEquals("Source Depth should be 20",
-        0,this.physicalSourceXYZ[0]);
+    Assert.assertNotEquals("Source Depth should be 20", 0, this.physicalSourceXYZ[0]);
 
     // Get the Axis Order
     this.AXIS_ORDER = CheckedGrid.getAxisOrder();
@@ -35,8 +34,8 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
 
   }
 
-  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid,
-      PhaseShiftFFT3D shot, double[] physicalSourceXYZ, int[] AXIS_ORDER) {
+  public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot, double[] physicalSourceXYZ,
+      int[] AXIS_ORDER) {
     // Get the physical source
     this.physicalSourceXYZ = physicalSourceXYZ;
 
@@ -60,6 +59,41 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     return shot;
   }
 
+  public DeltaFunctionSourceVolume(ISeismicVolume input, PhaseShiftFFT3D shot, double[] physicalSourceXYZ) {
+    // Get the physical source
+    this.physicalSourceXYZ = physicalSourceXYZ;
+
+    // Need to convert this grid into array coordinates
+    this.arraySourceXYZ = covertPhysToArray(this.physicalSourceXYZ, input);
+
+    this.shot = checkShotIsInFXY(shot);
+
+    // Generate
+    generateSourceSignature(arraySourceXYZ);
+  }
+
+  /*
+   * Converts the physical coordinates to Array Coordinates
+   */
+  public float[] covertPhysToArray(double[] sourceXYZ, ISeismicVolume input) {
+
+    //int currentAxis = CheckedGrid.getAxisOrder()[i];
+    //double minPhys0 = CheckedGrid.getModifiedGrid().getAxisPhysicalOrigin(currentAxis);
+    //double axisPhysDelta = CheckedGrid.getModifiedGrid().getAxisPhysicalDelta(currentAxis);
+    //vS[i] = (float) ((sourceXYZ[i] - minPhys0) / axisPhysDelta);
+    
+    int numDims = input.getNumDimensions();
+    float[] vS = new float[numDims];
+    
+    for (int i = 0; i < numDims; i++){
+      //TODO: stuff
+      vS[i] = 0;
+      System.out.println("[covertPhysToArray]: Insert Logic here");
+    }
+    
+    return vS;
+  }
+  
   /*
    * Converts the physical coordinates to Array Coordinates
    */
@@ -95,11 +129,11 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
 
   /**
    * @param sourceX
-   *            - Target X index in the grid
+   *          - Target X index in the grid
    * @param sourceY
-   *            - Target Y index in the grid
+   *          - Target Y index in the grid
    * @param sourceXYZ
-   *            - Actual Source position in the grid
+   *          - Actual Source position in the grid
    * @return The Euclidean distance between the current array index and the
    *         input source.
    */
@@ -128,7 +162,7 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   public PhaseShiftFFT3D getShot() {
     return shot;
   }
-  
+
   public DistributedArray getShotDA() {
     return shot.getArray();
   }
