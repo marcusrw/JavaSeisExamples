@@ -62,8 +62,8 @@ public class ExampleMigration implements IVolumeTool {
       LOGGER.log(Level.SEVERE,e.getMessage(),e);
     }
   }*/
-  
-  
+
+
 
   @Override
   public void serialInit(ToolState toolContext) {
@@ -114,15 +114,10 @@ public class ExampleMigration implements IVolumeTool {
     AxisDefinition[] imageAxes =
         new AxisDefinition[inputGrid.getNumDimensions()];
 
-    //float zmin = Float.parseFloat(parms.getParameter("ZMIN", "0"));
-    //float zmax = Float.parseFloat(parms.getParameter("ZMAX", "2000"));
-    //float delz = Float.parseFloat(parms.getParameter("DELZ", "50"));
-    
-    //TODO:Need fixing probably
     float zmin = Float.parseFloat(toolContext.getParameter("ZMIN"));;
     float zmax = Float.parseFloat(toolContext.getParameter("ZMAX"));
     float delz = Float.parseFloat(toolContext.getParameter("DELZ"));
-    
+
     long depthAxisLength = -1;
     depthAxisLength = computeDepthAxisLength(zmin, delz, zmax);
 
@@ -183,7 +178,7 @@ public class ExampleMigration implements IVolumeTool {
 
     singleVolumeTime.start();
     //LOGGER.info("Processing Volume #"
-      //  + Arrays.toString(input.getVolumePosition()));
+    //  + Arrays.toString(input.getVolumePosition()));
 
     Assert.assertNotNull(input.getGlobalGrid());
     Assert.assertNotNull(output.getGlobalGrid());
@@ -205,12 +200,19 @@ public class ExampleMigration implements IVolumeTool {
     int[] gridPos = new int[] { 0, 0, 0 };
     double[] sxyz = new double[3];
     double[] rxyz = new double[3];
-    input.getCoords(gridPos, sxyz, rxyz);
-    
+    try {
+      input.getCoords(gridPos, sxyz, rxyz);
+    } catch (IllegalStateException e) {
+      LOGGER.log(Level.INFO,e.getMessage(),e);
+      //do something else to find the coordinates\
+      sxyz[2] = 0;
+      rxyz[2] = 0;
+    }
+
     //int[] gridPos = input.getVolumePosition();
     //double receiverDepth = gridFromHeaders.getReceiverXYZ(gridPos)[2];
     //double sourceDepth = gridFromHeaders.getSourceXYZ()[2];
-    
+
     double receiverDepth = sxyz[2];
     double sourceDepth = rxyz[2];
 
@@ -227,10 +229,10 @@ public class ExampleMigration implements IVolumeTool {
     extrapS.transformFromTimeToFrequency();
 
     // This has to be after the time transform.
-    
+
     //TODO:Rewrite this function
     //ISourceVolume srcVol =
-      //  new DeltaFunctionSourceVolume(gridFromHeaders, shot);
+    //  new DeltaFunctionSourceVolume(gridFromHeaders, shot);
     //shot = srcVol.getShot();
 
     // Plot to check
@@ -253,6 +255,7 @@ public class ExampleMigration implements IVolumeTool {
     IVelocityModel vmff = getVelocityModelObject(pc, toolContext);
     //TODO:Check this
     //orientSeismicInVelocityModel(vmff, gridFromHeaders);
+
     velocityAccessTime.stop();
 
     double velocity;
@@ -281,7 +284,7 @@ public class ExampleMigration implements IVolumeTool {
 
       extrapR.transformFromWavenumberToSpace();
       extrapS.transformFromWavenumberToSpace();
-      
+
       extrapR.reverseThinLens(windowedSlice,velocity,delz);
       logTimerOutput("Receiver Extrapolator Time: ",
           extrapR.getExtrapolationTime());
@@ -305,7 +308,7 @@ public class ExampleMigration implements IVolumeTool {
     }
 
     //LOGGER.info("Processing of volume "
-      //  + Arrays.toString(input.getVolumePosition()) + " complete.");
+    //  + Arrays.toString(input.getVolumePosition()) + " complete.");
 
     vmff.close();
     singleVolumeTime.stop();
@@ -354,9 +357,9 @@ public class ExampleMigration implements IVolumeTool {
       if (!isFirstVolume(input)) {
         LOGGER.info("Is first volume: " + isFirstVolume(input));
         //LOGGER.info("Current Volume: " 
-          //  + Arrays.toString(input.getVolumePosition()));
+        //  + Arrays.toString(input.getVolumePosition()));
         //LOGGER.info("First Volume: " 
-          //  + Arrays.toString(new int[input.getVolumePosition().length]));    
+        //  + Arrays.toString(new int[input.getVolumePosition().length]));    
 
         throw new IllegalArgumentException("The distributed array is"
             + " already empty, so the next step is a waste of time.");
@@ -400,7 +403,7 @@ public class ExampleMigration implements IVolumeTool {
     toolContext.inputGrid = gridFromHeaders.getModifiedGrid();
     return gridFromHeaders;
   }*/
-  
+
   //TODO temporary.  For testing.
   private boolean usingTestData(ToolState toolContext) {
     return toolContext.getParameter("inputFilePath").equals(
@@ -519,13 +522,15 @@ public class ExampleMigration implements IVolumeTool {
           new double[] { 2000, 3800 });
     }
     vmff.open("r");
+    orientSeismicInVelocityModel(vmff,
+        toolContext.getInputState().gridDefinition);
     return vmff;
   }
 
   private void orientSeismicInVelocityModel(IVelocityModel vmff,
-      ICheckedGrid inputGridObj) {
-    vmff.orientSeismicVolume(inputGridObj.getModifiedGrid(),
-        inputGridObj.getAxisOrder());
+      GridDefinition inputGridObj) {
+    vmff.orientSeismicVolume(inputGridObj,
+        new int[] {2,1,0});
   }
 
   private double[] computeVolumeSampleRates(ISeismicVolume input,
@@ -563,5 +568,5 @@ public class ExampleMigration implements IVolumeTool {
     // TODO Auto-generated method stub
 
   }
-  
+
 }
