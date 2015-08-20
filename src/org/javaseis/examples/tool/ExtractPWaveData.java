@@ -56,7 +56,7 @@ public class ExtractPWaveData implements IVolumeTool {
     List<String> toolList = new ArrayList<String>();
 
     toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
-    toolList.add(ExampleImageOutput.class.getCanonicalName());
+    toolList.add(ExtractPWaveData.class.getCanonicalName());
     // toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
     String[] toolArray = listToArray(toolList);
