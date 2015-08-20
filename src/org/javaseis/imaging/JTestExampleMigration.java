@@ -3,15 +3,20 @@ package org.javaseis.imaging;
 import java.io.FileNotFoundException;
 
 import org.javaseis.examples.scratch.ExampleMigration;
+import org.javaseis.examples.tool.ExampleVolumeInputTool;
+import org.javaseis.examples.tool.ExampleVolumeOutputTool;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.ExampleRandomDataset;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.SeisException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,6 +28,14 @@ public class JTestExampleMigration {
 
   public JTestExampleMigration() {};
 
+  private static String[] listToArray(List<String> list) {
+    String[] array = new String[list.size()];
+    for (int k = 0; k < list.size(); k++) {
+      array[k] = list.get(k);
+    }
+    return array;
+  }
+  
   //test harness to see if the process runs
   public static void main(String[] args) throws FileNotFoundException {
     JTestExampleMigration Test = new JTestExampleMigration();
@@ -38,20 +51,34 @@ public class JTestExampleMigration {
     //String inputFileName = "segshotno1.js";
     String outputFileName = "test100m.js";
 
-    ParameterService parms =
-        new FindTestData(inputFileName,outputFileName).getParameterService();
-    parms.setParameter("ZMIN","0");
-    parms.setParameter("ZMAX","2000");
-    parms.setParameter("DELZ","100");
-    parms.setParameter("PADT","50");
-    parms.setParameter("PADX","50");
-    parms.setParameter("PADY","50");
-    //parms.setParameter("DEBUG","TRUE");    
-
-    //parms.setParameter("threadCount", "1");
     try {
-      ExampleMigration.exec(parms,new ExampleMigration());
-    } catch (SeisException e) {
+      ParameterService parms =
+          new FindTestData(inputFileName,outputFileName).getParameterService();
+      parms.setParameter("ZMIN","0");
+      parms.setParameter("ZMAX","2000");
+      parms.setParameter("DELZ","100");
+      parms.setParameter("PADT","50");
+      parms.setParameter("PADX","50");
+      parms.setParameter("PADY","50");
+      //parms.setParameter("DEBUG","TRUE");    
+
+      //parms.setParameter("threadCount", "1");
+      
+      List<String> toolList = new ArrayList<String>();
+
+      toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+      toolList.add(ExampleMigration.class.getCanonicalName());
+      toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+
+      String[] toolArray = listToArray(toolList);
+
+      try {
+        VolumeToolRunner.exec(parms, toolArray);
+      } catch (SeisException e) {
+        e.printStackTrace();
+      }
+
+    } catch (FileNotFoundException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
@@ -112,11 +139,18 @@ public class JTestExampleMigration {
       Assert.fail();
     }    
 
+    List<String> toolList = new ArrayList<String>();
+
+    toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+    toolList.add(ExampleMigration.class.getCanonicalName());
+    toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+
+    String[] toolArray = listToArray(toolList);
+
     try {
-      ExampleMigration.exec(parms,new ExampleMigration());
-    } catch (SeisException e1) {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
+      VolumeToolRunner.exec(parms, toolArray);
+    } catch (SeisException e) {
+      e.printStackTrace();
     }
 
     try {
