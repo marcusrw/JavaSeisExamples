@@ -2,7 +2,10 @@ package org.javaseis.runners;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,14 +44,17 @@ public class TwoLayerMigrationRunner {
       parms = new FindTestData(inputFileName,outputFileName).getParameterService();
       //set basic user inputs
       List<String> toolList = new ArrayList<String>();
-
+      
       toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
       toolList.add(ExampleMigration.class.getCanonicalName());
       toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+      
+      basicParameters(inputFileName);
 
       String[] toolArray = listToArray(toolList);
 
       try {
+        
         VolumeToolRunner.exec(parms, toolArray);
       } catch (SeisException e) {
         e.printStackTrace();
