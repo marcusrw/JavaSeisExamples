@@ -17,34 +17,38 @@ import org.javaseis.tool.IVolumeTool;
 import org.javaseis.tool.ToolState;
 import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.SeisException;
+import org.javaseis.velocity.IVelocityModel;
+import org.javaseis.velocity.VelocityModelFromFile;
 import org.javaseis.volume.ISeismicVolume;
 
+import beta.javaseis.distributed.DistributedArray;
+import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.distributed.FileSystemIOService;
 import beta.javaseis.distributed.IDistributedIOService;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
 import beta.javaseis.services.VolumePropertyService;
 
-public class JTestCheckedGridNew implements IVolumeTool{
+public class JTestCheckedGridNew implements IVolumeTool {
 
   static ParameterService parms;
-  
+
   IDistributedIOService ipio;
   VolumePropertyService vps;
   boolean usesProperties;
   String inputFileSystem, inputFileName;
-  
+
   private static String[] listToArray(List<String> list) {
     String[] array = new String[list.size()];
-    for (int k = 0 ; k < list.size() ; k++) {
+    for (int k = 0; k < list.size(); k++) {
       array[k] = list.get(k);
     }
     return array;
   }
-  
+
   private static ParameterService basicParameters() {
     String inputFileName = "seg45shot.js";
-    //String outputFileName = "fishfish.js";
+    // String outputFileName = "fishfish.js";
     ParameterService parms = null;
     try {
       parms = new FindTestData(inputFileName).getParameterService();
@@ -57,7 +61,7 @@ public class JTestCheckedGridNew implements IVolumeTool{
   }
 
   public static void main(String[] args) throws FileNotFoundException {
-    
+
     ParameterService parms = basicParameters();
 
     List<String> toolList = new ArrayList<String>();
@@ -74,7 +78,7 @@ public class JTestCheckedGridNew implements IVolumeTool{
     }
 
   }
-  
+
   @Override
   public void serialInit(ToolState toolState) throws SeisException {
     inputFileSystem = toolState.getParameter(ToolState.INPUT_FILE_SYSTEM);
@@ -100,27 +104,27 @@ public class JTestCheckedGridNew implements IVolumeTool{
       vps = (VolumePropertyService) (ipio.getPropertyService());
       pc.masterPrint("\n" + vps.listProperties() + "\n");
     }
-    pc.serialPrint("Re-opened file in parallel mode");    
+    pc.serialPrint("Re-opened file in parallel mode");
   }
 
   @Override
   public boolean processVolume(IParallelContext pc, ToolState toolState, ISeismicVolume input, ISeismicVolume output)
       throws SeisException {
-    
+
     if (ipio.hasNext() == false) {
       ipio.close();
       return false;
     }
-    
+
     ipio.next();
     ipio.read();
-    
+
     System.out.println("[JTESTCHECKEDGRID]:" + Arrays.toString(ipio.getFilePosition()));
-    
+
     int[] filePosition = ipio.getFilePosition();
-    
+
     new GridFromHeaders(input, toolState, filePosition);
-    
+
     return false;
   }
 
@@ -133,15 +137,15 @@ public class JTestCheckedGridNew implements IVolumeTool{
   @Override
   public void parallelFinish(IParallelContext pc, ToolState toolState) throws SeisException {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void serialFinish(ToolState toolState) throws SeisException {
     // TODO Auto-generated method stub
-    
+
   }
-  
+
   private void writeObject(ObjectOutputStream oos) throws IOException {
     // default serialization
     oos.writeObject(inputFileSystem);

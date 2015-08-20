@@ -25,7 +25,7 @@ public class GridFromHeaders implements ICheckedGrid {
   private ISeismicVolume input;
   private GridDefinition modifiedGrid;
   private Seisio sio = null;
-  
+
   private int[] filePos;
 
   // Axis locations - Default
@@ -106,19 +106,29 @@ public class GridFromHeaders implements ICheckedGrid {
     modifiedGrid = updateVolumeGridDefinition(input, toolContext);
   }
 
+  private int[] convertFileposToVolpos(int[] filePos) {
+    int[] volPos = filePos;
+
+    // Set frame to 0
+    volPos[2] = 0;
+
+    return volPos;
+
+  }
+
   private GridDefinition updateVolumeGridDefinition(ISeismicVolume input, ToolState toolContext) {
     // Get the grid from SeismicVolume
     GridDefinition inputGrid = toolContext.getInputState().gridDefinition;
     long[] inputAxisLengths = inputGrid.getAxisLengths();
 
     // Get the Starting point in a Volume
-    
+
     int[] VolPos = filePos;
-    
+
     LOGGER.info("[updateVolumeGridDefinition] FilePos: " + Arrays.toString(VolPos));
-    
-    VolPos[2] = 0;
-    
+
+    VolPos = convertFileposToVolpos(filePos);
+
     LOGGER.info("[updateVolumeGridDefinition] Best Guess for VolumePos: " + Arrays.toString(VolPos));
 
     int[] pos = Arrays.copyOf(VolPos, VolPos.length);
