@@ -1,11 +1,16 @@
 package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.javaseis.examples.tool.ExampleVolumeInputTool;
+import org.javaseis.examples.tool.ExampleVolumeOutputTool;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.SeisException;
 import org.junit.Test;
 
@@ -18,6 +23,14 @@ public class ExampleMigrationRunner {
 
   private static ParameterService parms;
 
+  private static String[] listToArray(List<String> list) {
+    String[] array = new String[list.size()];
+    for (int k = 0; k < list.size(); k++) {
+      array[k] = list.get(k);
+    }
+    return array;
+  }
+  
   @Test
   public void manualTest() throws FileNotFoundException {
     //String inputFileName = "100a-rawsynthpwaves.js";
@@ -26,14 +39,27 @@ public class ExampleMigrationRunner {
     String outputFileName = "test.js";
     String vModelFileName = "segsaltmodel.js";
 
-    parms = new FindTestData(inputFileName,outputFileName).getParameterService();
-    //set basic user inputs
-    basicParameters(inputFileName,vModelFileName);
-
     try {
-      ExampleMigration.exec(parms,new ExampleMigration());
-    } catch (SeisException e) {
-      LOGGER.log(Level.SEVERE,e.getMessage(),e);
+      parms = new FindTestData(inputFileName,outputFileName).getParameterService();
+      //set basic user inputs
+      basicParameters(inputFileName,vModelFileName);
+      List<String> toolList = new ArrayList<String>();
+
+      toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+      toolList.add(ExampleMigration.class.getCanonicalName());
+      toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+
+      String[] toolArray = listToArray(toolList);
+
+      try {
+        VolumeToolRunner.exec(parms, toolArray);
+      } catch (SeisException e) {
+        e.printStackTrace();
+      }
+
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
   }
 
