@@ -22,8 +22,11 @@ public class GridFromHeaders implements ICheckedGrid {
   private static final Logger LOGGER = Logger.getLogger(GridFromHeaders.class.getName());
 
   private ToolState toolContext;
+  private ISeismicVolume input;
   private GridDefinition modifiedGrid;
-  Seisio sio = null;
+  private Seisio sio = null;
+  
+  private int[] filePos;
 
   // Axis locations - Default
   private int Xindex = 2;
@@ -38,8 +41,10 @@ public class GridFromHeaders implements ICheckedGrid {
   // Source Position
   private double[] sourceXYZ;
 
-  public GridFromHeaders(ToolState toolContext) {
+  public GridFromHeaders(ISeismicVolume input, ToolState toolContext, int[] filePos) {
     this.toolContext = toolContext;
+    this.input = input;
+    this.filePos = filePos;
 
     try {
       this.jscs = openTraceHeadersFile(toolContext);
@@ -48,7 +53,7 @@ public class GridFromHeaders implements ICheckedGrid {
     }
 
     // Updates the Grid
-    checkVolumeGridDefinition(this.toolContext);
+    checkVolumeGridDefinition(this.input, this.toolContext);
   }
 
   /*
@@ -97,18 +102,24 @@ public class GridFromHeaders implements ICheckedGrid {
     }
   }
 
-  private void checkVolumeGridDefinition(ToolState toolContext) {
-    modifiedGrid = updateVolumeGridDefinition(toolContext);
+  private void checkVolumeGridDefinition(ISeismicVolume input, ToolState toolContext) {
+    modifiedGrid = updateVolumeGridDefinition(input, toolContext);
   }
 
-  private GridDefinition updateVolumeGridDefinition(ToolState toolContext) {
+  private GridDefinition updateVolumeGridDefinition(ISeismicVolume input, ToolState toolContext) {
     // Get the grid from SeismicVolume
     GridDefinition inputGrid = toolContext.getInputState().gridDefinition;
     long[] inputAxisLengths = inputGrid.getAxisLengths();
 
     // Get the Starting point in a Volume
-    int[] VolPos = toolContext.getInputPosition();
-    LOGGER.info("[updateVolumeGridDefinition] VolumePos: " + Arrays.toString(VolPos));
+    
+    int[] VolPos = filePos;
+    
+    LOGGER.info("[updateVolumeGridDefinition] FilePos: " + Arrays.toString(VolPos));
+    
+    VolPos[2] = 0;
+    
+    LOGGER.info("[updateVolumeGridDefinition] Best Guess for VolumePos: " + Arrays.toString(VolPos));
 
     int[] pos = Arrays.copyOf(VolPos, VolPos.length);
 
