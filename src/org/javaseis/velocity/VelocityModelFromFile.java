@@ -10,6 +10,7 @@ import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
+import org.junit.Assert;
 
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
@@ -93,7 +94,7 @@ public class VelocityModelFromFile implements IVelocityModel {
   }
 
   private void errorMessageIfVModelNotSpecified() throws FileNotFoundException {
-    if (file.equals("null")) {
+    if (this.file == null) {
       throw new FileNotFoundException(
           String.format("Specify a velocity model filename%n"
               + "using by adding the parameter \"vModelFilePath\" to your "
