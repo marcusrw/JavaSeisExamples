@@ -33,6 +33,8 @@ public class ExampleMigrationRunner {
   
   @Test
   public void manualTest() throws FileNotFoundException {
+    
+    LOGGER.setLevel(Level.FINER);
     //String inputFileName = "100a-rawsynthpwaves.js";
     String inputFileName = "segshotno1.js";
     //String inputFileName = "seg45shot.js";
