@@ -262,6 +262,8 @@ public class DAFrontendViewer {
 		
 	}
 
+	//TODO: Move tests
+	/*
 	private void checkFrame() {
 		SampleInputCreator TestObject = new SampleInputCreator(true);
 		DistributedArray TestArray = TestObject.getSeismicInput()
@@ -412,6 +414,6 @@ public class DAFrontendViewer {
 		test.checkTrace();
 		test.checkDepth();
 
-	}
+	}*/
 
 }
