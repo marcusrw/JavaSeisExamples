@@ -1,13 +1,13 @@
 package org.javaseis.grid;
 
 import org.javaseis.grid.GridDefinition;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.volume.ISeismicVolume;
 
 public class ManualOverrideGrid implements ICheckedGrid {
 
   final ISeismicVolume input;
-  final ToolContext toolContext;
+  final ToolState toolContext;
 
   //this is arbitrary and irrelevant
   int[] axisOrder = new int[] {2,1,0};
@@ -19,7 +19,7 @@ public class ManualOverrideGrid implements ICheckedGrid {
       {690,690,0}
       };
 
-  public ManualOverrideGrid(ISeismicVolume input,ToolContext toolContext) {
+  public ManualOverrideGrid(ISeismicVolume input,ToolState toolContext) {
     this.input = input;
     this.toolContext = toolContext;
   }
@@ -31,8 +31,13 @@ public class ManualOverrideGrid implements ICheckedGrid {
 
   @Override
   public double[] getSourceXYZ() {
-    int[] volPos = input.getVolumePosition();
-    return sourceLocations[volPos[3]];
+    //int[] volPos = input.getVolumePosition();
+    //return sourceLocations[volPos[3]];
+    int [] sourceOnGrid = new int[] {0, 0, 0,};
+    double [] sxyz = new double[3];
+    double [] rxyz = new double[3];
+    input.getCoords(sourceOnGrid, sxyz, rxyz);
+    return sxyz;
   }
 
   @Override
