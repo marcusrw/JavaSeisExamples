@@ -14,6 +14,30 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   float[] arraySourceXYZ;
   int[] AXIS_ORDER;
 
+  public DeltaFunctionSourceVolume(ISeismicVolume input, PhaseShiftFFT3D shot) {
+    int[] aPosInVol = new int[] { 0, 0, 0 };
+    double[] voidRecXYZ = new double[3];
+    input.getCoords(aPosInVol, this.physicalSourceXYZ, voidRecXYZ);
+    // TODO:
+    Assert.assertNotEquals("Source Depth should be 20", 0, this.physicalSourceXYZ[0]);
+
+    this.arraySourceXYZ = convertPhysToArray(this.physicalSourceXYZ, input);
+    this.shot = checkShotIsInFXY(shot);
+
+    generateSourceSignature(arraySourceXYZ);
+  }
+
+  public DeltaFunctionSourceVolume(ISeismicVolume input, PhaseShiftFFT3D shot, double[] physicalSourceXYZ) {
+    this.physicalSourceXYZ = physicalSourceXYZ;
+    // TODO:
+    Assert.assertNotEquals("Source Depth should be 20", 0, this.physicalSourceXYZ[0]);
+
+    this.arraySourceXYZ = convertPhysToArray(this.physicalSourceXYZ, input);
+    this.shot = checkShotIsInFXY(shot);
+
+    generateSourceSignature(arraySourceXYZ);
+  }
+
   public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot) {
 
     // Get the physical source
@@ -31,7 +55,6 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
 
     // Generate
     generateSourceSignature(arraySourceXYZ);
-
   }
 
   public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot, double[] physicalSourceXYZ,
@@ -59,41 +82,26 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     return shot;
   }
 
-  public DeltaFunctionSourceVolume(ISeismicVolume input, PhaseShiftFFT3D shot, double[] physicalSourceXYZ) {
-    // Get the physical source
-    this.physicalSourceXYZ = physicalSourceXYZ;
-
-    // Need to convert this grid into array coordinates
-    this.arraySourceXYZ = covertPhysToArray(this.physicalSourceXYZ, input);
-
-    this.shot = checkShotIsInFXY(shot);
-
-    // Generate
-    generateSourceSignature(arraySourceXYZ);
-  }
-
   /*
    * Converts the physical coordinates to Array Coordinates
    */
-  public float[] covertPhysToArray(double[] sourceXYZ, ISeismicVolume input) {
+  public float[] convertPhysToArray(double[] sourceXYZ, ISeismicVolume input) {
 
-    //int currentAxis = CheckedGrid.getAxisOrder()[i];
-    //double minPhys0 = CheckedGrid.getModifiedGrid().getAxisPhysicalOrigin(currentAxis);
-    //double axisPhysDelta = CheckedGrid.getModifiedGrid().getAxisPhysicalDelta(currentAxis);
-    //vS[i] = (float) ((sourceXYZ[i] - minPhys0) / axisPhysDelta);
-    
     int numDims = input.getNumDimensions();
     float[] vS = new float[numDims];
-    
-    for (int i = 0; i < numDims; i++){
-      //TODO: stuff
+
+    for (int i = 0; i < numDims; i++) {
+      // TODO: stuff
       vS[i] = 0;
-      System.out.println("[covertPhysToArray]: Insert Logic here");
+      double minPhys0 = input.getGlobalGrid().getAxisPhysicalOrigin(i);
+      double phyDelta = input.getGlobalGrid().getAxisPhysicalDelta(i);
+
+      vS[i] = (float) ((sourceXYZ[i] - minPhys0) / phyDelta);
     }
-    
+
     return vS;
   }
-  
+
   /*
    * Converts the physical coordinates to Array Coordinates
    */
