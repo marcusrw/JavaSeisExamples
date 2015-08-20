@@ -1,25 +1,17 @@
 package org.javaseis.examples.plot;
 
-import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Point;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.IndexColorModel;
 import java.io.File;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -30,16 +22,15 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
-import javax.swing.JWindow;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.javaseis.examples.scratch.ImageGenerator;
+import org.javaseis.grid.GridDefinition;
 import org.javaseis.tool.ToolState;
-import org.javaseis.tool.ToolState;
+import org.javaseis.volume.ISeismicVolume;
 
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
@@ -166,22 +157,15 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
     _parallelContext = a.getParallelContext();
     _rank = _parallelContext.rank();
 
-    // TODO CHANGE
-
-    // TODO: CHANGE
-    int[] tempshape = a.getShape();
-    int[] shape = tempshape;
-
-    // int[] shape = _a.getShape();
+    int[] shape = _a.getShape();
     _nFrames = shape[2];
     _nTraces = shape[1];
     _nSamples = shape[0];
     _elementCount = _a.getElementCount();
 
-    // Fire up the trace accessor with option to prepare for min, max
-    // retrieval.
-    // This "accessor" needs to be running on all modes (caller needs to
-    // know this).
+    // Fire up the trace accessor with option to prepare for min, max retrieval.
+    // This "accessor" needs to be running on all modes (caller needs to know
+    // this).
     _traceAccessor = traceAccessor;
 
     if (_rank == 0) {
@@ -196,7 +180,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       setUpGUI();
 
       // Show a center cut.
-     /* switch (_plotOrientation) {
+      switch (_plotOrientation) {
       case ORIENTATION_FRAME:
         _slider.setValue(_nFrames / 2);
         break;
@@ -206,7 +190,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       case ORIENTATION_SLICE:
         _slider.setValue(_nSamples / 2);
         break;
-      }*/
+      }
     }
   }
 
@@ -223,7 +207,6 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
     int MAX_TICKS = 12;
     int majorTickSpacing = 10;
     int minorTickSpacing;
-
     if (_axisLogicalOrigins != null && _axisLogicalDeltas != null) {
       int annotationStart = (int) _axisLogicalOrigins[_plotOrientation];
       int annotationEnd = (int) (_axisLogicalOrigins[_plotOrientation] + _axisLogicalDeltas[_plotOrientation] * N);
@@ -305,10 +288,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
     add(BorderLayout.CENTER, _plotPanel);
     add(BorderLayout.SOUTH, widgetPanel);
-    //widgetPanel.add(BorderLayout.NORTH, _slider);
+    // widgetPanel.add(BorderLayout.NORTH, _slider);
     widgetPanel.add(BorderLayout.SOUTH, accessoryPanel);
-    
-    //repaint();
   }
 
   /**
@@ -418,8 +399,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
     for (int traceIndex = 0; traceIndex < _nTraces; traceIndex++) {
       position[1] = traceIndex;
-      position[0] = 0; // should not be needed but what if a call changes
-      // it somehow
+      position[0] = 0; // should not be needed but what if a call changes it
+                       // somehow
 
       // Get the array data for this position.
       _traceAccessor.getGlobalTrace(traceBuf[traceIndex], position);
@@ -446,8 +427,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
     for (int frameIndex = 0; frameIndex < _nFrames; frameIndex++) {
       position[2] = frameIndex;
-      position[0] = 0; // should not be needed but what if a call changes
-      // it somehow
+      position[0] = 0; // should not be needed but what if a call changes it
+                       // somehow
 
       // Get the array data for this position.
       _traceAccessor.getGlobalTrace(traceBuf[frameIndex], position);
@@ -484,8 +465,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
       for (int traceIndex = 0; traceIndex < _nTraces; traceIndex++) {
         position[1] = traceIndex;
-        position[0] = sliceIndex; // retrieve directly from slice
-        // position
+        position[0] = sliceIndex; // retrieve directly from slice position
 
         // Just read a single sample (a partial trace).
         _traceAccessor.getGlobalSubTrace(tmpBuf, position, 0, _elementCount);
@@ -600,7 +580,6 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         setTitle("Slices");
         break;
       }
-
     }
 
     /**
@@ -653,7 +632,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         max = 1f;
       } else {
         min = -Math.abs(max); // seismic - trough deflection equals peak
-        // deflection
+                              // deflection
       }
       // _pixelsView.setClips(
       // min / MyControlPanel.getAmplitudeScaleFactor(),
@@ -664,10 +643,9 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       _pixelsView.setInterpolation(PixelsView.Interpolation.LINEAR);
       _pixelsView.setColorModel(_indexColorModel);
 
-      
       repaint();
     }
-    
+
   }
 
   /**
@@ -681,10 +659,11 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
     private static final long serialVersionUID = 1L;
 
-    //Need to be able to change these but this is not the best option
-    private static JTextField _ampScaleField = new JTextField(8);
-    private static JTextField _ampClipMinField = new JTextField(8);
-    private static JTextField _ampClipMaxField = new JTextField(8);
+    private final static JTextField _ampScaleField = new JTextField(8);
+
+    private final static JTextField _ampClipMinField = new JTextField(8);
+
+    private final static JTextField _ampClipMaxField = new JTextField(8);
 
     private final static JRadioButton _scaleFactorButton = new JRadioButton("Use amplitude scale factor:");
 
@@ -816,8 +795,6 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       }
       return clipMax;
     }
-    
-    
   }
 
   /**
@@ -841,24 +818,22 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
 
     public void mouseMoved(MouseEvent event) {
       updateLocation(event);
-      // System.out.println(_name + ": mouseMoved: x,y = (" + x + "," + y
-      // + ")");
+      // System.out.println(_name + ": mouseMoved: x,y = (" + x + "," + y +
+      // ")");
     }
 
     public void mouseDragged(MouseEvent event) {
       updateLocation(event);
-      // System.out.println(_name + ": mouseDragged: x,y = (" + x + "," +
-      // y + ")");
+      // System.out.println(_name + ": mouseDragged: x,y = (" + x + "," + y +
+      // ")");
     }
 
     private void updateLocation(MouseEvent event) {
       int x = event.getX();
       int y = event.getY();
       if (event.getSource().getClass() == Tile.class) {
-        // System.out.println("source = " +
-        // event.getSource().toString());
-        // System.out.println("component = " +
-        // event.getComponent().toString());
+        // System.out.println("source = " + event.getSource().toString());
+        // System.out.println("component = " + event.getComponent().toString());
         // System.out.println("class = " + event.getClass().toString());
         Tile tile = (Tile) event.getSource();
         Transcaler t = tile.getTranscaler();
@@ -919,6 +894,15 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
     }
   }
 
+  public static void showAsModelDialog(String title, ISeismicVolume volume, ToolState toolState, int[] sliderArray,
+      int[] clipRange, float ampFactor) {
+    DistributedArray a = volume.getDistributedArray();
+    GridDefinition grid = volume.getGlobalGrid();
+    IParallelContext pc = a.getParallelContext();
+    showAsModalDialog(a, grid.getAxisLogicalOrigins(), grid.getAxisLogicalDeltas(), title, pc.rank(), -1, toolState,
+        sliderArray, clipRange, ampFactor);
+  }
+
   /**
    * Here's a static method to add a JFrame around a DistributedArrayMosaicPlot
    * using linear scaling.
@@ -928,8 +912,10 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    * @param title
    *          JFrame title
    */
-  public static void showAsModalDialog(DistributedArray a, String title, ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
-    showAsModalDialog(a, null, null, title, a.getParallelContext().rank(), -1, toolContext, sliderArray, clipRange, ampFactor);
+  public static void showAsModalDialog(DistributedArray a, String title, ToolState toolState, int[] sliderArray,
+      int[] clipRange, float ampFactor) {
+    showAsModalDialog(a, null, null, title, a.getParallelContext().rank(), -1, toolState, sliderArray, clipRange,
+        ampFactor);
   }
 
   /**
@@ -943,9 +929,9 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    * @param rank
    *          mpi task #
    */
-  public static void showAsModalDialog(DistributedArray a, String title, int rank, ToolState toolContext,
-      int[] sliderArray, int [] clipRange, float ampFactor) {
-    showAsModalDialog(a, null, null, title, rank, -1, toolContext, sliderArray, clipRange, ampFactor);
+  public static void showAsModalDialog(DistributedArray a, String title, int rank, ToolState toolState,
+      int[] sliderArray, int[] clipRange, float ampFactor) {
+    showAsModalDialog(a, null, null, title, rank, -1, toolState, sliderArray, clipRange, ampFactor);
   }
 
   /**
@@ -960,8 +946,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    */
   public static void showAsModalDialog(DistributedArray a, String title, int rank, int elementOffset,
-      ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
-    showAsModalDialog(a, null, null, title, rank, elementOffset, toolContext, sliderArray, clipRange, ampFactor);
+      ToolState toolState, int[] sliderArray, int[] clipRange, float ampFactor) {
+    showAsModalDialog(a, null, null, title, rank, elementOffset, toolState, sliderArray, clipRange, ampFactor);
   }
 
   /**
@@ -980,13 +966,12 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    */
   public static void showAsModalDialog(DistributedArray a, long[] axisLogicalOrigins, long[] axisLogicalDeltas,
-      String title, int rank, ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
-    showAsModalDialog(a, axisLogicalOrigins, axisLogicalDeltas, title, rank, -1, toolContext, sliderArray, clipRange, ampFactor);
+      String title, int rank, ToolState toolState, int[] sliderArray, int[] clipRange, float ampFactor) {
+    showAsModalDialog(a, axisLogicalOrigins, axisLogicalDeltas, title, rank, -1, toolState, sliderArray, clipRange,
+        ampFactor);
   }
 
   /**
-   * Don't ever use this method directly use FrontendViewer
-   * 
    * Here's a static method to add a JFrame around a DistributedArrayMosaicPlot.
    * 
    * @param a
@@ -1001,11 +986,11 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
    *          mpi task #
    * @param elementOffset
    *          use this element or, if negative, plot envelope amplitude
-   * @param toolContext
-   *          user specified params
    */
+  @SuppressWarnings("unused")
   public static void showAsModalDialog(DistributedArray a, long[] axisLogicalOrigins, long[] axisLogicalDeltas,
-      String title, int rank, int elementOffset, ToolState toolContext, int[] sliderArray, int [] clipRange, float ampFactor) {
+      String title, int rank, int elementOffset, ToolState toolState, int[] sliderArray, int[] clipRange,
+      float ampFactor) {
 
     _plotCounter++;
 
@@ -1035,14 +1020,14 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       if (sliderArray != null) {
         plot[nviews]._slider.setValue(sliderArray[0]);
       }
-      if (clipRange != null){
+      if (clipRange != null) {
         plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0], clipRange[1]);
         Integer minC = clipRange[0];
         Integer maxC = clipRange[1];
         _myControlPanel._ampClipMinField.setText(minC.toString());
         _myControlPanel._ampClipMaxField.setText(maxC.toString());
-        if (ampFactor != 1 && ampFactor > 0){
-          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0]/ampFactor, clipRange[1]/ampFactor);
+        if (ampFactor != 1 && ampFactor > 0) {
+          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0] / ampFactor, clipRange[1] / ampFactor);
         }
       }
       nviews++;
@@ -1057,14 +1042,14 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       if (sliderArray != null) {
         plot[nviews]._slider.setValue(sliderArray[1]);
       }
-      if (clipRange != null){
+      if (clipRange != null) {
         plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0], clipRange[1]);
         Integer minC = clipRange[0];
         Integer maxC = clipRange[1];
         _myControlPanel._ampClipMinField.setText(minC.toString());
         _myControlPanel._ampClipMaxField.setText(maxC.toString());
-        if (ampFactor != 1 && ampFactor > 0){
-          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0]/ampFactor, clipRange[1]/ampFactor);
+        if (ampFactor != 1 && ampFactor > 0) {
+          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0] / ampFactor, clipRange[1] / ampFactor);
         }
       }
       nviews++;
@@ -1079,14 +1064,14 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       if (sliderArray != null) {
         plot[nviews]._slider.setValue(sliderArray[2]);
       }
-      if (clipRange != null){
+      if (clipRange != null) {
         plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0], clipRange[1]);
         Integer minC = clipRange[0];
         Integer maxC = clipRange[1];
         _myControlPanel._ampClipMinField.setText(minC.toString());
         _myControlPanel._ampClipMaxField.setText(maxC.toString());
-        if (ampFactor != 1 && ampFactor > 0){
-          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0]/ampFactor, clipRange[1]/ampFactor);
+        if (ampFactor != 1 && ampFactor > 0) {
+          plot[nviews]._plotPanel._pixelsView.setClips(clipRange[0] / ampFactor, clipRange[1] / ampFactor);
         }
       }
       nviews++;
@@ -1097,27 +1082,24 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         title = _plotCounter + ":    " + title;
       }
       if (INCLUDE_SHAPE_INFORMATION_IN_TITLE) {
-        int[] tempshape = a.getShape();
-        int[] shape = tempshape;
+        int[] shape = a.getShape();
         title += String.format("    Shape = %d %d %d", shape[0], shape[1], shape[2]);
       }
-      
-      
-       JWindow f = new JWindow();
-       //f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-       
+
+      // JDialog f = new JDialog(new JFrame(), title, true);
+      JFrame f = new JFrame(title);
+      f.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+
       JPanel gridPanel = new JPanel(new GridLayout(1, nviews));
       for (int i = 0; i < nviews; i++) {
-      	//System.out.println(plot[i]._rank);
         gridPanel.add(plot[i]);
       }
-      
       JPanel mainPanel = new JPanel(new BorderLayout());
       mainPanel.add(BorderLayout.CENTER, gridPanel);
-      
+
       mainPanel.add(BorderLayout.SOUTH, _myControlPanel);
       f.getContentPane().add(mainPanel);
-      
+
       // There might have a previous preferred location.
       if (_saveWindowLocation != null && _saveWindowSize != null) {
         f.setLocation(_saveWindowLocation);
@@ -1125,16 +1107,35 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       } else {
         f.setSize(new Dimension(1500, 500));
       }
-      
       f.pack();
       f.setVisible(false);
       try {
-        BufferedImage img = ImageGenerator.createImage(mainPanel.getRootPane());
-        if (toolContext == null) {
+        BufferedImage img = ImageGenerator.createImage(mainPanel);
+        String OutputPath = toolState.getParameter(ToolState.OUTPUT_FILE_SYSTEM);
+        if (toolState == null) {
           ImageGenerator.writeImage(img, "tmp//0.png");
-        } else {
-          String outLocation = toolContext.getParameter(ToolState.OUTPUT_FILE_SYSTEM) + "//"
-              + toolContext.getParameter(ToolState.OUTPUT_FILE_NAME);
+        } 
+        //print in Input
+        else if (OutputPath.compareToIgnoreCase("null") == 0){
+          String outLocation = toolState.getParameter(ToolState.INPUT_FILE_SYSTEM) + "//"
+              + toolState.getParameter(ToolState.INPUT_FILE_NAME);
+          outLocation += "//";
+          outLocation += "Images";
+
+          // Create a new folder
+          new File(outLocation).mkdir();
+
+          // Create the path to images
+          outLocation += "//";
+          outLocation += "0.png";
+
+          // Output image
+          ImageGenerator.writeImage(img, outLocation);
+        }
+        //print in output
+        else {
+          String outLocation = toolState.getParameter(ToolState.OUTPUT_FILE_SYSTEM) + "//"
+              + toolState.getParameter(ToolState.OUTPUT_FILE_NAME);
           outLocation += "//";
           outLocation += "Images";
 
@@ -1153,15 +1154,10 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
         // TODO Auto-generated catch block
         e1.printStackTrace();
       }
-      
+
       _saveWindowLocation = f.getLocation();
       _saveWindowSize = f.getSize();
-      
-      f.dispose();
-      f = null;
-      gridPanel = null;
-      mainPanel = null;
-      
+
       plot[0].getGlobalTraceAccessor().killWorkers(0);
     }
   }
@@ -1240,9 +1236,8 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
     // Pop up a plot of the current DistributedArray.
     long[] logicalOrigins = new long[] { 0, 0, 0 };
     long[] logicalDeltas = new long[] { 1, 1, 1 };
-    DABackendViewer.showAsModalDialog(da, logicalOrigins, logicalDeltas, "Distributed Array Plot Test", pc.rank(), null,
-        null, null, 1);
-    DABackendViewer.showAsModalDialog(da, logicalOrigins, logicalDeltas, "Distributed Array Plot Test", pc.rank(), null,
-        null, null, 1);
+    // DistributedArrayMosaicPlot.showAsModalDialog(da, logicalOrigins,
+    // logicalDeltas, "Distributed Array Plot Test", pc
+    // .rank());
   }
 }
