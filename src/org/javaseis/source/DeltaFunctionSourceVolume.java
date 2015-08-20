@@ -38,6 +38,7 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     generateSourceSignature(arraySourceXYZ);
   }
 
+  @Deprecated
   public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot) {
 
     // Get the physical source
@@ -57,6 +58,7 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     generateSourceSignature(arraySourceXYZ);
   }
 
+  @Deprecated
   public DeltaFunctionSourceVolume(ICheckedGrid CheckedGrid, PhaseShiftFFT3D shot, double[] physicalSourceXYZ,
       int[] AXIS_ORDER) {
     // Get the physical source
@@ -91,11 +93,8 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     float[] vS = new float[numDims];
 
     for (int i = 0; i < numDims; i++) {
-      // TODO: stuff
-      vS[i] = 0;
       double minPhys0 = input.getGlobalGrid().getAxisPhysicalOrigin(i);
       double phyDelta = input.getGlobalGrid().getAxisPhysicalDelta(i);
-
       vS[i] = (float) ((sourceXYZ[i] - minPhys0) / phyDelta);
     }
 
@@ -105,6 +104,7 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   /*
    * Converts the physical coordinates to Array Coordinates
    */
+  @Deprecated
   public float[] covertPhysToArray(double[] sourceXYZ, ICheckedGrid CheckedGrid) {
 
     // output buffer
