@@ -15,7 +15,7 @@ import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
 import org.javaseis.properties.DataDomain;
 import org.javaseis.properties.Units;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
 import org.javaseis.velocity.VelocityModelFromFile;
 import org.javaseis.volume.ISeismicVolume;
@@ -32,12 +32,13 @@ public class VolumeEdgeIO {
   // This is the file number which is the equivalent of
   private static int fileNumber = 0;
 
-  private ToolContext toolContext;
+  private ToolState toolContext;
   private String originalPN;
   private IDistributedIOService ipio = null;
   private VelocityModelFromFile vff = null;
   private ISeismicVolume seismicInput;
   private ICheckedGrid checkGrid;
+  IParallelContext pc;
 
   // Writer vars
   private PrintWriter out = null;
@@ -51,23 +52,24 @@ public class VolumeEdgeIO {
 
   }
 
-  public VolumeEdgeIO(IParallelContext pc, ToolContext toolContext) {
-
+  public VolumeEdgeIO(IParallelContext pc, ToolState toolContext) {
+    this.pc = pc;
+    
     try {
-      ipio = new FileSystemIOService(pc, toolContext.getParameter(ToolContext.INPUT_FILE_SYSTEM));
+      ipio = new FileSystemIOService(pc, toolContext.getParameter(ToolState.INPUT_FILE_SYSTEM));
     } catch (SeisException e) {
       e.printStackTrace();
     }
 
     // Open your chosen file for reading
     try {
-      ipio.open(toolContext.getParameter(ToolContext.INPUT_FILE_PATH));
+      ipio.open(toolContext.getParameter(ToolState.INPUT_FILE_NAME));
     } catch (SeisException e) {
       e.printStackTrace();
     }
 
-    originalPN = toolContext.getParameter(ToolContext.OUTPUT_FILE_SYSTEM) + "//"
-        + toolContext.getParameter(ToolContext.OUTPUT_FILE_PATH) + "//vEdge";
+    originalPN = toolContext.getParameter(ToolState.OUTPUT_FILE_SYSTEM) + "//"
+        + toolContext.getParameter(ToolState.OUTPUT_FILE_NAME) + "//vEdge";
 
     // System.out.println(originalPN);
 
@@ -79,7 +81,7 @@ public class VolumeEdgeIO {
     this.seismicInput = inputVolume;
 
     // match the IO's DA with the Volume's DA
-    ipio.setDistributedArray(inputVolume.getDistributedArray());
+    ipio.setDataArray(inputVolume.getDistributedArray());
 
     // Get the Input and tool context
     this.toolContext = toolContext;
@@ -123,7 +125,13 @@ public class VolumeEdgeIO {
     DistributedArray curArray = seismicInput.getDistributedArray();
 
     // get the start of the current volume
-    int[] globalPosIndex = seismicInput.getVolumePosition();
+    int[] fPos = ipio.getFilePosition();
+    
+    fPos[2] = 0;
+    
+    int[] vPos = fPos;
+    
+    int[] globalPosIndex = vPos;
     int[] volumePosIndex = new int[3];
 
     // Iterate over the Volume - Scope = 3
@@ -216,7 +224,7 @@ public class VolumeEdgeIO {
 
     // Write the Volume Information to the file
     try {
-      vff = new VelocityModelFromFile(toolContext);
+      vff = new VelocityModelFromFile(pc, toolContext);
       vff.open("r");
     } catch (FileNotFoundException e) {
       // TODO Auto-generated catch block
@@ -226,7 +234,7 @@ public class VolumeEdgeIO {
 
     while (ipio.hasNext()) {
       ipio.next();
-      seismicInput.setVolumePosition(ipio.getFilePosition());
+      //seismicInput.setVolumePosition(ipio.getFilePosition());
 
       try {
         ipio.read();
@@ -234,7 +242,7 @@ public class VolumeEdgeIO {
         e.printStackTrace();
       }
 
-      checkGrid = new GridFromHeaders(seismicInput, toolContext);
+      checkGrid = new GridFromHeaders(seismicInput, toolContext, ipio.getFilePosition());
 
       // Write the Grid Information to the file
       writeGridInformation(out);
