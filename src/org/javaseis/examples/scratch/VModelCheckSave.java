@@ -14,6 +14,7 @@ import beta.javaseis.parallel.IParallelContext;
 
 import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.examples.tool.ExampleVolumeInputTool;
+import org.javaseis.examples.tool.ExampleVolumeOutputTool;
 import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.ICheckedGrid;
@@ -91,6 +92,7 @@ public class VModelCheckSave implements IVolumeTool {
 
       toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
       toolList.add(VModelCheckSave.class.getCanonicalName());
+      toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
       String[] toolArray = listToArray(toolList);
 
