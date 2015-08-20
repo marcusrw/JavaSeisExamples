@@ -18,12 +18,11 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class JTestDistributedArrayViewer {
-  
-  private static final Logger LOGGER =
-      Logger.getLogger(JTestDistributedArrayViewer.class.getName());
-  
+
+  private static final Logger LOGGER = Logger.getLogger(JTestDistributedArrayViewer.class.getName());
+
   ParameterService parms;
-  
+
   private static String[] listToArray(List<String> list) {
     String[] array = new String[list.size()];
     for (int k = 0; k < list.size(); k++) {
@@ -31,7 +30,7 @@ public class JTestDistributedArrayViewer {
     }
     return array;
   }
-  
+
   private static ParameterService basicParameters(String datasetname) {
     ParameterService parms = null;
     try {
@@ -50,7 +49,7 @@ public class JTestDistributedArrayViewer {
     List<String> toolList = new ArrayList<String>();
 
     toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
-    toolList.add(JTestCheckedGridNew.class.getCanonicalName());
+    toolList.add(JTestDistributedArrayViewer.class.getCanonicalName());
 
     String[] toolArray = listToArray(toolList);
 
@@ -59,30 +58,30 @@ public class JTestDistributedArrayViewer {
     } catch (SeisException e) {
       e.printStackTrace();
     }
-    
+
   }
-  
-  //@Test
+
+  // @Test
   public void toolExecutes() {
-    //TODO randomly generate a single random volume for this test.
-    //loadDataset("100a-rawsynthpwaves.js");
+    // TODO randomly generate a single random volume for this test.
+    // loadDataset("100a-rawsynthpwaves.js");
     loadDataset("100a-rawsynthpwaves.js");
   }
-  
-  //@Test
+
+  // @Test
   public void noChangesToTimeDomainData() {
-    //The data that is shown in the viewer is exactly the data
-    //that is input
+    // The data that is shown in the viewer is exactly the data
+    // that is input
   }
-  
-  //@Test
+
+  // @Test
   public void complexDataDisplaysAbsValue() {
-    //Given complex input, the amplitude spectra is shown
+    // Given complex input, the amplitude spectra is shown
   }
-  
-  //@Test
+
+  // @Test
   public void waveNumberCoordsAreShifted() {
-    //Given input in wavenumber coordinates, those axes are shifted so that
-    //zero is in the centre.
+    // Given input in wavenumber coordinates, those axes are shifted so that
+    // zero is in the centre.
   }
 }
