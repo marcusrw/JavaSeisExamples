@@ -1,12 +1,18 @@
 package org.javaseis.examples.plot.test;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.javaseis.examples.plot.DistributedArrayViewer;
+import org.javaseis.examples.tool.ExampleVolumeInputTool;
+import org.javaseis.grid.JTestCheckedGridNew;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.tool.ToolState;
+import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.SeisException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -17,18 +23,43 @@ public class JTestDistributedArrayViewer {
       Logger.getLogger(JTestDistributedArrayViewer.class.getName());
   
   ParameterService parms;
-
-  private void loadDataset(String datasetname) {
+  
+  private static String[] listToArray(List<String> list) {
+    String[] array = new String[list.size()];
+    for (int k = 0; k < list.size(); k++) {
+      array[k] = list.get(k);
+    }
+    return array;
+  }
+  
+  private static ParameterService basicParameters(String datasetname) {
+    ParameterService parms = null;
     try {
       parms = new FindTestData(datasetname).getParameterService();
-      DistributedArrayViewer.exec(parms,new DistributedArrayViewer());
     } catch (FileNotFoundException e) {
-      LOGGER.log(Level.INFO,"Unable to open test dataset",e);
-      Assert.fail(e.getMessage());
-    } catch (SeisException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
+    parms.setParameter(ToolState.TASK_COUNT, "1");
+    return parms;
+  }
+
+  private void loadDataset(String datasetname) {
+    ParameterService parms = basicParameters(datasetname);
+
+    List<String> toolList = new ArrayList<String>();
+
+    toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+    toolList.add(JTestCheckedGridNew.class.getCanonicalName());
+
+    String[] toolArray = listToArray(toolList);
+
+    try {
+      VolumeToolRunner.exec(parms, toolArray);
+    } catch (SeisException e) {
+      e.printStackTrace();
+    }
+    
   }
   
   //@Test
