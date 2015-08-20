@@ -9,7 +9,7 @@ import org.javaseis.grid.BinGrid;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.io.Seisio;
 import org.javaseis.properties.AxisDefinition;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 import org.junit.Assert;
@@ -21,8 +21,7 @@ public class GridFromHeaders implements ICheckedGrid {
 
   private static final Logger LOGGER = Logger.getLogger(GridFromHeaders.class.getName());
 
-  private ISeismicVolume input;
-  private ToolContext toolContext;
+  private ToolState toolContext;
   private GridDefinition modifiedGrid;
   Seisio sio = null;
 
@@ -39,8 +38,7 @@ public class GridFromHeaders implements ICheckedGrid {
   // Source Position
   private double[] sourceXYZ;
 
-  public GridFromHeaders(ISeismicVolume input, ToolContext toolContext) {
-    this.input = input;
+  public GridFromHeaders(ToolState toolContext) {
     this.toolContext = toolContext;
 
     try {
@@ -50,7 +48,7 @@ public class GridFromHeaders implements ICheckedGrid {
     }
 
     // Updates the Grid
-    checkVolumeGridDefinition(this.toolContext, this.input);
+    checkVolumeGridDefinition(this.toolContext);
   }
 
   /*
@@ -74,7 +72,7 @@ public class GridFromHeaders implements ICheckedGrid {
     }
   }
 
-  private JSCoordinateService openTraceHeadersFile(ToolContext toolContext) throws SeisException {
+  private JSCoordinateService openTraceHeadersFile(ToolState toolContext) throws SeisException {
     String inputFilePath = toolContext.getParameter("inputFileSystem") + File.separator
         + toolContext.getParameter("inputFilePath");
     try {
@@ -99,17 +97,17 @@ public class GridFromHeaders implements ICheckedGrid {
     }
   }
 
-  private void checkVolumeGridDefinition(ToolContext toolContext, ISeismicVolume input) {
-    modifiedGrid = updateVolumeGridDefinition(toolContext, input);
+  private void checkVolumeGridDefinition(ToolState toolContext) {
+    modifiedGrid = updateVolumeGridDefinition(toolContext);
   }
 
-  private GridDefinition updateVolumeGridDefinition(ToolContext toolContext, ISeismicVolume input) {
+  private GridDefinition updateVolumeGridDefinition(ToolState toolContext) {
     // Get the grid from SeismicVolume
-    GridDefinition inputGrid = input.getGlobalGrid();
+    GridDefinition inputGrid = toolContext.getInputState().gridDefinition;
     long[] inputAxisLengths = inputGrid.getAxisLengths();
 
     // Get the Starting point in a Volume
-    int[] VolPos = input.getVolumePosition();
+    int[] VolPos = toolContext.getInputPosition();
     LOGGER.info("[updateVolumeGridDefinition] VolumePos: " + Arrays.toString(VolPos));
 
     int[] pos = Arrays.copyOf(VolPos, VolPos.length);
