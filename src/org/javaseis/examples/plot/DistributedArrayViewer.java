@@ -47,11 +47,18 @@ public class DistributedArrayViewer implements IVolumeTool {
       ISeismicVolume input, ISeismicVolume output) throws SeisException {
     DistributedArray inputDA = input.getDistributedArray();
     DistributedArray outputDA = output.getDistributedArray();
+    outputDA.copy(inputDA);
     
     DistributedArrayMosaicPlot.showAsModalDialog(inputDA,"INPUT");
-    DistributedArrayMosaicPlot.showAsModalDialog(outputDA,"OUTPUT");
     
-    return false;
+    try {
+      Thread.sleep(5000);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    
+    return true;
   }
 
   @Override

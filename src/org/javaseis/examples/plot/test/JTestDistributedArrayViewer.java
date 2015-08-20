@@ -12,6 +12,7 @@ import org.javaseis.grid.JTestCheckedGridNew;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.ToolState;
+import org.javaseis.tool.VolumeDisplayTool;
 import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.SeisException;
 import org.junit.Assert;
@@ -49,7 +50,7 @@ public class JTestDistributedArrayViewer {
     List<String> toolList = new ArrayList<String>();
 
     toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
-    toolList.add(JTestDistributedArrayViewer.class.getCanonicalName());
+    toolList.add(VolumeDisplayTool.class.getCanonicalName());
 
     String[] toolArray = listToArray(toolList);
 
@@ -61,7 +62,7 @@ public class JTestDistributedArrayViewer {
 
   }
 
-  // @Test
+  @Test
   public void toolExecutes() {
     // TODO randomly generate a single random volume for this test.
     // loadDataset("100a-rawsynthpwaves.js");
