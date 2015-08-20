@@ -52,7 +52,7 @@ public class JTestVelocityModelFromFile {
 
     IVelocityModel vmff = null;
     try {
-      vmff = new VelocityModelFromFile(toolState);
+      vmff = new VelocityModelFromFile(pc,toolState);
     } catch (FileNotFoundException e) {
       System.out.println("Reading dataset failed.");
       e.printStackTrace();
