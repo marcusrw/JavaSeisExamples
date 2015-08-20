@@ -118,8 +118,8 @@ public class JTestCheckedGridNew implements IVolumeTool {
 
     ipio.next();
     ipio.read();
-
-    System.out.println("[JTESTCHECKEDGRID]:" + Arrays.toString(ipio.getFilePosition()));
+    //System.out.println("[JTESTCHECKEDGRID]:" + input.getGlobalGrid().toString());
+    //System.out.println("[JTESTCHECKEDGRID]:" + toolState.getInputState().gridDefinition.toString());
 
     int[] filePosition = ipio.getFilePosition();
 
