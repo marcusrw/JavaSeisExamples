@@ -10,6 +10,7 @@ import org.javaseis.grid.JTestCheckedGridNew;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.tool.DataState;
 import org.javaseis.tool.IVolumeTool;
 import org.javaseis.tool.ToolState;
 import org.javaseis.tool.VolumeToolRunner;
@@ -20,7 +21,7 @@ import beta.javaseis.array.ITraceIterator;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.services.IPropertyService;
 import edu.mines.jtk.util.ArrayMath;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 /**
  * Example tool that modifies an input volume scalar multiplication.
@@ -260,20 +261,21 @@ public class VolumeCorrectionTool implements IVolumeTool {
     }
 
     // System.out.println(Arrays.toString(output.getVolumeShape()));
-
-    // GridDefinition outputGrid = updateVolumeGridDefinition(output,
-    // toolState);
     double[] minPhys = new double[] { 0, traceAxisMin, frameAxisMin };
     double[] Delta = new double[] { 0.00001, traceDelta, frameDelta };
 
     outputGrid = generateOutputGrid(input, minPhys, Delta);
-    Assert.assertNotNull(outputGrid);
-    System.out.println(outputGrid.toString());
+    setOutgoingDataStateGrid(toolState, outputGrid);
 
-    toolState.getOutputState().gridDefinition = outputGrid;
-
-    // TODO:SET TRUE
     return true;
+  }
+
+  private void setOutgoingDataStateGrid(ToolState toolState,
+      GridDefinition outputGrid) {
+    toolState.getOutputState().gridDefinition = outputGrid;
+    DataState outputState = toolState.getOutputState();
+    outputState.gridDefinition = outputGrid;
+    toolState.setOutputState(outputState);
   }
 
   @Override
