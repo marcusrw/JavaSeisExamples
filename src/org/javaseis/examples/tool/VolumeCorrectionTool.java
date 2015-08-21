@@ -1,6 +1,7 @@
 package org.javaseis.examples.tool;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +22,7 @@ import beta.javaseis.array.ITraceIterator;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.services.IPropertyService;
 import edu.mines.jtk.util.ArrayMath;
+
 import org.junit.Assert;
 
 /**
@@ -119,11 +121,17 @@ public class VolumeCorrectionTool implements IVolumeTool {
     // System.out.println("[PV updateVolumeGridDefinition] Reciever Delta: " +
     // Arrays.toString(recXYZ2));
 
-    for (int k = 0; k < inputAxisLengths.length; k++) {
-      AxisDefinition inputAxis = inputGrid.getAxis(k);
-      physicalOAxisArray[k] = new AxisDefinition(inputAxis.getLabel(), inputAxis.getUnits(), inputAxis.getDomain(),
-          inputAxis.getLength(), inputAxis.getLogicalOrigin(), inputAxis.getLogicalDelta(),
-          CalculateNewPhysicalOrigin(inputAxis, k, recXYZ), CalculateNewDeltaOrigin(inputAxis, k, recXYZ2));
+    for (int gridDefIndex = 0; gridDefIndex < inputAxisLengths.length; gridDefIndex++) {
+      AxisDefinition inputAxis = inputGrid.getAxis(gridDefIndex);
+      physicalOAxisArray[gridDefIndex] = new AxisDefinition(
+          inputAxis.getLabel(),
+          inputAxis.getUnits(),
+          inputAxis.getDomain(),
+          inputAxis.getLength(),
+          inputAxis.getLogicalOrigin(),
+          inputAxis.getLogicalDelta(),
+          CalculateNewPhysicalOrigin(inputAxis, gridDefIndex, recXYZ),
+          CalculateNewDeltaOrigin(inputAxis, gridDefIndex, recXYZ2));
     }
 
     return new GridDefinition(inputGrid.getNumDimensions(), physicalOAxisArray);
@@ -212,14 +220,14 @@ public class VolumeCorrectionTool implements IVolumeTool {
         traceAxisMin = tracePhysicalOrigin + traceDelta * (traceLen - 0);
       } else {
         traceAxisMinAccum = tracePhysicalOrigin + traceDelta * traceIndex;
-        traceAxisMin = tracePhysicalOrigin + traceDelta * traceIndex;
+        traceAxisMin = tracePhysicalOrigin;
       }
       if (frameDelta < 0) {
         frameAxisMinAccum = framePhyscialOrigin + frameDelta * (frameLen - frameIndex);
         frameAxisMin = framePhyscialOrigin + frameDelta * (frameLen - 0);
       } else {
         frameAxisMinAccum = framePhyscialOrigin + frameDelta * frameIndex;
-        frameAxisMin = framePhyscialOrigin + frameDelta * frameIndex;
+        frameAxisMin = framePhyscialOrigin;
       }
 
       //System.out.println("MinValue of Trace Axis: " + traceAxisMinAccum);
