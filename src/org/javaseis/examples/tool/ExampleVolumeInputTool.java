@@ -71,6 +71,7 @@ public class ExampleVolumeInputTool implements IVolumeTool {
   @Override
   public boolean processVolume(IParallelContext pc, ToolState toolContext, ISeismicVolume input,
       ISeismicVolume output) {
+    System.out.println("Calling processVolume in " + ExampleVolumeInputTool.class.getName());
     output.copyVolume(input);
     return true;
   }
@@ -87,12 +88,17 @@ public class ExampleVolumeInputTool implements IVolumeTool {
     ipio.next();
     ipio.read();
     pc.serialPrint("Read complete for position " + Arrays.toString(ipio.getFilePosition()));
-    if (ipio.usesProperties()) {
+    if (ipio.usesProperties() && SRXYsExist()) {
       double sx = vps.getValue("SOU_XD");
       double sy = vps.getValue("SOU_YD");
       double rx = vps.getValue("REC_XD");
       double ry = vps.getValue("REC_YD");
-      pc.serialPrint("Source X " + sx + " Source Y " + sy + " Receiver X " + rx + " Receiver Y " + ry);
+      pc.serialPrint(
+          "Source X " + sx + " Source Y " + sy +
+          " Receiver X " + rx + " Receiver Y " + ry);
+    } else {
+      pc.serialPrint("Unable to locate at least one of "
+          + "SOU_XD, SOU_YD, REC_XD, REC_YD.");
     }
     ITraceIterator ti = output.getTraceIterator();
     float[] trc;
@@ -107,6 +113,14 @@ public class ExampleVolumeInputTool implements IVolumeTool {
     min = ReduceScalar.reduceDouble(pc, min, Operation.MIN);
     max = ReduceScalar.reduceDouble(pc, max, Operation.MAX);
     pc.masterPrint("  Global Min,Max values: " + min + ", " + max);
+    return true;
+  }
+
+  private boolean SRXYsExist() {
+    if (!vps.contains("SOU_XD")) return false;
+    if (!vps.contains("SOU_YD")) return false;
+    if (!vps.contains("REC_XD")) return false;
+    if (!vps.contains("REC_YD")) return false;
     return true;
   }
 
