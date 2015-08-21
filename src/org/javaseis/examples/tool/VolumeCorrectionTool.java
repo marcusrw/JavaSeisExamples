@@ -89,8 +89,10 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     input.getCoords(position, srcXYZ, recXYZ);
 
-    System.out.println("[PV updateVolumeGridDefinition] Source: " + Arrays.toString(srcXYZ));
-    System.out.println("[PV updateVolumeGridDefinition] Reciever: " + Arrays.toString(recXYZ));
+    // System.out.println("[PV updateVolumeGridDefinition] Source: " +
+    // Arrays.toString(srcXYZ));
+    // System.out.println("[PV updateVolumeGridDefinition] Reciever: " +
+    // Arrays.toString(recXYZ));
 
     int[] position2 = new int[] { 0, 0, 0 };
 
@@ -104,14 +106,17 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     input.getCoords(position2, srcXYZ2, recXYZ2);
 
-    System.out.println("[PV updateVolumeGridDefinition] Source 2: " + Arrays.toString(srcXYZ2));
-    System.out.println("[PV updateVolumeGridDefinition] Reciever 2: " + Arrays.toString(recXYZ2));
+    // System.out.println("[PV updateVolumeGridDefinition] Source 2: " +
+    // Arrays.toString(srcXYZ2));
+    // System.out.println("[PV updateVolumeGridDefinition] Reciever 2: " +
+    // Arrays.toString(recXYZ2));
 
     for (int k = 0; k < recXYZ2.length; k++) {
       recXYZ2[k] -= recXYZ[k];
     }
 
-    System.out.println("[PV updateVolumeGridDefinition] Reciever Delta: " + Arrays.toString(recXYZ2));
+    // System.out.println("[PV updateVolumeGridDefinition] Reciever Delta: " +
+    // Arrays.toString(recXYZ2));
 
     for (int k = 0; k < inputAxisLengths.length; k++) {
       AxisDefinition inputAxis = inputGrid.getAxis(k);
@@ -123,17 +128,49 @@ public class VolumeCorrectionTool implements IVolumeTool {
     return new GridDefinition(inputGrid.getNumDimensions(), physicalOAxisArray);
   }
 
+  /**
+   * NOT RECOMMENDED
+   * 
+   * @return
+   */
+  @Deprecated
+  private GridDefinition generateOutputGrid(ISeismicVolume input, double[] minPhyO, double[] Delta) {
+    GridDefinition inputGrid = input.getGlobalGrid();
+    long[] inputAxisLengths = inputGrid.getAxisLengths();
+
+    AxisDefinition[] physicalOAxisArray = new AxisDefinition[inputAxisLengths.length];
+
+    for (int k = 0; k < inputAxisLengths.length; k++) {
+      AxisDefinition inputAxis = inputGrid.getAxis(k);
+      physicalOAxisArray[k] = new AxisDefinition(inputAxis.getLabel(), inputAxis.getUnits(), inputAxis.getDomain(),
+          inputAxis.getLength(), inputAxis.getLogicalOrigin(), inputAxis.getLogicalDelta(), minPhyO[k],
+          Math.abs(Delta[k]));
+    }
+
+    return new GridDefinition(inputGrid.getNumDimensions(), physicalOAxisArray);
+  }
+
   @Override
   public boolean processVolume(IParallelContext pc, ToolState toolState, ISeismicVolume input, ISeismicVolume output) {
     // Get trace iterators for input and output
 
     output.copyVolume(input);
     output.setPropertyService(input.getPropertyService());
-    
+
     GridDefinition inputGrid = updateVolumeGridDefinition(input, toolState);
 
     ITraceIterator iti = input.getTraceIterator();
     ITraceIterator oti = output.getTraceIterator();
+
+    GridDefinition outputGrid = null;
+
+    // Remove Eventually
+    double traceAxisMin = (double) Double.MAX_VALUE - 1;
+    double frameAxisMin = (double) Double.MAX_VALUE - 1;
+    double traceDelta = (double) Double.MAX_VALUE - 1;
+    double frameDelta = (double) Double.MAX_VALUE - 1;
+    // End
+
     while (iti.hasNext()) {
 
       iti.next();
@@ -150,7 +187,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
       double[] recXYZ = new double[3];
       input.getCoords(tracePos, srcXYZ, recXYZ);
 
-      //System.out.println("Reciever Cords: " + Arrays.toString(recXYZ));
+      // System.out.println("Reciever Cords: " + Arrays.toString(recXYZ));
 
       int traceIndex = tracePos[1];
       int frameIndex = tracePos[2];
@@ -160,71 +197,83 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
       double tracePhysicalOrigin = inputGrid.getAxis(1).getPhysicalOrigin();
       double framePhyscialOrigin = inputGrid.getAxis(2).getPhysicalOrigin();
-      double traceDelta = inputGrid.getAxis(1).getPhysicalDelta();
-      double frameDelta = inputGrid.getAxis(2).getPhysicalDelta();
-
-      double traceAxisMin;
-      double frameAxisMin;
+      // Move Here
+      // double traceDelta = inputGrid.getAxis(1).getPhysicalDelta();
+      // double frameDelta = inputGrid.getAxis(2).getPhysicalDelta();
+      traceDelta = inputGrid.getAxis(1).getPhysicalDelta();
+      frameDelta = inputGrid.getAxis(2).getPhysicalDelta();
+      // end
+      double traceAxisMinAccum;
+      double frameAxisMinAccum;
 
       if (traceDelta < 0) {
-        traceAxisMin = tracePhysicalOrigin + traceDelta * (traceLen - traceIndex);
+        traceAxisMinAccum = tracePhysicalOrigin + traceDelta * (traceLen - traceIndex);
+        traceAxisMin = tracePhysicalOrigin + traceDelta * (traceLen - 0);
       } else {
+        traceAxisMinAccum = tracePhysicalOrigin + traceDelta * traceIndex;
         traceAxisMin = tracePhysicalOrigin + traceDelta * traceIndex;
       }
       if (frameDelta < 0) {
-        frameAxisMin = framePhyscialOrigin + frameDelta * (frameLen - frameIndex);
+        frameAxisMinAccum = framePhyscialOrigin + frameDelta * (frameLen - frameIndex);
+        frameAxisMin = framePhyscialOrigin + frameDelta * (frameLen - 0);
       } else {
+        frameAxisMinAccum = framePhyscialOrigin + frameDelta * frameIndex;
         frameAxisMin = framePhyscialOrigin + frameDelta * frameIndex;
       }
 
-      //System.out.println("MinValue of Trace Axis: " + traceAxisMin);
-      //System.out.println("MinValue of Frame Axis: " + frameAxisMin);
+      //System.out.println("MinValue of Trace Axis: " + traceAxisMinAccum);
+      //System.out.println("MinValue of Frame Axis: " + frameAxisMinAccum);
 
-      double ftIndex = Math.abs((tracePhysicalOrigin - traceAxisMin) / (traceDelta));
-      double ffIndex = Math.abs((framePhyscialOrigin - frameAxisMin) / (frameDelta));
-      int[] finalPosition = new int[] { 0, (int) ftIndex, (int) ffIndex };
-      //System.out.println("Volume Shape: " + Arrays.toString(output.getVolumeShape()));
-      //System.out.println("Itr Shape: " + Arrays.toString(oti.getShape()));
+      Double ftIndex = Math.abs((tracePhysicalOrigin - traceAxisMinAccum) / (traceDelta));
+      Double ffIndex = Math.abs((framePhyscialOrigin - frameAxisMinAccum) / (frameDelta));
+
+      Integer ftIndexInt = (int) Math.round(ftIndex);
+      Integer ffIndexInt = (int) Math.round(ffIndex);
+
+      int[] finalPosition = new int[] { 0, ftIndexInt, ffIndexInt };
+      // System.out.println("Volume Shape: " +
+      // Arrays.toString(output.getVolumeShape()));
+      // System.out.println("Itr Shape: " + Arrays.toString(oti.getShape()));
       //System.out.println("Final Trace Location: " + Arrays.toString(finalPosition));
       oti.next();
       oti.setPosition(finalPosition);
       oti.putTrace(actualTrace);
-      
-      //Set the actual Properties of the actual traces
-      IPropertyService propsInput = input.getPropertyService();
-      Assert.assertNotNull(propsInput);
-      
-      
-      IPropertyService propsOutput = output.getPropertyService();
-      Assert.assertNotNull(propsOutput);
-      //propsInput.copyTrcProps(propsInput, tracePos);
-      //propsOutput;
-      //propsOutput.copyTrcProps(propsInput, tracePos, finalPosition);
-      output.setPropertyService(propsOutput);;
+
+      // Set the actual Properties of the actual traces
+      // IPropertyService propsInput = input.getPropertyService();
+      // Assert.assertNotNull(propsInput);
+
+      // IPropertyService propsOutput = output.getPropertyService();
+      // Assert.assertNotNull(propsOutput);
+      // propsInput.copyTrcProps(propsInput, tracePos);
+      // propsOutput;
+      // propsOutput.copyTrcProps(propsInput, tracePos, finalPosition);
+      // output.setPropertyService(propsOutput);
+
       // System.out.println("Output Itr Pos: " +
       // Arrays.toString(oti.getPosition().clone()));
 
-      /*try {
-        Thread.sleep(50);
-      } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }*/
+      // try { Thread.sleep(5000); } catch (InterruptedException e) { // TODO
+      // Auto-generated catch block e.printStackTrace();
+      // }
+
     }
-    
-    //System.out.println(Arrays.toString(output.getVolumeShape()));
-    
-    GridDefinition outputGrid = updateVolumeGridDefinition(output, toolState);
+
+    // System.out.println(Arrays.toString(output.getVolumeShape()));
+
+    // GridDefinition outputGrid = updateVolumeGridDefinition(output,
+    // toolState);
+    double[] minPhys = new double[] { 0, traceAxisMin, frameAxisMin };
+    double[] Delta = new double[] { 0.00001, traceDelta, frameDelta };
+
+    outputGrid = generateOutputGrid(input, minPhys, Delta);
+    Assert.assertNotNull(outputGrid);
     System.out.println(outputGrid.toString());
 
     toolState.getOutputState().gridDefinition = outputGrid;
 
-    while (true) {
-
-    }
-
     // TODO:SET TRUE
-    // return true;
+    return true;
   }
 
   @Override
