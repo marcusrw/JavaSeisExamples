@@ -10,8 +10,8 @@ import beta.javaseis.distributed.DistributedArray;
 public class DeltaFunctionSourceVolume implements ISourceVolume {
 
   PhaseShiftFFT3D shot;
-  double[] physicalSourceXYZ;
-  float[] arraySourceXYZ;
+  double[] physicalSourceXYZ = new double[3];
+  float[] arraySourceXYZ= new float[3];
   int[] AXIS_ORDER;
 
   public DeltaFunctionSourceVolume(ISeismicVolume input, PhaseShiftFFT3D shot) {

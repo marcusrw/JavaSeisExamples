@@ -209,10 +209,6 @@ public class ExampleMigration implements IVolumeTool {
       rxyz[2] = 0;
     }
 
-    //int[] gridPos = input.getVolumePosition();
-    //double receiverDepth = gridFromHeaders.getReceiverXYZ(gridPos)[2];
-    //double sourceDepth = gridFromHeaders.getSourceXYZ()[2];
-
     double receiverDepth = sxyz[2];
     double sourceDepth = rxyz[2];
 
@@ -234,6 +230,9 @@ public class ExampleMigration implements IVolumeTool {
     //ISourceVolume srcVol =
     //  new DeltaFunctionSourceVolume(gridFromHeaders, shot);
     //shot = srcVol.getShot();
+    ISourceVolume srcVol = new DeltaFunctionSourceVolume(input,shot);
+    shot = srcVol.getShot();
+    shot.plotInTime("Test Delta Function Source");
 
     // Plot to check
     //shot.plotInTime("Raw source signature (TXY)");
@@ -383,8 +382,7 @@ public class ExampleMigration implements IVolumeTool {
         new int[volPos.length]);
   }
 
-  /*
-  //TODO contains testing code for using test dataset
+  /* read the data in properly and then handle this
   private ICheckedGrid verifyGridOriginsAndDeltas(ToolState toolContext,
       ISeismicVolume input) {
     ICheckedGrid gridFromHeaders;
@@ -400,9 +398,10 @@ public class ExampleMigration implements IVolumeTool {
 
     // Set the Modified Grid = input Grid, since we can't set it in the
     // input
-    toolContext.inputGrid = gridFromHeaders.getModifiedGrid();
+    toolContext.getInputState().gridDefinition = gridFromHeaders.getModifiedGrid();
     return gridFromHeaders;
-  }*/
+  }
+  */
 
   //TODO temporary.  For testing.
   private boolean usingTestData(ToolState toolContext) {
