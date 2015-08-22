@@ -1,5 +1,7 @@
 package org.javaseis.examples.tool;
 
+import static org.javaseis.utils.Convert.listToArray;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ import org.javaseis.volume.ISeismicVolume;
 import beta.javaseis.array.ITraceIterator;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.services.IPropertyService;
+import beta.javaseis.services.VolumePropertyService;
 import edu.mines.jtk.util.ArrayMath;
 
 import org.junit.Assert;
@@ -163,8 +166,17 @@ public class VolumeCorrectionTool implements IVolumeTool {
   public boolean processVolume(IParallelContext pc, ToolState toolState, ISeismicVolume input, ISeismicVolume output) {
     // Get trace iterators for input and output
 
-    output.copyVolume(input);
+    //output.copyVolume(input);
+
     output.setPropertyService(input.getPropertyService());
+    IPropertyService propsInput = input.getPropertyService();
+    IPropertyService propsOutput = output.getPropertyService();
+    // Set the actual Properties of the actual traces
+    Assert.assertNotNull(propsInput);
+
+    //TODO not a proper copy
+    //Assert.assertNotEquals("Input and output VolumeProperties are " +
+    //    "the same object, not clones.",propsInput,propsOutput);
 
     GridDefinition inputGrid = updateVolumeGridDefinition(input, toolState);
 
@@ -248,17 +260,16 @@ public class VolumeCorrectionTool implements IVolumeTool {
       oti.setPosition(finalPosition);
       oti.putTrace(actualTrace);
 
-      // Set the actual Properties of the actual traces
-      // IPropertyService propsInput = input.getPropertyService();
-      // Assert.assertNotNull(propsInput);
-
-      // IPropertyService propsOutput = output.getPropertyService();
       // Assert.assertNotNull(propsOutput);
       // propsInput.copyTrcProps(propsInput, tracePos);
       // propsOutput;
-      // propsOutput.copyTrcProps(propsInput, tracePos, finalPosition);
-      // output.setPropertyService(propsOutput);
-
+      try {
+       // propsOutput.copyTrcProps(propsInput, tracePos, finalPosition);
+      } catch (IllegalArgumentException e) {
+        System.out.println(Arrays.toString(tracePos));
+        System.out.println(Arrays.toString(finalPosition));
+        throw e;
+      }
       // System.out.println("Output Itr Pos: " +
       // Arrays.toString(oti.getPosition().clone()));
 
@@ -302,20 +313,12 @@ public class VolumeCorrectionTool implements IVolumeTool {
     // Nothing to clean up in serial mode
   }
 
-  private static String[] listToArray(List<String> list) {
-    String[] array = new String[list.size()];
-    for (int k = 0; k < list.size(); k++) {
-      array[k] = list.get(k);
-    }
-    return array;
-  }
-
   private static ParameterService basicParameters() {
     String inputFileName = "seg45shot.js";
-    // String outputFileName = "fishfish.js";
+    String outputFileName = "fishfish.js";
     ParameterService parms = null;
     try {
-      parms = new FindTestData(inputFileName).getParameterService();
+      parms = new FindTestData(inputFileName,outputFileName).getParameterService();
     } catch (FileNotFoundException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -331,6 +334,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
     toolList.add(VolumeCorrectionTool.class.getCanonicalName());
+    toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
     String[] toolArray = listToArray(toolList);
 
