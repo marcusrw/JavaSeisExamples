@@ -46,7 +46,8 @@ import org.junit.Assert;
  */
 public class VolumeCorrectionTool implements IVolumeTool {
 
-  private static final Logger LOGGER = Logger.getLogger(VolumeCorrectionTool.class.getName());;
+  private static final Logger LOGGER =
+      Logger.getLogger(VolumeCorrectionTool.class.getName());
 
   private static final long serialVersionUID = 1L;
 
@@ -88,12 +89,12 @@ public class VolumeCorrectionTool implements IVolumeTool {
   // Adjust the new Physical Delta
   private double CalculateNewDeltaOrigin(AxisDefinition axis, int k, double[] data) {
     if (k == 0) {
-      if (data[2] == 0) {
+      if (axis.getPhysicalDelta() == 0) {
         // In a synthetic data set the physical delta on the Z axis can
         // be 0
         return 0.000001;
       }
-      return data[2];
+      return axis.getPhysicalDelta();
     } else if (k == 1) {
       return data[1];
     } else if (k == 2) {
@@ -103,13 +104,13 @@ public class VolumeCorrectionTool implements IVolumeTool {
   }
 
   // Adjust the new Physical Origin
-  private double CalculateNewPhysicalOrigin(AxisDefinition axis, int k, double[] data) {
+  private double CalculateNewPhysicalOrigin(AxisDefinition axis, int k, double[] origins) {
     if (k == 2) {
-      return data[0];
+      return origins[0];
     } else if (k == 1) {
-      return data[1];
+      return origins[1];
     } else if (k == 0) {
-      return data[2];
+      return axis.getPhysicalOrigin();
     }
     return Double.MAX_VALUE;
   }
@@ -218,8 +219,11 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     GridDefinition outputGrid = null;
 
+    double sampleAxisMin = (double) Double.MAX_VALUE - 1;
+    sampleAxisMin = inputGrid.getAxisPhysicalOrigin(0);
     double traceAxisMin = (double) Double.MAX_VALUE - 1;
     double frameAxisMin = (double) Double.MAX_VALUE - 1;
+    double sampleDelta = (double) Double.MAX_VALUE - 1;
     double traceDelta = (double) Double.MAX_VALUE - 1;
     double frameDelta = (double) Double.MAX_VALUE - 1;
 
@@ -232,7 +236,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
       int[] tracePos = iti.getPosition().clone();
 
-      LOGGER.info("Input Iterator Pos: " + Arrays.toString(tracePos));
+      LOGGER.fine("Input Iterator Pos: " + Arrays.toString(tracePos));
 
       propsInput.setPosition(tracePos);
 
@@ -245,6 +249,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
       double tracePhysicalOrigin = inputGrid.getAxis(1).getPhysicalOrigin();
       double framePhyscialOrigin = inputGrid.getAxis(2).getPhysicalOrigin();
 
+      sampleDelta = inputGrid.getAxis(0).getPhysicalDelta();
       traceDelta = inputGrid.getAxis(1).getPhysicalDelta();
       frameDelta = inputGrid.getAxis(2).getPhysicalDelta();
 
@@ -281,7 +286,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
       oti.setPosition(finalPosition);
       oti.next();
 
-      LOGGER.info("Output Trace Location: " + Arrays.toString(oti.getPosition().clone()));
+      LOGGER.fine("Output Trace Location: " + Arrays.toString(oti.getPosition().clone()));
 
       oti.putTrace(actualTrace);
 
@@ -293,7 +298,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
       double[] rc = new double[3];
       output.getCoords(finalPosition, sc, rc);
 
-      LOGGER.info("Before Trace Copy: " + Arrays.toString(rc));
+      LOGGER.fine("Before Trace Copy: " + Arrays.toString(rc));
 
       try {
         propsOutput.copyTrcProps(propsInput, tracePos, finalPosition);
@@ -301,22 +306,15 @@ public class VolumeCorrectionTool implements IVolumeTool {
         LOGGER.log(Level.SEVERE, e.getMessage(), e);
       }
 
-      LOGGER.info("Before Trace Copy: " + Arrays.toString(rc));
+      LOGGER.fine("Before Trace Copy: " + Arrays.toString(rc));
 
       output.getCoords(finalPosition, sc, rc);
 
-      LOGGER.info("After Trace Copy: " + Arrays.toString(rc));
-
-      // Testing Sleep Function
-      // try {
-      // Thread.sleep(2500);
-      // } catch (InterruptedException e) {
-      // }
-
+      LOGGER.fine("After Trace Copy: " + Arrays.toString(rc));
     }
 
-    double[] minPhys = new double[] { 0, traceAxisMin, frameAxisMin };
-    double[] Delta = new double[] { 0.00001, traceDelta, frameDelta };
+    double[] minPhys = new double[] { sampleAxisMin, traceAxisMin, frameAxisMin };
+    double[] Delta = new double[] { sampleDelta, traceDelta, frameDelta };
 
     int[] posTest1 = new int[] { 0, 0, 0 };
 
@@ -350,7 +348,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
   }
 
   private void setOutgoingDataStateGrid(ToolState toolState, GridDefinition outputGrid) {
-    toolState.getOutputState().gridDefinition = outputGrid;
+    //toolState.getOutputState().gridDefinition = outputGrid;
     DataState outputState = toolState.getOutputState();
     outputState.gridDefinition = outputGrid;
     toolState.setOutputState(outputState);
@@ -385,7 +383,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
   }
 
   private static ParameterService basicParameters() {
-    String inputFileName = "segshotno1.js";
+    String inputFileName = "seg45shot.js";
     String outputFileName = "fishfish.js";
     ParameterService parms = null;
     try {
