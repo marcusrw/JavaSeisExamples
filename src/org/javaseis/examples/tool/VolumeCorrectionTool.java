@@ -129,9 +129,11 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     input.getCoords(position, srcXYZ, recXYZ);
 
-    //LOGGER.info("[PV updateVolumeGridDefinition] Source: " + Arrays.toString(srcXYZ));
+    // LOGGER.info("[PV updateVolumeGridDefinition] Source: " +
+    // Arrays.toString(srcXYZ));
 
-    //LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " + Arrays.toString(recXYZ));
+    // LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " +
+    // Arrays.toString(recXYZ));
 
     int[] position2 = new int[] { 0, 0, 0 };
 
@@ -143,17 +145,21 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     input.getCoords(position2, srcXYZ2, recXYZ2);
 
-    //LOGGER.info("[PV updateVolumeGridDefinition] Source: " + Arrays.toString(srcXYZ2));
+    // LOGGER.info("[PV updateVolumeGridDefinition] Source: " +
+    // Arrays.toString(srcXYZ2));
 
-    //LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " + Arrays.toString(recXYZ2));
+    // LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " +
+    // Arrays.toString(recXYZ2));
 
     for (int k = 0; k < recXYZ2.length; k++) {
       recXYZ2[k] -= recXYZ[k];
     }
 
-    //LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " + Arrays.toString(recXYZ));
+    // LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " +
+    // Arrays.toString(recXYZ));
 
-    //LOGGER.info("[PV updateVolumeGridDefinition] Delta: " + Arrays.toString(recXYZ2));
+    // LOGGER.info("[PV updateVolumeGridDefinition] Delta: " +
+    // Arrays.toString(recXYZ2));
 
     for (int gridDefIndex = 0; gridDefIndex < inputAxisLengths.length; gridDefIndex++) {
       AxisDefinition inputAxis = inputGrid.getAxis(gridDefIndex);
@@ -301,21 +307,21 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
       LOGGER.info("After Trace Copy: " + Arrays.toString(rc));
 
-      //Testing Sleep Function
+      // Testing Sleep Function
       // try {
       // Thread.sleep(2500);
       // } catch (InterruptedException e) {
       // }
 
     }
-    
+
     double[] minPhys = new double[] { 0, traceAxisMin, frameAxisMin };
     double[] Delta = new double[] { 0.00001, traceDelta, frameDelta };
 
     int[] posTest1 = new int[] { 0, 0, 0 };
-    
+
     LOGGER.info("ATTEMPTING TO GET POS: " + Arrays.toString(posTest1));
-    
+
     double[] sr = new double[3];
     double[] rc = new double[3];
 
@@ -325,7 +331,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
     LOGGER.info("Reciever Trace: " + Arrays.toString(rc));
 
     int[] posTest2 = new int[] { 0, 200, 200 };
-    
+
     LOGGER.info("ATTEMPTING TO GET POS: " + Arrays.toString(posTest2));
 
     output.getCoords(posTest2, sr, rc);
