@@ -1130,7 +1130,7 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       try {
         BufferedImage img = ImageGenerator.createImage(mainPanel.getRootPane());
         if (toolContext == null) {
-          ImageGenerator.writeImage(img, "tmp//0.png");
+          ImageGenerator.writeImage(img, "//tmp//0.png");
         } else {
           String outLocation = toolContext.getParameter(ToolContext.OUTPUT_FILE_SYSTEM) + "//"
               + toolContext.getParameter(ToolContext.OUTPUT_FILE_PATH);
@@ -1156,13 +1156,21 @@ public class DABackendViewer extends JPanel implements ActionListener, ChangeLis
       _saveWindowLocation = f.getLocation();
       _saveWindowSize = f.getSize();
       
-      f.dispose();
-      f = null;
-      gridPanel = null;
-      mainPanel = null;
+      Utils.destroyComponent(f);
+      Utils.destroyComponent(mainPanel);
+      Utils.destroyComponent(gridPanel);
+      
+      //f.dispose();
+      //f = null;
+      //gridPanel = null;
+      //mainPanel = null;
       
       plot[0].getGlobalTraceAccessor().killWorkers(0);
     }
+
+    Utils.destroyComponent(plot[0]);
+    Utils.destroyComponent(plot[1]);
+    Utils.destroyComponent(plot[2]);
   }
 
   public class MyIntegerTextField extends JTextField {
