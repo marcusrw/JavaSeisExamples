@@ -15,6 +15,7 @@ import beta.javaseis.parallel.IParallelContext;
 import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.examples.tool.ExampleVolumeInputTool;
 import org.javaseis.examples.tool.ExampleVolumeOutputTool;
+import org.javaseis.examples.tool.VolumeCorrectionTool;
 import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.ICheckedGrid;
@@ -50,6 +51,10 @@ import org.junit.Assert;
  */
 public class VModelCheckSave implements IVolumeTool {
 
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 1L;
   private static final float S_TO_MS = 1000;
   private static final int[] FFT_ORIENTATION = PhaseShiftFFT3D.SEISMIC_FFT_ORIENTATION;
 
@@ -91,6 +96,7 @@ public class VModelCheckSave implements IVolumeTool {
       List<String> toolList = new ArrayList<String>();
 
       toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+      toolList.add(VolumeCorrectionTool.class.getCanonicalName());
       toolList.add(VModelCheckSave.class.getCanonicalName());
       toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
@@ -286,7 +292,8 @@ public class VModelCheckSave implements IVolumeTool {
     // This has to be after the time transform.
 
     // TODO: FIX
-    ISourceVolume srcVol = new DeltaFunctionSourceVolume(input, shot, sxyz);
+    ISourceVolume srcVol = new DeltaFunctionSourceVolume(toolContext.getInputState(),
+        input, shot);
     shot = srcVol.getShot();
 
     // Plot to check
@@ -372,16 +379,16 @@ public class VModelCheckSave implements IVolumeTool {
 
       // example usage of Front End Viewer
       // String title = "Volume #" + input.getVolumePosition()[3];
-      String title = "VoL";
-      DAFrontendViewer A = new DAFrontendViewer(vModelWindowed, toolContext);
+      //String title = "VoL";
+      //DAFrontendViewer A = new DAFrontendViewer(vModelWindowed, toolContext);
       // A.setLogicalFrame(10, 190);
-      A.show(title);
-      try {
-        Thread.sleep(50);
-      } catch (InterruptedException e) {
+      //A.show(title);
+      //try {
+      //  Thread.sleep(50);
+      //} catch (InterruptedException e) {
         // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+      //  e.printStackTrace();
+      //}
     }
 
     logTimerOutput("Velocity Access Time", velocityAccessTime.total());
@@ -394,6 +401,7 @@ public class VModelCheckSave implements IVolumeTool {
     Assert.assertArrayEquals(output.getDistributedArray().getShape(), vModelWindowed.getShape());
     Assert.assertFalse(distributedArrayIsEmpty(vModelWindowed));
     output.getDistributedArray().copy(vModelWindowed);
+    vModelWindowed = null;
     return true;
   }
 
