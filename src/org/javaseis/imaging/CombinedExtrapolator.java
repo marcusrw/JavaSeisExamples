@@ -23,6 +23,7 @@ public class CombinedExtrapolator {
     this.shot = shot;
     extrapTime = new IntervalTimer();
     transformTime = new IntervalTimer();
+    LOGGER.info("Constructed Source and Receiver Extrapolators.");
   }
 
   //Constant velocity phase shift
