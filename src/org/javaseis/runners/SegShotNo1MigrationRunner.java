@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.javaseis.utils.Convert;
 import org.javaseis.examples.scratch.ExampleMigration;
 import org.javaseis.examples.scratch.VModelCheckSave;
 import org.javaseis.examples.tool.ExampleVolumeInputTool;
@@ -24,14 +25,6 @@ public class SegShotNo1MigrationRunner {
       .getLogger(SegShotNo1MigrationRunner.class.getName());
 
   private static ParameterService parms;
-
-  private static String[] listToArray(List<String> list) {
-    String[] array = new String[list.size()];
-    for (int k = 0; k < list.size(); k++) {
-      array[k] = list.get(k);
-    }
-    return array;
-  }
   
   @Test
   public void programTerminates() throws FileNotFoundException {
@@ -50,7 +43,7 @@ public class SegShotNo1MigrationRunner {
       toolList.add(ExampleMigration.class.getCanonicalName());
       toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
-      String[] toolArray = listToArray(toolList);
+      String[] toolArray = Convert.listToArray(toolList);
 
       try {
         VolumeToolRunner.exec(parms, toolArray);
@@ -64,8 +57,7 @@ public class SegShotNo1MigrationRunner {
     }
   }
 
-  private void basicParameters(String inputFileName, String outputFileName, String vModelFileName) {
-    
+  private void basicParameters(String inputFileName, String outputFileName, String vModelFileName) {   
     parms.setParameter("ZMIN", "0");
     parms.setParameter("ZMAX", "4000");
     parms.setParameter("DELZ", "20");
