@@ -1,7 +1,10 @@
 package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -10,6 +13,10 @@ import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 
+import org.javaseis.examples.tool.ExampleVolumeInputTool;
+import org.javaseis.examples.tool.ExampleVolumeOutputTool;
+import org.javaseis.examples.tool.VolumeCorrectionTool;
+import org.javaseis.examples.tool.VolumeToolCheckerTool;
 import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.ICheckedGrid;
@@ -25,11 +32,15 @@ import org.javaseis.properties.Units;
 import org.javaseis.services.ParameterService;
 import org.javaseis.source.ISourceVolume;
 import org.javaseis.source.DeltaFunctionSourceVolume;
+import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.tool.DataState;
 import org.javaseis.tool.IVolumeTool;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolState;
+import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.IntervalTimer;
 import org.javaseis.util.SeisException;
+import org.javaseis.utils.Convert;
 import org.javaseis.velocity.IVelocityModel;
 import org.javaseis.velocity.VelocityInDepthModel;
 import org.javaseis.velocity.VelocityModelFromFile;
@@ -66,57 +77,74 @@ public class ExampleMigration implements IVolumeTool {
 
 
   @Override
-  public void serialInit(ToolState toolContext) {
-    checkPublicGrids(toolContext);
-    // TODO this method should check that toolContext contains enough
+  public void serialInit(ToolState toolState) {
+    checkPublicGrids(toolState);
+    // TODO this method should check that toolState contains enough
     // information to do a basic extrapolation.
     // Run main for more information. (ex: inputGrid returns null)
 
-    // redundant, until we figure out the design of the toolContext
-    GridDefinition imageGrid = computeImageGrid(toolContext);
-    toolContext.getOutputState().gridDefinition = imageGrid;  //This one doesn't get saved.
-    //toolContext.putFlowGlobal(ToolState.OUTPUT_GRID, imageGrid);
-    //saveVolumeEdgesIfTraceHeadersExist(toolContext);
+    // redundant, until we figure out the design of the toolState
+    GridDefinition imageGrid = computeImageGrid(toolState);
+    LOGGER.info("Computed image grid: ");
+    LOGGER.info(imageGrid.toString());
+    try {
+      System.in.read();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    setOutgoingDataStateGrid(toolState,imageGrid);
+
+    //toolState.putFlowGlobal(ToolState.OUTPUT_GRID, imageGrid);
+    //saveVolumeEdgesIfTraceHeadersExist(toolState);
   }
+
+  private void setOutgoingDataStateGrid(ToolState toolState,
+      GridDefinition outputGrid) {
+    DataState outputState = toolState.getOutputState();
+    outputState.gridDefinition = outputGrid;
+    toolState.setOutputState(outputState);
+  }
+
 
   //Figure out if the public inputGrid and outputGrid are populated
   //and populate them if they aren't.
-  private void checkPublicGrids(ToolState toolContext) {
-    GridDefinition inputGrid = toolContext.getInputState().gridDefinition;
+  private void checkPublicGrids(ToolState toolState) {
+    GridDefinition inputGrid = toolState.getInputState().gridDefinition;
     if (inputGrid == null) {
       throw new IllegalArgumentException("Input Grid is Null");
-      /*LOGGER.severe("The public field toolContext.inputGrid is null, "
+      /*LOGGER.severe("The public field toolState.inputGrid is null, "
           + "doesn't get shared between parallel tasks, and is a huge "
           + "violation of object encapsulation.  You shouldn't use it.");
-      inputGrid = (GridDefinition) toolContext
+      inputGrid = (GridDefinition) toolState
           .getFlowGlobal(ToolState.INPUT_GRID);
-      toolContext.inputGrid = inputGrid;*/
+      toolState.inputGrid = inputGrid;*/
     }
-    GridDefinition outputGrid = toolContext.getOutputState().gridDefinition;
+    GridDefinition outputGrid = toolState.getOutputState().gridDefinition;
     if (outputGrid == null) {
       throw new IllegalArgumentException("Output Grid is Null");
-      /*LOGGER.severe("The public field toolContext.outputGrid is null, "
+      /*LOGGER.severe("The public field toolState.outputGrid is null, "
           + "doesn't get shared between parallel tasks, and is a huge "
           + "violation of object encapsulation.  You shouldn't use it.");
-      outputGrid = (GridDefinition) toolContext
+      outputGrid = (GridDefinition) toolState
           .getFlowGlobal(ToolState.OUTPUT_GRID);
-      toolContext.outputGrid = outputGrid;*/
+      toolState.outputGrid = outputGrid;*/
     }
   }
 
-  private GridDefinition computeImageGrid(ToolState toolContext) {
+  private GridDefinition computeImageGrid(ToolState toolState) {
 
-    GridDefinition inputGrid = toolContext.getInputState().gridDefinition;
-    //ParameterService parms = toolContext.parms;
+    GridDefinition inputGrid = toolState.getInputState().gridDefinition;
+    //ParameterService parms = toolState.parms;
     Assert.assertNotNull(inputGrid);
     //Assert.assertNotNull(parms);
 
     AxisDefinition[] imageAxes =
         new AxisDefinition[inputGrid.getNumDimensions()];
 
-    float zmin = Float.parseFloat(toolContext.getParameter("ZMIN"));;
-    float zmax = Float.parseFloat(toolContext.getParameter("ZMAX"));
-    float delz = Float.parseFloat(toolContext.getParameter("DELZ"));
+    float zmin = Float.parseFloat(toolState.getParameter("ZMIN"));;
+    float zmax = Float.parseFloat(toolState.getParameter("ZMAX"));
+    float delz = Float.parseFloat(toolState.getParameter("DELZ"));
 
     long depthAxisLength = -1;
     depthAxisLength = computeDepthAxisLength(zmin, delz, zmax);
@@ -141,11 +169,11 @@ public class ExampleMigration implements IVolumeTool {
       return (long) Math.floor((zMax - zMin) / deltaZ) + 1;
   }
 
-  /*private void saveVolumeEdgesIfTraceHeadersExist(ToolState toolContext) {
-    Assert.assertNotNull(toolContext.pc);
-    IParallelContext pc = toolContext.pc;
+  /*private void saveVolumeEdgesIfTraceHeadersExist(ToolState toolState) {
+    Assert.assertNotNull(toolState.pc);
+    IParallelContext pc = toolState.pc;
     try {
-      VolumeEdgeIO vEdgeIO = new VolumeEdgeIO(pc, toolContext);
+      VolumeEdgeIO vEdgeIO = new VolumeEdgeIO(pc, toolState);
       vEdgeIO.write();
     } catch (NullPointerException e) {
       LOGGER.info("Input javaseis file has no associated trace header file.\n"
@@ -154,21 +182,42 @@ public class ExampleMigration implements IVolumeTool {
   }*/
 
   @Override
-  public void parallelInit(IParallelContext pc, ToolState toolContext) {
+  public void parallelInit(IParallelContext pc, ToolState toolState) {
     Assert.assertNotNull(pc);
     //TODO These grids aren't working now
-    checkPublicGrids(toolContext);
+    checkPublicGrids(toolState);
     LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
-    LOGGER.info("Input Grid Definition:\n" + toolContext.getInputState().gridDefinition + "\n");
-    LOGGER.info("Output Grid Definition:\n" + toolContext.getOutputState().gridDefinition + "\n");
+    LOGGER.info("Input Grid Definition:\n" + toolState.getInputState().gridDefinition + "\n");
+    LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
+    try {
+      System.in.read();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   @Override
-  public boolean processVolume(IParallelContext pc, ToolState toolContext,
+  public boolean processVolume(IParallelContext pc, ToolState toolState,
       ISeismicVolume input,ISeismicVolume output) {
 
-    checkPublicGrids(toolContext);
-    if (processFirstVolumeOnly(toolContext) && !isFirstVolume(input))
+    checkPublicGrids(toolState);
+    LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
+    LOGGER.info("Input Grid Definition:\n" + toolState.getInputState().gridDefinition + "\n");
+    LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
+    GridDefinition imageGrid = computeImageGrid(toolState);
+    LOGGER.info("Computed image grid: ");
+    LOGGER.info(imageGrid.toString());
+    try {
+      System.in.read();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    setOutgoingDataStateGrid(toolState,imageGrid);
+
+
+    if (processFirstVolumeOnly(toolState) && !isFirstVolume(input))
       return false;
 
     //initialize timers
@@ -184,13 +233,13 @@ public class ExampleMigration implements IVolumeTool {
     Assert.assertNotNull(output.getGlobalGrid());
 
     // Instantiate a checked grid which fixes any misplaced receivers
-    //ICheckedGrid gridFromHeaders = verifyGridOriginsAndDeltas(toolContext, input);
+    //ICheckedGrid gridFromHeaders = verifyGridOriginsAndDeltas(toolState, input);
 
-    GridDefinition imageGrid = computeImageGrid(toolContext);
-    toolContext.getOutputState().gridDefinition = imageGrid;
-    Assert.assertNotNull(toolContext.getOutputState().gridDefinition);
+    LOGGER.info("Output Grid:");
+    LOGGER.info(toolState.getOutputState().gridDefinition.toString());
+    Assert.assertNotNull(imageGrid);
 
-    PhaseShiftFFT3D rcvr = createReceiverFFT(pc, toolContext,input);
+    PhaseShiftFFT3D rcvr = createReceiverFFT(pc, toolState,input);
     PhaseShiftFFT3D shot = createSourceFFT(rcvr);
 
     //get any source/receiver XYZ, because we just need the depth.
@@ -212,6 +261,10 @@ public class ExampleMigration implements IVolumeTool {
     double receiverDepth = sxyz[2];
     double sourceDepth = rxyz[2];
 
+    //TODO hack
+    receiverDepth = 0;
+    sourceDepth = 0;
+
     PhaseShiftExtrapolator extrapR =
         new PhaseShiftExtrapolator(rcvr,receiverDepth);
     PhaseShiftExtrapolator extrapS =
@@ -230,9 +283,11 @@ public class ExampleMigration implements IVolumeTool {
     //ISourceVolume srcVol =
     //  new DeltaFunctionSourceVolume(gridFromHeaders, shot);
     //shot = srcVol.getShot();
-    ISourceVolume srcVol = new DeltaFunctionSourceVolume(input,shot);
+    ISourceVolume srcVol = new DeltaFunctionSourceVolume(
+        toolState.getInputState(),input,shot);
     shot = srcVol.getShot();
-    shot.plotInTime("Test Delta Function Source");
+    //shot.plotInTime("Test Delta Function Source");
+    //rcvr.plotInTime("Test Extrapolator Object");
 
     // Plot to check
     //shot.plotInTime("Raw source signature (TXY)");
@@ -245,17 +300,24 @@ public class ExampleMigration implements IVolumeTool {
     double zmin = imageGrid.getAxisPhysicalOrigin(0);
     double delz = imageGrid.getAxisPhysicalDelta(0);
     long numz = imageGrid.getAxisLength(0);
-    double fMax = Double.parseDouble(toolContext.getParameter("FMAX"));
+    double fMax = Double.parseDouble(toolState.getParameter("FMAX"));
     LOGGER.info(String.format("zmin: %6.1f, delz: %6.1f, numz: %4d", zmin,
         delz, numz));
 
     // Initialize velocity model input
     velocityAccessTime.start();
-    IVelocityModel vmff = getVelocityModelObject(pc, toolContext);
+    IVelocityModel vmff = getVelocityModelObject(pc, toolState);
     //TODO:Check this
     //orientSeismicInVelocityModel(vmff, gridFromHeaders);
 
     velocityAccessTime.stop();
+
+    DistributedArrayMosaicPlot.showAsModalDialog(
+        output.getDistributedArray(), "Image - In Progress");
+    DistributedArrayMosaicPlot.showAsModalDialog(
+        vModelWindowed, "Velocity Slice - In Progress");
+
+    toolState.getOutputState().gridDefinition.toString();
 
     double velocity;
     for (int zindx = 0; zindx < numz; zindx++) {
@@ -312,8 +374,8 @@ public class ExampleMigration implements IVolumeTool {
     vmff.close();
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time", singleVolumeTime.total());
-    assert (boolean) toolContext.getFlowGlobal(ToolState.HAS_INPUT);
-    assert (boolean) toolContext.getFlowGlobal(ToolState.HAS_OUTPUT);
+    assert (boolean) toolState.getFlowGlobal(ToolState.HAS_INPUT);
+    assert (boolean) toolState.getFlowGlobal(ToolState.HAS_OUTPUT);
 
     {
       //plot to check
@@ -344,8 +406,8 @@ public class ExampleMigration implements IVolumeTool {
   }
 
   //TODO debug code
-  private boolean processFirstVolumeOnly(ToolState toolContext) {
-    return Boolean.parseBoolean(toolContext.getParameter("FIRSTVOLUME"));
+  private boolean processFirstVolumeOnly(ToolState toolState) {
+    return Boolean.parseBoolean(toolState.getParameter("FIRSTVOLUME"));
   }
 
   private void checkOutputDAIsEmpty(ISeismicVolume input,
@@ -383,29 +445,29 @@ public class ExampleMigration implements IVolumeTool {
   }
 
   /* read the data in properly and then handle this
-  private ICheckedGrid verifyGridOriginsAndDeltas(ToolState toolContext,
+  private ICheckedGrid verifyGridOriginsAndDeltas(ToolState toolState,
       ISeismicVolume input) {
     ICheckedGrid gridFromHeaders;
     try {
-      gridFromHeaders = new GridFromHeaders(input, toolContext);
+      gridFromHeaders = new GridFromHeaders(input, toolState);
     } catch (NullPointerException e) {
       LOGGER.info(e.getMessage());
       LOGGER.info("It's possible that the input dataset has no associated,\n"
           + "trace header file, so that trying to open the coordinate\n"
           + "service failed.");
-      gridFromHeaders = new ManualOverrideGrid(input, toolContext);
+      gridFromHeaders = new ManualOverrideGrid(input, toolState);
     }
 
     // Set the Modified Grid = input Grid, since we can't set it in the
     // input
-    toolContext.getInputState().gridDefinition = gridFromHeaders.getModifiedGrid();
+    toolState.getInputState().gridDefinition = gridFromHeaders.getModifiedGrid();
     return gridFromHeaders;
   }
-  */
+   */
 
   //TODO temporary.  For testing.
-  private boolean usingTestData(ToolState toolContext) {
-    return toolContext.getParameter("inputFilePath").equals(
+  private boolean usingTestData(ToolState toolState) {
+    return toolState.getParameter("inputFilePath").equals(
         "100a-rawsynthpwaves.js");
   }
 
@@ -432,10 +494,10 @@ public class ExampleMigration implements IVolumeTool {
   }
 
   private PhaseShiftFFT3D createReceiverFFT(IParallelContext pc,
-      ToolState toolContext, ISeismicVolume input) {
+      ToolState toolState, ISeismicVolume input) {
 
     int[] inputShape = input.getLengths();
-    float[] pad = getPad(toolContext);
+    float[] pad = getPad(toolState);
     Assert.assertNotNull(pc);
 
     Assert.assertNotNull("ParallelContext is null", pc);
@@ -449,7 +511,7 @@ public class ExampleMigration implements IVolumeTool {
 
     // Specify the sample rates
     double[] sampleRates = computeVolumeSampleRates(input,
-        toolContext.getInputState().gridDefinition);
+        toolState.getInputState().gridDefinition);
 
     rcvr.setTXYSampleRates(sampleRates);
     LOGGER.info("Created transformable receiver wavefield with sample rates: "
@@ -468,15 +530,15 @@ public class ExampleMigration implements IVolumeTool {
     return sourceFFT;
   }
 
-  private float[] getPad(ToolState toolContext) {
+  private float[] getPad(ToolState toolState) {
     //TODO:may need fixing
-    //ParameterService parms = toolContext.parms;
+    //ParameterService parms = toolState.parms;
     //float padT = Float.parseFloat(parms.getParameter("PADT", "10"));
     //float padX = Float.parseFloat(parms.getParameter("PADX", "10"));
     //float padY = Float.parseFloat(parms.getParameter("PADY", "10"));
-    float padT = Float.parseFloat(toolContext.getParameter("PADT"));
-    float padX = Float.parseFloat(toolContext.getParameter("PADX"));
-    float padY = Float.parseFloat(toolContext.getParameter("PADY"));
+    float padT = Float.parseFloat(toolState.getParameter("PADT"));
+    float padX = Float.parseFloat(toolState.getParameter("PADX"));
+    float padY = Float.parseFloat(toolState.getParameter("PADY"));
     float[] pad = new float[] { padT, padX, padY };
     LOGGER.info("Pad: " + Arrays.toString(pad));
     return pad;
@@ -506,23 +568,23 @@ public class ExampleMigration implements IVolumeTool {
     return true;
   }
 
-  private IVelocityModel getVelocityModelObject(IParallelContext pc, ToolState toolContext) {
+  private IVelocityModel getVelocityModelObject(IParallelContext pc, ToolState toolState) {
     IVelocityModel vmff = null;
     try {
-      vmff = new VelocityModelFromFile(pc, toolContext);
+      vmff = new VelocityModelFromFile(pc, toolState);
     } catch (FileNotFoundException e1) {
       LOGGER.log(Level.SEVERE, e1.getMessage(), e1);
     }
 
     // override the default behaviour if we're working on the test data
     // which has no header information.
-    if (usingTestData(toolContext)) {
+    if (usingTestData(toolState)) {
       vmff = new VelocityInDepthModel(new double[] { 0, 1000, 2000 },
           new double[] { 2000, 3800 });
     }
     vmff.open("r");
     orientSeismicInVelocityModel(vmff,
-        toolContext.getInputState().gridDefinition);
+        toolState.getInputState().gridDefinition);
     return vmff;
   }
 
@@ -565,7 +627,52 @@ public class ExampleMigration implements IVolumeTool {
 
   public void serialFinish(ToolState toolState) throws SeisException {
     // TODO Auto-generated method stub
+  }
 
+  private static ParameterService basicParameters() {
+
+    String inputFileName = "segshotno1.js";
+    String outputFileName = "test.js";
+    String vModelFileName = "segsaltmodel.js";
+    ParameterService parms = null;;
+    try {
+      parms = new FindTestData(inputFileName,outputFileName).getParameterService();
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+    parms.setParameter("ZMIN", "0");
+    parms.setParameter("ZMAX", "4000");
+    parms.setParameter("DELZ", "20");
+    parms.setParameter("PADT", "20");
+    parms.setParameter("PADX", "5");
+    parms.setParameter("PADY", "5");
+    parms.setParameter("FMAX", "6000");
+    parms.setParameter("taskCount", "1");
+    parms.setParameter("vModelFilePath", vModelFileName);
+    parms.setParameter("outputFileMode", "create");
+
+    return parms;
+  }
+
+  public static void main(String[] args) {
+    ParameterService parms = basicParameters();
+
+    List<String> toolList = new ArrayList<String>();
+
+    toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+    toolList.add(VolumeCorrectionTool.class.getCanonicalName());
+    toolList.add(ExampleMigration.class.getCanonicalName());
+    toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+
+    String[] toolArray = Convert.listToArray(toolList);
+
+    try {
+      VolumeToolRunner.exec(parms, toolArray);
+    } catch (SeisException e) {
+      e.printStackTrace();
+    }
   }
 
 }
