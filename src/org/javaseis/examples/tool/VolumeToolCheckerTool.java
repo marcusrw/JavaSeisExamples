@@ -22,6 +22,11 @@ import edu.mines.jtk.mosaic.PointsView.Mark;
 
 public class VolumeToolCheckerTool implements IVolumeTool {
 
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 1L;
+
   @Override
   public void serialInit(ToolState toolState) throws SeisException {
     // TODO Auto-generated method stub
@@ -37,9 +42,9 @@ public class VolumeToolCheckerTool implements IVolumeTool {
   private boolean checkSource(GridDefinition grid, double[] srcXYZ) {
 
     int[] Axis_Order = {2,1,0};
-    
+
     boolean status = true;
-    
+
     double checkNumber = -999999;
     for (int i = 1; i < grid.getNumDimensions(); i++) {
       //checkNumber = srcXYZ[];
@@ -71,7 +76,7 @@ public class VolumeToolCheckerTool implements IVolumeTool {
     float[] sy = new float[1];
     float[] rx = new float[1];
     float[] ry = new float[1];
-    
+
 
     sx[0] = (float) srcXYZ[0];
     sy[0] = (float) srcXYZ[1];
@@ -89,12 +94,14 @@ public class VolumeToolCheckerTool implements IVolumeTool {
     System.out.print(Arrays.toString(srcXYZ));
 
     checkSource(grid, srcXYZ);
-    
+
+    /*
     while (true) {
 
     }
+     */
 
-    // return true;
+    return true;
   }
 
   @Override
