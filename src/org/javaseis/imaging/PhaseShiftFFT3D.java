@@ -1,5 +1,6 @@
 package org.javaseis.imaging;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
@@ -776,6 +777,7 @@ public class PhaseShiftFFT3D implements Transformable3D {
   }
 
   //Plot the data in the time domain, transforming as necessary.
+  //This pauses execution of your method until you hit enter in the console
   public void plotInTime(String title) {
     boolean inverseTransformInSpace = isSpaceTransformed();
     Assert.assertTrue(isTimeTransformed());
@@ -790,6 +792,12 @@ public class PhaseShiftFFT3D implements Transformable3D {
       this.inverseTemporal();
     }
     DistributedArrayMosaicPlot.showAsModalDialog(this.getArray(), title);
+    try {
+      System.in.read();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     //Now go back
     if (inverseTransformInTime) {
       //Assert.assertFalse(isTimeTransformed());
