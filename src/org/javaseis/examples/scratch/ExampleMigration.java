@@ -85,14 +85,6 @@ public class ExampleMigration implements IVolumeTool {
 
     // redundant, until we figure out the design of the toolState
     GridDefinition imageGrid = computeImageGrid(toolState);
-    LOGGER.info("Computed image grid: ");
-    LOGGER.info(imageGrid.toString());
-    try {
-      System.in.read();
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
     setOutgoingDataStateGrid(toolState,imageGrid);
 
     //toolState.putFlowGlobal(ToolState.OUTPUT_GRID, imageGrid);
@@ -186,15 +178,6 @@ public class ExampleMigration implements IVolumeTool {
     Assert.assertNotNull(pc);
     //TODO These grids aren't working now
     checkPublicGrids(toolState);
-    LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
-    LOGGER.info("Input Grid Definition:\n" + toolState.getInputState().gridDefinition + "\n");
-    LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
-    try {
-      System.in.read();
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
   }
 
   @Override
@@ -206,15 +189,16 @@ public class ExampleMigration implements IVolumeTool {
     LOGGER.info("Input Grid Definition:\n" + toolState.getInputState().gridDefinition + "\n");
     LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
     GridDefinition imageGrid = computeImageGrid(toolState);
+    setOutgoingDataStateGrid(toolState,imageGrid);
     LOGGER.info("Computed image grid: ");
     LOGGER.info(imageGrid.toString());
+    LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
     try {
       System.in.read();
-    } catch (IOException e) {
+    } catch (IOException e1) {
       // TODO Auto-generated catch block
-      e.printStackTrace();
+      e1.printStackTrace();
     }
-    setOutgoingDataStateGrid(toolState,imageGrid);
 
 
     if (processFirstVolumeOnly(toolState) && !isFirstVolume(input))
@@ -226,18 +210,6 @@ public class ExampleMigration implements IVolumeTool {
     IntervalTimer singleVolumeTime = new IntervalTimer();
 
     singleVolumeTime.start();
-    //LOGGER.info("Processing Volume #"
-    //  + Arrays.toString(input.getVolumePosition()));
-
-    Assert.assertNotNull(input.getGlobalGrid());
-    Assert.assertNotNull(output.getGlobalGrid());
-
-    // Instantiate a checked grid which fixes any misplaced receivers
-    //ICheckedGrid gridFromHeaders = verifyGridOriginsAndDeltas(toolState, input);
-
-    LOGGER.info("Output Grid:");
-    LOGGER.info(toolState.getOutputState().gridDefinition.toString());
-    Assert.assertNotNull(imageGrid);
 
     PhaseShiftFFT3D rcvr = createReceiverFFT(pc, toolState,input);
     PhaseShiftFFT3D shot = createSourceFFT(rcvr);
