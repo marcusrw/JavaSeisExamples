@@ -1,17 +1,23 @@
 package org.javaseis.examples.scratch;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.javaseis.examples.plot.DAFrontendViewer;
+import org.javaseis.examples.tool.ExampleVolumeInputTool;
+import org.javaseis.examples.tool.ExampleVolumeOutputTool;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.VolumeEdgeIO;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
+import org.javaseis.tool.IVolumeTool;
 import org.javaseis.tool.StandAloneVolumeTool;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
+import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 import org.junit.Assert;
@@ -20,37 +26,60 @@ import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
+import beta.javaseis.parallel.UniprocessorContext;
 
-public class ExampleStack extends StandAloneVolumeTool {
+public class ExampleStack implements IVolumeTool {
 
 	private static final Logger LOGGER = Logger.getLogger(ExampleStack.class
 			.getName());
 
 	static ParameterService parms;
 
+	private static String[] listToArray(List<String> list) {
+    String[] array = new String[list.size()];
+    for (int k = 0; k < list.size(); k++) {
+      array[k] = list.get(k);
+    }
+    return array;
+  }
+	
 	public static void main(String[] args) throws FileNotFoundException,
-			SeisException {
+			SeisException {		
 		String inputFileName = "seg45image.js";
-		// String inputFileName = "segshotno1.js";
-		String vModelFileName = "segsaltmodel.js";
-		String outputFileName = "seg45stack.js";
-		// parms = new FindTestData(inputFileName).getParameterService();
-		parms = new FindTestData(inputFileName, outputFileName)
-				.getParameterService();
-		parms.setParameter("vModelFilePath", vModelFileName);
-		parms.setParameter("outputFileMode", "create");
+    String outputFileName = "seg45stack.js";
+    String vModelFileName = "segsaltmodel.js";
 
-		// Stack in serial overall volumes
-		StandAloneVolumeTool.StandAloneVolumeTask.shotNumber = -1;
+    try {
+      parms = new FindTestData(inputFileName, outputFileName).getParameterService();
 
-		ExampleStack.exec(parms, new ExampleStack());
+      parms.setParameter("vModelFilePath", vModelFileName);
+      parms.setParameter("outputFileMode", "create");
+
+      List<String> toolList = new ArrayList<String>();
+
+      toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+      toolList.add(ExampleStack.class.getCanonicalName());
+      toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+
+      String[] toolArray = listToArray(toolList);
+
+      try {
+        VolumeToolRunner.exec(parms, toolArray);
+      } catch (SeisException e) {
+        e.printStackTrace();
+      }
+
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
 	}
 
 	@Override
-	public void serialInit(ToolContext serialToolContext) {
+	public void serialInit(ToolState serialToolContext) {
 		// TODO Auto-generated method stub
 
-		IParallelContext pc = serialToolContext.pc;
+		IParallelContext pc = new UniprocessorContext(); 
 
 		// Write the volume information to a file
 		// VolumeEdgeIO veIO = new VolumeEdgeIO(pc, serialToolContext);
@@ -59,12 +88,12 @@ public class ExampleStack extends StandAloneVolumeTool {
 		VolumeEdgeIO veIO = new VolumeEdgeIO(pc, serialToolContext);
 		GridDefinition volumeGrid = veIO.readVelocityGrid();
 
-		serialToolContext.putFlowGlobal(ToolContext.OUTPUT_GRID, volumeGrid);
+		//serialToolContext.putFlowGlobal(ToolState.OUTPUT_GRID, volumeGrid);
 
 	}
 
 	@Override
-	public void parallelInit(ToolContext toolContext) {
+	public void parallelInit(IParallelContext pc, ToolState toolContext) {
 		// TODO Auto-generated method stub
 
 	}
@@ -149,30 +178,32 @@ public class ExampleStack extends StandAloneVolumeTool {
 		return B;
 	}
 
-	public void checkPublicGrids(ToolContext toolContext) {
-		GridDefinition inputGrid = toolContext.inputGrid;
+	public void checkPublicGrids(ToolState toolContext) {
+		GridDefinition inputGrid = toolContext.getInputState().gridDefinition;
 		if (inputGrid == null) {
-			LOGGER.severe("The public field toolContext.inputGrid is null, "
+		  throw new IllegalArgumentException("Input Grid is Null");
+			/*LOGGER.severe("The public field toolContext.inputGrid is null, "
 					+ "doesn't get shared between parallel tasks, and is a huge "
 					+ "violation of object encapsulation.  You shouldn't use it.");
-			inputGrid = (GridDefinition) toolContext
-					.getFlowGlobal(ToolContext.INPUT_GRID);
-			toolContext.inputGrid = inputGrid;
+			//inputGrid = (GridDefinition) toolContext
+				//	.getFlowGlobal(ToolState.INPUT_GRID);
+			toolContext.getInputState().gridDefinition = inputGrid;*/
 		}
-		GridDefinition outputGrid = toolContext.outputGrid;
+		GridDefinition outputGrid = toolContext.getOutputState().gridDefinition;
 		if (outputGrid == null) {
-			LOGGER.severe("The public field toolContext.outputGrid is null, "
+		  throw new IllegalArgumentException("Output Grid is Null");
+			/*LOGGER.severe("The public field toolContext.outputGrid is null, "
 					+ "doesn't get shared between parallel tasks, and is a huge "
 					+ "violation of object encapsulation.  You shouldn't use it.");
 			outputGrid = (GridDefinition) toolContext
-					.getFlowGlobal(ToolContext.OUTPUT_GRID);
-			toolContext.outputGrid = outputGrid;
+					.getFlowGlobal(ToolState.OUTPUT_GRID);
+			toolContext.outputGrid = outputGrid;*/
 		}
 	}
 	
 
 	@Override
-	public boolean processVolume(ToolContext toolContext, ISeismicVolume input,
+	public boolean processVolume(IParallelContext pc, ToolState toolContext, ISeismicVolume input,
 			ISeismicVolume output) {
 
 		Assert.assertNotNull(output.getGlobalGrid());
@@ -184,7 +215,7 @@ public class ExampleStack extends StandAloneVolumeTool {
 
 		// figure out how many volumes there are
 		// int numVols = veIO.getVolumeNumber();
-		VolumeEdgeIO veIO = new VolumeEdgeIO(toolContext.pc, toolContext);
+		VolumeEdgeIO veIO = new VolumeEdgeIO(pc, toolContext);
 
 		// Read the velocity model
 		GridDefinition velocityGrid = veIO.readVelocityGrid();
@@ -203,16 +234,18 @@ public class ExampleStack extends StandAloneVolumeTool {
 		DistributedArray eDA = output.getDistributedArray();
 
 		// The starting position volume
-		int[] volumePosIndex = input.getVolumePosition();
+		//int[] volumePosIndex = input.getVolumePosition();
 		// int[] volPos = new int[] { 0, 0, 0, 0 };
 
-		int totalVolumes = veIO.getTotalVolumes();
+		//int totalVolumes = veIO.getTotalVolumes();
 		// System.out.println(totalVolumes);
 
 		// iterate over volumes
 
 		// set the new Volume Position
-		volumePosIndex = input.getVolumePosition();
+		//volumePosIndex = input.getVolumePosition();
+		
+		int[] volumePosIndex = new int[] {0,0,0,0};
 
 		// System.out.println("Volume #" + Arrays.toString(volumePosIndex));
 
@@ -292,18 +325,18 @@ public class ExampleStack extends StandAloneVolumeTool {
 			// Should only be true when we're on the first volume, until the
 			// tool
 			// is fixed.
-			if (!isFirstVolume(input)) {
+			/*if (!isFirstVolume(input)) {
 				LOGGER.info("Is first volume: " + isFirstVolume(input));
-				LOGGER.info("Current Volume: "
-						+ Arrays.toString(input.getVolumePosition()));
-				LOGGER.info("First Volume: "
-						+ Arrays.toString(new int[input.getVolumePosition().length]));
+				//LOGGER.info("Current Volume: "
+					//	+ Arrays.toString(input.getVolumePosition()));
+				//LOGGER.info("First Volume: "
+					//	+ Arrays.toString(new int[input.getVolumePosition().length]));
 
 				throw new IllegalArgumentException("The distributed array is"
 						+ " already empty, so the next step is a waste of time.");
 			} else {
 				LOGGER.info("First volume output is empty, as expected.");
-			}
+			}*/
 		}
 
 		// output.getDistributedArray().zeroCompletely();
@@ -335,26 +368,26 @@ public class ExampleStack extends StandAloneVolumeTool {
 		return true;
 	}
 
-	private boolean isFirstVolume(ISeismicVolume input) {
-		return Arrays.equals(input.getVolumePosition(),
-				new int[input.getVolumePosition().length]);
-	}
+	//private boolean isFirstVolume(ISeismicVolume input) {
+		//return Arrays.equals(input.getVolumePosition(),
+			//	new int[input.getVolumePosition().length]);
+	//}
 
 	@Override
-	public boolean outputVolume(ToolContext toolContext, ISeismicVolume output) {
-		// TODO Auto-generated method stub
-		return false;
-	}
+  public boolean outputVolume(IParallelContext pc, ToolState toolState, ISeismicVolume output) throws SeisException {
+    // TODO Auto-generated method stub
+    return false;
+  }
 
-	@Override
-	public void parallelFinish(ToolContext toolContext) {
-		// TODO Auto-generated method stub
+  @Override
+  public void parallelFinish(IParallelContext pc, ToolState toolState) throws SeisException {
+    // TODO Auto-generated method stub
 
-	}
+  }
 
-	@Override
-	public void serialFinish(ToolContext toolContext) {
-		// TODO Auto-generated method stub
+  @Override
+  public void serialFinish(ToolState toolState) throws SeisException {
+    // TODO Auto-generated method stub
 
-	}
+  }
 }

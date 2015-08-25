@@ -106,7 +106,8 @@ public class JSCoordServiceNotes {
     DistributedArray curArray = input.getDistributedArray();
 
     //get the start of the current volume
-    int[] globalPosIndex = input.getVolumePosition();
+    //int[] globalPosIndex = input.getVolumePosition();
+    int[] globalPosIndex = new int[] {0,0,0,0};
     int[] volumePosIndex = new int[3];
 
     //Iterate over the Volume - Scope = 3

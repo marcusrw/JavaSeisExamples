@@ -13,7 +13,7 @@ import org.javaseis.grid.GridDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.test.testdata.SampleInputCreator;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 import org.javaseis.volume.SeismicVolume;
@@ -30,11 +30,11 @@ import beta.javaseis.parallel.UniprocessorContext;
 public class JTestVolumeEdgeVirtualization {
 
   ParameterService parms;
-  ToolContext toolContext;
+  ToolState toolContext;
   ISeismicVolume seismicInput;
   IDistributedIOService ipio = null;
   ICheckedGrid checkGrid;
-
+/*
   @Before
   public void loadDataIntoVolume() {
     SampleInputCreator test = new SampleInputCreator(false);
@@ -136,12 +136,12 @@ public class JTestVolumeEdgeVirtualization {
       sXYZ = CheckedGrid.getSourceXYZ(globalPosIndex);
 
       // No way to determine this using the jscs
-      /*
-       * if (sXYZ == null){ out.println(
-       * "[getVolumeEdges]: Assumed Position: " +
-       * Arrays.toString(globalPosIndex) + " SourceXYZ: " +
-       * Arrays.toString(rXYZ)); sXYZ = CheckedGrid.getSourceXYZ(); }
-       */
+      
+       //if (sXYZ == null){ out.println(
+       //"[getVolumeEdges]: Assumed Position: " +
+       //Arrays.toString(globalPosIndex) + " SourceXYZ: " +
+       //Arrays.toString(rXYZ)); sXYZ = CheckedGrid.getSourceXYZ(); }
+       
 
       out.println("[getVolumeEdges]: Position: " + Arrays.toString(globalPosIndex) + " SourceXYZ: "
           + Arrays.toString(sXYZ));
@@ -171,5 +171,6 @@ public class JTestVolumeEdgeVirtualization {
     }
 
   }
+  */
 
 }

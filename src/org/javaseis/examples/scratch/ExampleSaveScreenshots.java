@@ -6,11 +6,12 @@ import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 
 import beta.javaseis.distributed.DistributedArrayMosaicPlot;
+import beta.javaseis.parallel.IParallelContext;
 
 public class ExampleSaveScreenshots extends StandAloneVolumeTool {
 
@@ -22,26 +23,26 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
 
   public static void main(String[] args) throws FileNotFoundException, SeisException {
     String inputFileName = "segshotno1.js";
-    String outputFileName = "testimg.js";
-    parms = new FindTestData(inputFileName, outputFileName).getParameterService();
+    //String outputFileName = "testimg.js";
+    parms = new FindTestData(inputFileName).getParameterService();
     parms.setParameter("outputFileMode", "create");
     ExampleSaveScreenshots.exec(parms, new ExampleSaveScreenshots());
   }
 
   @Override
-  public void serialInit(ToolContext serialToolContext) {
+  public void serialInit(ToolState serialToolState) {
+    
+    //serialToolState.setOutputState(dataState);
+  }
+
+  @Override
+  public void parallelInit(IParallelContext pc, ToolState toolContext) {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void parallelInit(ToolContext toolContext) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public boolean processVolume(ToolContext toolContext, ISeismicVolume input, ISeismicVolume output) {
+  public boolean processVolume(IParallelContext pc, ToolState toolContext, ISeismicVolume input, ISeismicVolume output) {
 
     // DistributedArrayMosaicPlot.showAsModalDialog(
     // input.getDistributedArray(),"title");
@@ -64,19 +65,19 @@ public class ExampleSaveScreenshots extends StandAloneVolumeTool {
   }
 
   @Override
-  public boolean outputVolume(ToolContext toolContext, ISeismicVolume output) {
+  public boolean outputVolume(IParallelContext pc, ToolState toolContext, ISeismicVolume output) {
     // TODO Auto-generated method stub
     return false;
   }
 
   @Override
-  public void parallelFinish(ToolContext toolContext) {
+  public void parallelFinish(IParallelContext pc, ToolState toolContext) {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void serialFinish(ToolContext toolContext) {
+  public void serialFinish(ToolState toolContext) {
     // TODO Auto-generated method stub
 
   }

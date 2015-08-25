@@ -6,7 +6,7 @@ import org.javaseis.grid.GridFromHeaders;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.ICheckedGrid;
 import org.javaseis.services.ParameterService;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 import org.javaseis.volume.SeismicVolume;
@@ -16,16 +16,18 @@ import beta.javaseis.distributed.IDistributedIOService;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
 
+//TODO: Class probably not needed anymore
 public class SampleInputCreator {
 
   private IParallelContext pc;
   private ParameterService parms;
-  private ToolContext toolContext;
+  private ToolState toolContext;
   private ISeismicVolume seismicInput;
   private IDistributedIOService ipio = null;
   private GridDefinition globalGrid;
   private ICheckedGrid checkGrid;
 
+  /*
   public SampleInputCreator(boolean loop) {
     pc = new UniprocessorContext();
 
@@ -129,5 +131,5 @@ public class SampleInputCreator {
   public ICheckedGrid getCheckGrid() {
     return checkGrid;
   }
-
+  */
 }

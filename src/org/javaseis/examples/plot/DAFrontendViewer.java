@@ -2,11 +2,13 @@ package org.javaseis.examples.plot;
 
 import java.util.Arrays;
 
+//import org.javaseis.parallel.DistributedArrayMosaicPlot;
 import org.javaseis.test.testdata.SampleInputCreator;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.junit.Assert;
 
 import beta.javaseis.distributed.DistributedArray;
+//import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
 import beta.javaseis.parallel.IParallelContext;
 import beta.javaseis.parallel.UniprocessorContext;
@@ -23,7 +25,7 @@ import beta.javaseis.parallel.UniprocessorContext;
 public class DAFrontendViewer {
 	private DistributedArray A;
 	private DistributedArray B;
-	private ToolContext toolContext;
+	private ToolState toolContext;
 	private int[] sArray = null;
 	private int[] cArray = null;
 	private float ampFactor = 1.0f;
@@ -35,7 +37,7 @@ public class DAFrontendViewer {
 
 	}
 
-	public DAFrontendViewer(DistributedArray A, ToolContext toolContext) {
+	public DAFrontendViewer(DistributedArray A, ToolState toolContext) {
 		this.A = A;
 		//Don't clone here you will run out of memory
 		//this.B = (DistributedArray) A.clone();
@@ -255,14 +257,13 @@ public class DAFrontendViewer {
 	 */
 	public void show(String title) {
 		DABackendViewer.showAsModalDialog(B, title, toolContext, sArray, cArray, ampFactor);
-		
-		//Hack
-		//Needed because D Hall code does not redraw 
-		//unneeded axis and this causes a problem for us
-		//setClipRange(cArray[0], cArray[1]);
+	  //DABackendViewer.showAsModalDialog(B, title, toolContext);
+	  //DistributedArrayMosaicPlot.showAsModalDialog(B, title);
 		
 	}
 
+	//TODO: Move tests
+	/*
 	private void checkFrame() {
 		SampleInputCreator TestObject = new SampleInputCreator(true);
 		DistributedArray TestArray = TestObject.getSeismicInput()
@@ -413,6 +414,6 @@ public class DAFrontendViewer {
 		test.checkTrace();
 		test.checkDepth();
 
-	}
+	}*/
 
 }

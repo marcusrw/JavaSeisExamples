@@ -8,8 +8,9 @@ import org.javaseis.array.ElementType;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
-import org.javaseis.tool.ToolContext;
+import org.javaseis.tool.ToolState;
 import org.javaseis.util.SeisException;
+import org.junit.Assert;
 
 import beta.javaseis.distributed.Decomposition;
 import beta.javaseis.distributed.DistributedArray;
@@ -38,6 +39,9 @@ public class VelocityModelFromFile implements IVelocityModel {
   String file;
 
   private static final int VOLUME_NUM_AXES = 3;
+
+  //TODO not a good solution.  This is a binGridding thing.
+  private static final double DOUBLE_TOLERANCE = 10^(-4);
   private int[] AXIS_ORDER = new int[] {2,1,0};
   private int[] V_AXIS_ORDER = new int[] {2,1,0};
 
@@ -83,17 +87,17 @@ public class VelocityModelFromFile implements IVelocityModel {
     startFileSystemIOService(pc, folder, file);
   }
 
-  public VelocityModelFromFile(ToolContext toolContext)
+  public VelocityModelFromFile(IParallelContext pc,ToolState toolState)
       throws FileNotFoundException {
-    pc = toolContext.getParallelContext();
-    folder = toolContext.getParameter("inputFileSystem");
-    file =  toolContext.getParameter("vModelFilePath");
+    this.pc = pc;
+    this.folder = toolState.getParameter("inputFileSystem");
+    this.file =  toolState.getParameter("vModelFilePath");
     errorMessageIfVModelNotSpecified();
     startFileSystemIOService(pc, folder, file);
   }
 
   private void errorMessageIfVModelNotSpecified() throws FileNotFoundException {
-    if (file.equals("null")) {
+    if (this.file == null) {
       throw new FileNotFoundException(
           String.format("Specify a velocity model filename%n"
               + "using by adding the parameter \"vModelFilePath\" to your "
@@ -159,7 +163,7 @@ public class VelocityModelFromFile implements IVelocityModel {
   }
 
   private void loadVelocityModelIntoArray() {
-    vModelPIO.setDistributedArray(vModelData);
+    vModelPIO.setDataArray(vModelData);
     try {
       //read the volume
       vModelPIO.read();
@@ -245,7 +249,7 @@ public class VelocityModelFromFile implements IVelocityModel {
     int[] vModelIndex = new int[VOLUME_NUM_AXES];
     for (int k = 0 ; k < vModelIndex.length; k++) {
       int vIndx = V_AXIS_ORDER[k];
-      int sIndx = AXIS_ORDER[k];
+      int sIndx = V_AXIS_ORDER[k];
       double physicalPosition = volGridOrigins[sIndx]
           + volIndexInDepth[sIndx]*volGridDeltas[sIndx];
       double vModelIndexD =
@@ -273,7 +277,7 @@ public class VelocityModelFromFile implements IVelocityModel {
 
     double[] modelXYZ = new double[VOLUME_NUM_AXES];
     for (int xyzIndx = 0 ; xyzIndx < modelXYZ.length ; xyzIndx++) {
-      int gridIndex = AXIS_ORDER[xyzIndx];
+      int gridIndex = V_AXIS_ORDER[xyzIndx];
       modelXYZ[xyzIndx] = vmodelGridOrigins[gridIndex]
           + vmodelGridDeltas[gridIndex]*vModelPositionIndex[gridIndex];
     }
@@ -312,7 +316,7 @@ public class VelocityModelFromFile implements IVelocityModel {
   @Override
   public double[][] readSlice(double depth) {
     if (volumeGrid == null) {
-      orientSeismicVolume(vmodelGrid,AXIS_ORDER);
+      orientSeismicVolume(vmodelGrid,V_AXIS_ORDER);
     }
     return getWindowedDepthSlice(getVolumeGridOrigins(),
         Convert.longToInt(getVolumeGridLengths()),depth);
@@ -347,9 +351,9 @@ public class VelocityModelFromFile implements IVelocityModel {
     int traceDim = 1;
     int frameDim = 2;
 
-    int xDim = AXIS_ORDER[0];
-    int yDim = AXIS_ORDER[1];
-    int zDim = AXIS_ORDER[2];
+    int xDim = V_AXIS_ORDER[0];
+    int yDim = V_AXIS_ORDER[1];
+    int zDim = V_AXIS_ORDER[2];
 
     long x0 = depthIndex[xDim];
     long y0 = depthIndex[yDim];
@@ -406,7 +410,7 @@ public class VelocityModelFromFile implements IVelocityModel {
     long[] posIndx = new long[VOLUME_NUM_AXES];
     for (int xyzIndex = 0 ; xyzIndex < VOLUME_NUM_AXES ; xyzIndex++) {
       double doubleIndex = (stfLocation[xyzIndex] - vModelOrigin[xyzIndex])/vModelDeltas[xyzIndex];
-      if (doubleIndex != Math.rint(doubleIndex)) {
+      if (Math.abs(doubleIndex - Math.rint(doubleIndex)) < DOUBLE_TOLERANCE) {
         LOGGER.info("Index: " + doubleIndex);
         LOGGER.info("Nearest Integer: " + Math.rint(doubleIndex));
         throw new ArithmeticException("Got an noninteger array index");
@@ -429,8 +433,7 @@ public class VelocityModelFromFile implements IVelocityModel {
       e1.printStackTrace();
     }
     IParallelContext pc = new UniprocessorContext();
-    ToolContext toolContext = new ToolContext(parms);
-    toolContext.setParallelContext(pc);
+    ToolState toolContext = new ToolState(parms,VelocityModelFromFile.class);
 
     VelocityModelFromFile vmff = null;
     try {
@@ -443,7 +446,7 @@ public class VelocityModelFromFile implements IVelocityModel {
     }
 
     vmff.open("r");
-    vmff.orientSeismicVolume(vmff.vmodelGrid,vmff.AXIS_ORDER);
+    vmff.orientSeismicVolume(vmff.vmodelGrid,vmff.V_AXIS_ORDER);
     double[] windowOrigin = new double[] {2000,1000,1000};
     int[] windowLength = new int[] {1,338,338};
     double[][] depthSlice = vmff.getWindowedDepthSlice(windowOrigin,
@@ -456,7 +459,7 @@ public class VelocityModelFromFile implements IVelocityModel {
     //visualize
     //PlotArray2D sliceDisplay = new PlotArray2D(floatSlice);
     //sliceDisplay.display();
-    //DistributedArrayMosaicPlot.showAsModalDialog(vmff.vModelData,"title2344");
+    DistributedArrayMosaicPlot.showAsModalDialog(vmff.vModelData,"title2344");
     vmff.close();
   }
 }
