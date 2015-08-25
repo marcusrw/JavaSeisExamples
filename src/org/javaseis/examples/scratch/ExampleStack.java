@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import org.javaseis.examples.plot.DAFrontendViewer;
 import org.javaseis.examples.tool.ExampleVolumeInputTool;
 import org.javaseis.examples.tool.ExampleVolumeOutputTool;
+import org.javaseis.examples.tool.VolumeCorrectionTool;
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.grid.VolumeEdgeIO;
 import org.javaseis.properties.AxisDefinition;
@@ -45,8 +46,8 @@ public class ExampleStack implements IVolumeTool {
 	
 	public static void main(String[] args) throws FileNotFoundException,
 			SeisException {		
-		String inputFileName = "seg45image.js";
-    String outputFileName = "seg45stack.js";
+		String inputFileName = "seg45shot.js";
+    String outputFileName = "testNewStack.js";
     String vModelFileName = "segsaltmodel.js";
 
     try {
@@ -58,6 +59,7 @@ public class ExampleStack implements IVolumeTool {
       List<String> toolList = new ArrayList<String>();
 
       toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+      toolList.add(VolumeCorrectionTool.class.getCanonicalName());
       toolList.add(ExampleStack.class.getCanonicalName());
       toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
