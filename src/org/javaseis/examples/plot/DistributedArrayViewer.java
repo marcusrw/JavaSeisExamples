@@ -1,14 +1,20 @@
 package org.javaseis.examples.plot;
 
+import java.io.FileNotFoundException;
+
+import org.javaseis.examples.tool.ExampleVolumeInputTool;
 import org.javaseis.grid.GridDefinition;
 
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.parallel.IParallelContext;
 
+import org.javaseis.services.ParameterService;
+import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.IVolumeTool;
 import org.javaseis.tool.StandAloneVolumeTool;
 import org.javaseis.tool.ToolState;
+import org.javaseis.tool.VolumeToolRunner;
 import org.javaseis.util.SeisException;
 import org.javaseis.volume.ISeismicVolume;
 
@@ -22,12 +28,35 @@ import org.javaseis.volume.ISeismicVolume;
  */
 public class DistributedArrayViewer implements IVolumeTool {
 
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 1L;
+
   public DistributedArrayViewer() {
   }
 
   public static void main(String[] args) {
-    throw new UnsupportedOperationException(
-        "This method has not been implemented yet.");
+    String inputFileName = "testCompare.js";
+    ParameterService parms = null;
+    try {
+      parms = new FindTestData(inputFileName).getParameterService();
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    
+    String[] toolArray = new String[] {
+        ExampleVolumeInputTool.class.getCanonicalName(),
+        DistributedArrayViewer.class.getCanonicalName()
+        };
+    
+    try {
+      VolumeToolRunner.exec(parms,toolArray);
+    } catch (SeisException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   @Override
