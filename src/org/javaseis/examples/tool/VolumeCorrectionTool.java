@@ -164,8 +164,13 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     for (int gridDefIndex = 0; gridDefIndex < inputAxisLengths.length; gridDefIndex++) {
       AxisDefinition inputAxis = inputGrid.getAxis(gridDefIndex);
-      physicalOAxisArray[gridDefIndex] = new AxisDefinition(inputAxis.getLabel(), inputAxis.getUnits(),
-          inputAxis.getDomain(), inputAxis.getLength(), inputAxis.getLogicalOrigin(), inputAxis.getLogicalDelta(),
+      physicalOAxisArray[gridDefIndex] = new AxisDefinition(
+          inputAxis.getLabel(),
+          inputAxis.getUnits(),
+          inputAxis.getDomain(),
+          inputAxis.getLength(),
+          inputAxis.getLogicalOrigin(),
+          inputAxis.getLogicalDelta(),
           CalculateNewPhysicalOrigin(inputAxis, gridDefIndex, recXYZ),
           CalculateNewDeltaOrigin(inputAxis, gridDefIndex, recXYZ2));
     }
