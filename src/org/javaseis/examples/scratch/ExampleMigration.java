@@ -193,15 +193,11 @@ public class ExampleMigration implements IVolumeTool {
     LOGGER.info("Computed image grid: ");
     LOGGER.info(imageGrid.toString());
     LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
-    try {
-      System.in.read();
-    } catch (IOException e1) {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
-    }
 
+    int[] imageShape = toolState.getOutputState().gridDefinition.getShape();
+    output.getDistributedArray().reshape(imageShape);
 
-    if (processFirstVolumeOnly(toolState) && !isFirstVolume(input))
+    if (processFirstVolumeOnly(toolState) && !isFirstVolume(toolState,input))
       return false;
 
     //initialize timers
@@ -264,7 +260,7 @@ public class ExampleMigration implements IVolumeTool {
     // Plot to check
     //shot.plotInTime("Raw source signature (TXY)");
 
-    checkOutputDAIsEmpty(input, output);
+    checkOutputDAIsEmpty(toolState,input, output);
     DistributedArray vModelWindowed = (DistributedArray) output
         .getDistributedArray().clone();
 
@@ -382,13 +378,13 @@ public class ExampleMigration implements IVolumeTool {
     return Boolean.parseBoolean(toolState.getParameter("FIRSTVOLUME"));
   }
 
-  private void checkOutputDAIsEmpty(ISeismicVolume input,
+  private void checkOutputDAIsEmpty(ToolState toolState,ISeismicVolume input,
       ISeismicVolume output) {
     if (distributedArrayIsEmpty(output.getDistributedArray())) {
       // Should only be true when we're on the first volume, until the
       // tool is fixed.
-      if (!isFirstVolume(input)) {
-        LOGGER.info("Is first volume: " + isFirstVolume(input));
+      if (!isFirstVolume(toolState,input)) {
+        LOGGER.info("Is first volume: " + isFirstVolume(toolState,input));
         //LOGGER.info("Current Volume: " 
         //  + Arrays.toString(input.getVolumePosition()));
         //LOGGER.info("First Volume: " 
@@ -410,8 +406,8 @@ public class ExampleMigration implements IVolumeTool {
   }
 
   //TODO debugging code that allows different treatment for volume 1
-  private boolean isFirstVolume(ISeismicVolume input) {
-    int[] volPos = new int[] {0,0,0,0};
+  private boolean isFirstVolume(ToolState toolState,ISeismicVolume input) {
+    int[] volPos = toolState.getInputPosition();
     return Arrays.equals(volPos,
         new int[volPos.length]);
   }
@@ -603,8 +599,8 @@ public class ExampleMigration implements IVolumeTool {
 
   private static ParameterService basicParameters() {
 
-    String inputFileName = "segshotno1.js";
-    String outputFileName = "test.js";
+    String inputFileName = "seg45shot.js";
+    String outputFileName = "seg45imagetest.js";
     String vModelFileName = "segsaltmodel.js";
     ParameterService parms = null;;
     try {
