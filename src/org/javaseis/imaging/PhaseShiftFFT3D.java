@@ -780,7 +780,6 @@ public class PhaseShiftFFT3D implements Transformable3D {
   //This pauses execution of your method until you hit enter in the console
   public void plotInTime(String title) {
     boolean inverseTransformInSpace = isSpaceTransformed();
-    Assert.assertTrue(isTimeTransformed());
     boolean inverseTransformInTime = isTimeTransformed();
     //Go to the time domain
     if (inverseTransformInTime) {
