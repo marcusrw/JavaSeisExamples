@@ -6,10 +6,12 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.javaseis.examples.scratch.CheckSourceLocations;
 import org.javaseis.examples.scratch.ExampleMigration;
 import org.javaseis.examples.scratch.VModelCheckSave;
 import org.javaseis.examples.tool.ExampleVolumeInputTool;
 import org.javaseis.examples.tool.ExampleVolumeOutputTool;
+import org.javaseis.examples.tool.VolumeCorrectionTool;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
@@ -46,7 +48,8 @@ public class SourceCheckMigrationRunner {
       List<String> toolList = new ArrayList<String>();
 
       toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
-      toolList.add(ExampleMigration.class.getCanonicalName());
+      toolList.add(VolumeCorrectionTool.class.getCanonicalName());
+      toolList.add(CheckSourceLocations.class.getCanonicalName());
       toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
       String[] toolArray = listToArray(toolList);
