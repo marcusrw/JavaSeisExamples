@@ -22,13 +22,25 @@ public class GreenSource implements ISourceVolume {
   }
 
   @Override
-  public float[] convertPhysToArray(DataState dataState,double[] sourceXYZ, ISeismicVolume input) {
+  public float[] convertPhysToArray(DataState dataState,double[] sourceXYZ) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public float[] covertPhysToArray(double[] sourceXYZ, ICheckedGrid CheckedGrid) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public double[] getSourceXYZ() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public int[] getArrayPositionForPhysicalPosition(DataState inputState, double[] srcPos) {
     // TODO Auto-generated method stub
     return null;
   }
