@@ -63,19 +63,6 @@ public class ExampleMigration implements IVolumeTool {
   public ExampleMigration() {
   }
 
-  // allows running this tool from the command line, using key/value pairs to
-  // fill in the necessary parameters.
-  /*public static void main(String[] args) {
-    ParameterService parms = new ParameterService(args);
-    try {
-      exec(parms, new ExampleMigration());
-    } catch (SeisException e) {
-      LOGGER.log(Level.SEVERE,e.getMessage(),e);
-    }
-  }*/
-
-
-
   @Override
   public void serialInit(ToolState toolState) {
     checkPublicGrids(toolState);
