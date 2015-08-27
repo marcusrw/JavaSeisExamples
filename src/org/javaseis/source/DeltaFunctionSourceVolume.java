@@ -52,6 +52,7 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
 
   public DeltaFunctionSourceVolume(DataState dataState,
       ISeismicVolume input, PhaseShiftFFT3D shot) {
+    volumeNumDimensions = shot.getArray().getDimensions();
     int[] aPosInVol = new int[] { 0, 0, 0 };
     double[] voidRecXYZ = new double[3];
     input.getCoords(aPosInVol, this.physicalSourceXYZ, voidRecXYZ);
