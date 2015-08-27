@@ -52,7 +52,11 @@ public class SynthDataset4D {
    * framework
    */
   public SynthDataset4D(String path) throws SeisException {
-    this(path, 5, 10, 10);
+    this(path, 5, 10, 10, null);
+  }
+
+  public SynthDataset4D(String path, GridDefinition grid) throws SeisException {
+    this(path, 5, 10, 10, grid);
   }
 
   /**
@@ -69,11 +73,19 @@ public class SynthDataset4D {
    *          number of volumes
    * @throws SeisException
    */
-  public SynthDataset4D(String path, int numTraces, int numFrames, int numVolumes) throws SeisException {
+  public SynthDataset4D(String path, int numTraces, int numFrames, int numVolumes, GridDefinition grid)
+      throws SeisException {
     _numTraces = numTraces;
     _numFrames = numFrames;
     _numVolumes = numVolumes;
+    // if (grid == null){
     init();
+    // }
+    // else{
+    // init();
+    // _gridDef = grid;
+    // }
+
     _seisio = new Seisio(path, _gridDef, _dataDef, _headerDef);
   }
 
@@ -172,7 +184,7 @@ public class SynthDataset4D {
   }
 
   // Write uniform data
-  public void writeUniformTraces(double Num) throws SeisException {    
+  public void writeUniformTraces(double Num) throws SeisException {
     // Write synthetic data to the dataset.
     float origTraceData[][] = _seisio.getTraceDataArray();
     for (int i = 0; i < _numTraces; i++) {
@@ -180,7 +192,6 @@ public class SynthDataset4D {
         origTraceData[i][j] = (float) (Num);
       }
     }
-    _seisio.setTraceDataArray(origTraceData);
   }
 
   // Write circular data
@@ -198,12 +209,11 @@ public class SynthDataset4D {
         origTraceData[i][j] = (float) (Math.cos(omega1 * t) * Math.sin(omega2 * t));
       }
     }
-    _seisio.setTraceDataArray(origTraceData);
   }
 
-  //Type 0 - original javaseis data
-  //Type 1 - all 0
-  //Type 2 - alternate number between volume
+  // Type 0 - original javaseis data
+  // Type 1 - all 0
+  // Type 2 - alternate number between volume
   public void writeAlernatingData(int Type) throws SeisException {
     writeData(0, _numFrames, 0, _numVolumes, Type);
   }
@@ -227,11 +237,10 @@ public class SynthDataset4D {
     assert(fStop <= _numFrames);
     assert(vStart >= 0);
     assert(vStop <= _numVolumes);
-    
-    if (dataType == 1){
+
+    if (dataType == 1) {
       writeUniformTraces(0);
-    }
-    else{
+    } else {
       writeCircularTraces();
     }
 
@@ -245,7 +254,7 @@ public class SynthDataset4D {
     origPosition[GridDefinition.SAMPLE_INDEX] = 0;
     origPosition[GridDefinition.TRACE_INDEX] = 0;
     for (int volumeIndex = vStart; volumeIndex < vStop; volumeIndex++) {
-      if (dataType == 2){
+      if (dataType == 2) {
         writeUniformTraces(volumeIndex);
       }
       origPosition[GridDefinition.VOLUME_INDEX] = volumeIndex;

@@ -2,7 +2,6 @@ package org.javaseis.examples.tool;
 
 import static org.junit.Assert.assertFalse;
 
-
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.io.Seisio;
 import org.javaseis.services.ParameterService;
@@ -34,8 +33,8 @@ public class JTestDataset {
     try {
       SynthDataset4D testData = new SynthDataset4D(dataLocation + inputFileName);
       testData.create();
-      //testData.writeAllData();
-      testData.writeAlernatingData(0);
+      testData.writeAllData();
+      // testData.writeAlernatingData(0);
     } catch (SeisException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -59,10 +58,11 @@ public class JTestDataset {
       inputGrid = sio.getGridDefinition();
       System.out.println(inputGrid.toString());
 
-      String[] toolArray = new String[2];
+      String[] toolArray = new String[3];
       toolArray[0] = ExampleVolumeInputTool.class.getCanonicalName();
       toolArray[1] = VolumeDifferencingTool.class.getCanonicalName();
-      
+      toolArray[2] = TestDATool.class.getCanonicalName();
+
       VolumeToolRunner.exec(parms, toolArray);
 
     } catch (SeisException e) {
@@ -70,16 +70,13 @@ public class JTestDataset {
       e.printStackTrace();
     }
 
-    /*try {
-      sio = new Seisio(dataLocation + outputFileName);
-      sio.open("r");
-      outputGrid = sio.getGridDefinition();
-      System.out.println(outputGrid.toString());
-    } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }*/
-    
+    /*
+     * try { sio = new Seisio(dataLocation + outputFileName); sio.open("r");
+     * outputGrid = sio.getGridDefinition();
+     * System.out.println(outputGrid.toString()); } catch (SeisException e) { //
+     * TODO Auto-generated catch block e.printStackTrace(); }
+     */
+
   }
 
   @After
