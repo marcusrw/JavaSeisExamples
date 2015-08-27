@@ -304,9 +304,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
     
     int [] desired_Axis_Order = new int[] {2,1,0};
     
-    System.out.println(Arrays.toString(axis_Order));
     int [] inverse_Order = computeInverse(axis_Order);
-    System.out.println(Arrays.toString(inverse_Order));
     
     System.out.println(desired_Axis_Order[inverse_Order[0]]);
     System.out.println(desired_Axis_Order[inverse_Order[1]]);
@@ -329,76 +327,52 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
       int[] tracePos = iti.getPosition().clone();
 
-      //LOGGER.info("Input Iterator Pos: " + Arrays.toString(tracePos));
+      LOGGER.info("Input Iterator Pos: " + Arrays.toString(tracePos));
 
       propsInput.setPosition(tracePos);
-            
-      //int traceIndex = tracePos[1];
-      //int frameIndex = tracePos[2];
+      
       int sampleIndex = tracePos[desired_Axis_Order[inverse_Order[0]]];
       int traceIndex = tracePos[desired_Axis_Order[inverse_Order[1]]];
       int frameIndex = tracePos[desired_Axis_Order[inverse_Order[2]]]; 
       
-      
-      //double traceLen = inputGrid.getAxis(1).getLength() - 1;
-      //double frameLen = inputGrid.getAxis(2).getLength() - 1;
-      
-      double sampleLen = inputGrid.getAxis(desired_Axis_Order[inverse_Order[0]]).getLength()-1;
-      double traceLen = inputGrid.getAxis(desired_Axis_Order[inverse_Order[1]]).getLength()-1;
-      double frameLen = inputGrid.getAxis(desired_Axis_Order[inverse_Order[2]]).getLength()-1;
-
-      //double tracePhysicalOrigin = inputGrid.getAxis(1).getPhysicalOrigin();
-      //double framePhyscialOrigin = inputGrid.getAxis(2).getPhysicalOrigin();
+      int sampleLen = (int) (inputGrid.getAxis(desired_Axis_Order[inverse_Order[0]]).getLength()-1);
+      int traceLen = (int) (inputGrid.getAxis(desired_Axis_Order[inverse_Order[1]]).getLength()-1);
+      int frameLen = (int) (inputGrid.getAxis(desired_Axis_Order[inverse_Order[2]]).getLength()-1);
       
       double samplePhysicalOrigin = inputGrid.getAxis(desired_Axis_Order[inverse_Order[0]]).getPhysicalOrigin();
       double tracePhysicalOrigin = inputGrid.getAxis(desired_Axis_Order[inverse_Order[1]]).getPhysicalOrigin();
       double framePhyscialOrigin = inputGrid.getAxis(desired_Axis_Order[inverse_Order[2]]).getPhysicalOrigin();
-
-      //sampleDelta = inputGrid.getAxis(0).getPhysicalDelta();
-      //traceDelta = inputGrid.getAxis(1).getPhysicalDelta();
-      //frameDelta = inputGrid.getAxis(2).getPhysicalDelta();
       
       sampleDelta = inputGrid.getAxis(desired_Axis_Order[inverse_Order[0]]).getPhysicalDelta();
       traceDelta = inputGrid.getAxis(desired_Axis_Order[inverse_Order[1]]).getPhysicalDelta();
       frameDelta = inputGrid.getAxis(desired_Axis_Order[inverse_Order[2]]).getPhysicalDelta();
 
-      double traceAxisMinAtPoint;
-      double frameAxisMinAtPoint;
-
       if (traceDelta < 0) {
-        traceAxisMinAtPoint = tracePhysicalOrigin + traceDelta * (traceLen - traceIndex);
-        traceAxisMin = tracePhysicalOrigin + traceDelta * (traceLen - 0);
+        traceAxisMin = tracePhysicalOrigin + traceDelta * (traceLen);
       } else {
-        traceAxisMinAtPoint = tracePhysicalOrigin + traceDelta * traceIndex;
         traceAxisMin = tracePhysicalOrigin;
       }
       if (frameDelta < 0) {
-        frameAxisMinAtPoint = framePhyscialOrigin + frameDelta * (frameLen - frameIndex);
-        frameAxisMin = framePhyscialOrigin + frameDelta * (frameLen - 0);
+        frameAxisMin = framePhyscialOrigin + frameDelta * (frameLen);
       } else {
-        frameAxisMinAtPoint = framePhyscialOrigin + frameDelta * frameIndex;
         frameAxisMin = framePhyscialOrigin;
       }
 
       Double ftIndex = (tracePhysicalOrigin - traceAxisMin) / traceDelta;
       Double ffIndex = (framePhyscialOrigin - frameAxisMin) / frameDelta;
       
-      System.out.println(ftIndex);
-      System.out.println(ffIndex);
-      
       Integer ftIndexInt = (int) Math.round(ftIndex);
       Integer ffIndexInt = (int) Math.round(ffIndex);
       
       int[] finalPosition = null;
+      //swao only one axis
       if (axis_Order[0] == 2 && axis_Order[1] == 1 && axis_Order[2] == 0){
         finalPosition = new int[] { 0, 200 - traceIndex, frameIndex };
       }
+      //swap the x and y axis of data
       else if (axis_Order[0] == 1 && axis_Order[1] == 2 && axis_Order[2] == 0){
-        finalPosition = new int[] { 0, 200 - ftIndexInt, 200 - ffIndexInt };
-        
+        finalPosition = new int[] { 0, 200 - frameIndex, 200 - traceIndex};
       }
-      
-      System.out.println(Arrays.toString(finalPosition));
 
       // Don't want to say this is not how it should work
       // but set position should internally call next() in order
@@ -407,11 +381,9 @@ public class VolumeCorrectionTool implements IVolumeTool {
       oti.setPosition(finalPosition);
       oti.next();
       
-      //LOGGER.info("Output Trace Location: " + Arrays.toString(oti.getPosition().clone()));
+      LOGGER.info("Output Trace Location: " + Arrays.toString(oti.getPosition().clone()));
 
       oti.putTrace(actualTrace);
-
-      Assert.assertNotNull(propsOutput);
 
       propsOutput.setPosition(finalPosition);
 
@@ -427,18 +399,29 @@ public class VolumeCorrectionTool implements IVolumeTool {
         LOGGER.log(Level.SEVERE, e.getMessage(), e);
       }
 
-      LOGGER.fine("Before Trace Copy: " + Arrays.toString(rc));
+      LOGGER.info("Before Trace Copy: " + Arrays.toString(rc));
 
       output.getCoords(finalPosition, sc, rc);
-
-      LOGGER.fine("After Trace Copy: " + Arrays.toString(rc));
+      
+      LOGGER.info("After Trace Copy: " + Arrays.toString(rc));
+      
+      LOGGER.info("Before Value Editing: " + Arrays.toString(rc));
+      
+      //Swap the X and Y axis of the coordinates
+      if (axis_Order[0] == 1 && axis_Order[1] == 2 && axis_Order[2] == 0){
+        propsOutput.setValue("REC_YD", rc[0]);
+        propsOutput.setValue("REC_XD", rc[1]);
+      }
+      
+      output.getCoords(finalPosition, sc, rc);
+      LOGGER.info("After Value Editing: " + Arrays.toString(rc));
       
     }
 
     double[] minPhys = new double[] { sampleAxisMin, traceAxisMin, frameAxisMin };
     double[] Delta = new double[] { sampleDelta, traceDelta, frameDelta };
 
-    int[] posTest1 = new int[] { 0, 0, 0 };
+   /* int[] posTest1 = new int[] { 0, 0, 0 };
 
     LOGGER.info("ATTEMPTING TO GET POS: " + Arrays.toString(posTest1));
 
@@ -457,23 +440,21 @@ public class VolumeCorrectionTool implements IVolumeTool {
     output.getCoords(posTest2, sr, rc);
 
     LOGGER.info("Source Trace: " + Arrays.toString(sr));
-    LOGGER.info("Reciever Trace: " + Arrays.toString(rc));
+    LOGGER.info("Reciever Trace: " + Arrays.toString(rc));*/
 
     outputGrid = generateOutputGrid(input, minPhys, Delta);
     
-    
     System.out.println(outputGrid.toString());
     
-    //GridDefinition outG2 = updateVolumeGridDefinition(output, toolState);
+    GridDefinition outG2 = updateVolumeGridDefinition(output, toolState);
     
-    //System.out.println(outG2.toString());
+    System.out.println(outG2.toString());
     
     setOutgoingDataStateGrid(toolState, outputGrid);
 
     if (ipio.hasNext()) {
       ipio.next();
     }
-    
 
     return true;
   }
