@@ -31,14 +31,13 @@ public class TestDATool implements IVolumeTool {
       throws SeisException {
     itrNum++;
 
-    // System.out.println(Arrays.toString(input.getVolumeShape()));
+    LOGGER.info(Arrays.toString(input.getVolumeShape()));
 
     ITraceIterator iti = input.getTraceIterator();
     ITraceIterator oti = output.getTraceIterator();
 
     while (iti.hasNext()) {
       iti.next();
-      System.out.println(Arrays.toString(input.getVolumeShape()));
 
       int[] pos = new int[iti.getPosition().length];
 
@@ -49,13 +48,13 @@ public class TestDATool implements IVolumeTool {
 
       float[] acTrace = iti.getTrace().clone();
 
-      System.out.println(Arrays.toString(acTrace));
+      LOGGER.finer("Original Trace: " + Arrays.toString(acTrace));
 
       for (int i = 0; i < acTrace.length; i++) {
         acTrace[i] = itrNum;
       }
 
-      System.out.println(Arrays.toString(acTrace));
+      LOGGER.finer("New Trace: " + Arrays.toString(acTrace));
       oti.putTrace(acTrace);
 
     }

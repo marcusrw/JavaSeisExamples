@@ -2,6 +2,9 @@ package org.javaseis.examples.tool;
 
 import static org.junit.Assert.assertFalse;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.io.Seisio;
 import org.javaseis.services.ParameterService;
@@ -16,6 +19,8 @@ import org.junit.Test;
 
 public class JTestDataset {
 
+  private static final Logger LOGGER = Logger.getLogger(JTestDataset.class.getName());
+
   private String dataLocation = "//tmp//";
   private String inputFileName = "tempIn.js";
   private String outputFileName = "tempOut.js";
@@ -25,7 +30,6 @@ public class JTestDataset {
   private GridDefinition outputGrid;
 
   public JTestDataset() {
-    // TODO Auto-generated constructor stub
   }
 
   @Before
@@ -36,8 +40,8 @@ public class JTestDataset {
       testData.writeAllData();
       // testData.writeAlernatingData(0);
     } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      // e.printStackTrace();
+      LOGGER.log(Level.SEVERE, e.getMessage(), e);
     }
   }
 
@@ -55,8 +59,10 @@ public class JTestDataset {
     try {
       sio = new Seisio(dataLocation + inputFileName);
       sio.open("r");
+
       inputGrid = sio.getGridDefinition();
-      System.out.println(inputGrid.toString());
+      // System.out.println(inputGrid.toString());
+      LOGGER.fine(inputGrid.toString());
 
       String[] toolArray = new String[3];
       toolArray[0] = ExampleVolumeInputTool.class.getCanonicalName();
@@ -66,8 +72,8 @@ public class JTestDataset {
       VolumeToolRunner.exec(parms, toolArray);
 
     } catch (SeisException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      // e.printStackTrace();
+      LOGGER.log(Level.SEVERE, e.getMessage(), e);
     }
 
     /*
