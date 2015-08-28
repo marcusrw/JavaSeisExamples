@@ -11,6 +11,7 @@ import org.javaseis.examples.scratch.ExampleMigration;
 import org.javaseis.examples.scratch.VModelCheckSave;
 import org.javaseis.examples.tool.ExampleVolumeInputTool;
 import org.javaseis.examples.tool.ExampleVolumeOutputTool;
+import org.javaseis.examples.tool.VolumeCorrectionTool;
 import org.javaseis.services.ParameterService;
 import org.javaseis.test.testdata.FindTestData;
 import org.javaseis.tool.StandAloneVolumeTool;
@@ -40,6 +41,7 @@ public class SegShotNo1MigrationRunner {
       List<String> toolList = new ArrayList<String>();
 
       toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+      toolList.add(VolumeCorrectionTool.class.getCanonicalName());
       toolList.add(ExampleMigration.class.getCanonicalName());
       toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
