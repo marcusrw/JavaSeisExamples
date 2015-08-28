@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import beta.javaseis.array.ITraceIterator;
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayMosaicPlot;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
@@ -59,6 +60,7 @@ public class VModelCheckSave implements IVolumeTool {
   private static final long serialVersionUID = 1L;
   private static final float S_TO_MS = 1000;
   private static final int[] FFT_ORIENTATION = PhaseShiftFFT3D.SEISMIC_FFT_ORIENTATION;
+  
 
   private static final Logger LOGGER = Logger.getLogger(VModelCheckSave.class.getName());
 
@@ -91,7 +93,9 @@ public class VModelCheckSave implements IVolumeTool {
       toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
       toolList.add(VolumeCorrectionTool.class.getCanonicalName());
       toolList.add(VModelCheckSave.class.getCanonicalName());
-      toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+      toolList.add(VolumeCorrectionTool.class.getCanonicalName());
+      toolList.add(ExampleStack.class.getCanonicalName());
+      //toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
       String[] toolArray = Convert.listToArray(toolList);
 
@@ -200,7 +204,8 @@ public class VModelCheckSave implements IVolumeTool {
     LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
 
     int[] imageShape = toolState.getOutputState().gridDefinition.getShape();
-    output.getDistributedArray().reshape(imageShape);
+    int[] truncShape = Arrays.copyOf(imageShape, 3);
+    output.getDistributedArray().reshape(truncShape);
 
     if (processFirstVolumeOnly(toolState) && !isFirstVolume(toolState, input))
       return false;
@@ -340,6 +345,9 @@ public class VModelCheckSave implements IVolumeTool {
     Assert.assertArrayEquals(output.getDistributedArray().getShape(), vModelWindowed.getShape());
     Assert.assertFalse(distributedArrayIsEmpty(vModelWindowed));
     output.getDistributedArray().copy(vModelWindowed);
+    
+    output.setPropertyService(input.getPropertyService());
+    
     return true;
   }
 

@@ -17,12 +17,19 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
       Logger.getLogger(DeltaFunctionSourceVolume.class.getName());
 
   PhaseShiftFFT3D shot;
+
+  //TODO set the loudness of the source
+  double scale;
+
   double[] physicalSourceXYZ = new double[3];
   float[] arraySourceXYZ= new float[3];
   int[] AXIS_ORDER = {2,1,0};  //Fixed by convention.
 
+  private int volumeNumDimensions;
+
   public DeltaFunctionSourceVolume(DataState dataState,
-      ISeismicVolume input, PhaseShiftFFT3D shot) {
+      ISeismicVolume input, PhaseShiftFFT3D shot,double loudness) {
+    volumeNumDimensions = shot.getArray().getDimensions();
     int[] aPosInVol = new int[] { 0, 0, 0 };
     double[] voidRecXYZ = new double[3];
     input.getCoords(aPosInVol, this.physicalSourceXYZ, voidRecXYZ);
@@ -30,7 +37,30 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     Assert.assertNotEquals("Source Depth should be 20", 0, this.physicalSourceXYZ[0]);
 
     this.arraySourceXYZ = convertPhysToArray(dataState,
-        this.physicalSourceXYZ, input);
+        this.physicalSourceXYZ);
+    this.shot = checkShotIsInFXY(shot);
+
+    this.scale = loudness;
+
+    //TODO cleanup
+    LOGGER.info("Physical Source Position: " + Arrays.toString(physicalSourceXYZ));
+    LOGGER.info("Input Grid: " + dataState.gridDefinition.toString());
+    LOGGER.info("Array Source Position: " + Arrays.toString(arraySourceXYZ));
+
+    generateSourceSignature(arraySourceXYZ);
+  }
+
+  public DeltaFunctionSourceVolume(DataState dataState,
+      ISeismicVolume input, PhaseShiftFFT3D shot) {
+    volumeNumDimensions = shot.getArray().getDimensions();
+    int[] aPosInVol = new int[] { 0, 0, 0 };
+    double[] voidRecXYZ = new double[3];
+    input.getCoords(aPosInVol, this.physicalSourceXYZ, voidRecXYZ);
+    // TODO:
+    Assert.assertNotEquals("Source Depth should be 20", 0, this.physicalSourceXYZ[0]);
+
+    this.arraySourceXYZ = convertPhysToArray(dataState,
+        this.physicalSourceXYZ);
     this.shot = checkShotIsInFXY(shot);
 
     //TODO cleanup
@@ -40,7 +70,12 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     LOGGER.info("Input Grid: " + dataState.gridDefinition.toString());
     LOGGER.info("Array Source Position: " + Arrays.toString(arraySourceXYZ));
 
+    this.scale = 1;
     generateSourceSignature(arraySourceXYZ);
+  }
+
+  public double[] getSourceXYZ() {
+    return physicalSourceXYZ.clone();
   }
 
   public DeltaFunctionSourceVolume(DataState dataState, ISeismicVolume input, PhaseShiftFFT3D shot, double[] physicalSourceXYZ) {
@@ -48,7 +83,7 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     // TODO:
     Assert.assertNotEquals("Source Depth should be 20", 0, this.physicalSourceXYZ[0]);
 
-    this.arraySourceXYZ = convertPhysToArray(dataState,this.physicalSourceXYZ, input);
+    this.arraySourceXYZ = convertPhysToArray(dataState,this.physicalSourceXYZ);
     this.shot = checkShotIsInFXY(shot);
 
     generateSourceSignature(arraySourceXYZ);
@@ -103,9 +138,9 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
   /*
    * Converts the physical coordinates to Array Coordinates
    */
-  public float[] convertPhysToArray(DataState dataState, double[] sourceXYZ, ISeismicVolume input) {
+  public float[] convertPhysToArray(DataState dataState, double[] sourceXYZ) {
 
-    int numDims = input.getNumDimensions();
+    int numDims = volumeNumDimensions;
     float[] vS = new float[numDims];
 
     for (int i = 0; i < numDims; i++) {
@@ -117,6 +152,15 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
     vS[2] = 0; //TODO call from PhaseShiftFFT3D.currentDepth() eventually.
 
     return vS;
+  }
+
+  public int[] getArrayPositionForPhysicalPosition(DataState dataState, double[] sourceXYZ) {
+    float[] arraySourceXYZ = convertPhysToArray(dataState,sourceXYZ);
+    int[] arraySourceSTF = new int[arraySourceXYZ.length];
+    for (int k = 0 ; k < arraySourceXYZ.length ; k++) {
+      arraySourceSTF[k] = (int)Math.rint(arraySourceXYZ[AXIS_ORDER[k]]);
+    }
+    return arraySourceSTF;
   }
 
   /*
@@ -172,9 +216,9 @@ public class DeltaFunctionSourceVolume implements ISourceVolume {
 
   private void putWhiteSpectrum(PhaseShiftFFT3D source, int sourceX, int sourceY, float amplitude) {
 
-    int[] position = new int[] { 0, sourceX, sourceY };
+    int[] position = new int[] { 0, sourceY, sourceX };
     int[] volumeShape = source.getArray().getShape();
-    float[] sample = new float[] { amplitude, 0 }; // amplitude+0i complex
+    float[] sample = new float[] { (float) (amplitude*scale), 0 }; // amplitude+0i complex
     DistributedArray sourceDA = source.getArray();
     while (position[0] < volumeShape[0]) {
       sourceDA.putSample(sample, position);

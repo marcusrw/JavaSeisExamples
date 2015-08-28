@@ -34,8 +34,13 @@ public class FindTestData {
   private ParameterService parms;
 
   // List of possible folders where data can be found.
-  private final String[] candidates = new String[] { "/", System.getProperty("user.home") + File.separator + "javaseis",
-      System.getProperty("java.io.tmpdir"), "/home/seisspace/data/testarea" };
+  private final String[] candidates = new String[] {
+      "/",
+      System.getProperty("user.home") + File.separator + "javaseis",
+      System.getProperty("java.io.tmpdir"),
+      "/home/seisspace/data/testarea",
+      "/Data/Projects/SEG-ACTI"
+  };
 
   public FindTestData(ParameterService parms) throws NoSuchFieldException, FileNotFoundException {
     this.parms = parms;

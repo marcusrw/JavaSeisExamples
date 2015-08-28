@@ -38,7 +38,7 @@ import edu.mines.jtk.util.ArrayMath;
  */
 public class VolumeDifferencingTool implements IVolumeTool {
   private static final long serialVersionUID = 1L;
-  private static final String COMPARE_FILE_NAME = "compareFileName";
+  public static final String COMPARE_FILE_NAME = "compareFileName";
   private static final int SAMPLE_SCOPE = 0;
   IDistributedIOService comparePIO;
   VolumePropertyService vps;

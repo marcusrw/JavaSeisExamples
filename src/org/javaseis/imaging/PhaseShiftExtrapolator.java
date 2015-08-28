@@ -1,10 +1,10 @@
 package org.javaseis.imaging;
 
-import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.javaseis.util.IntervalTimer;
-import org.javaseis.util.SeisException;
+import org.javaseis.velocity.IVelocityModel;
+import org.junit.Assert;
 
 import beta.javaseis.distributed.DistributedArray;
 import beta.javaseis.distributed.DistributedArrayPositionIterator;
@@ -21,37 +21,104 @@ public class PhaseShiftExtrapolator {
   private static final int ITERATE_FORWARD = 1;
 
   //Extrapolation directions
+  private final WavefieldDirection direction;
   private static final int EXTRAP_FORWARD = 1;
   private static final int EXTRAP_REVERSE = -1;
 
   PhaseShiftFFT3D wavefield;
-  double depth;
+  IVelocityModel vModel;
+  double currentDepth;
 
   IntervalTimer extrapTime;
   IntervalTimer transformTime;
 
-  public PhaseShiftExtrapolator(PhaseShiftFFT3D wavefield,double initialDepth) {
+  private double fMin = -Double.MAX_VALUE;
+  private double fMax = Double.MAX_VALUE;
+
+  public static enum WavefieldDirection {
+    UPGOING,
+    DOWNGOING,
+  }
+
+  public PhaseShiftExtrapolator(PhaseShiftFFT3D wavefield,
+      double initialDepth) {
     this.wavefield = wavefield;
-    this.depth = initialDepth;
+    this.currentDepth = initialDepth;
+    this.extrapTime = new IntervalTimer();
+    this.transformTime = new IntervalTimer();
+    this.direction = null; //can't use the autoextrap without this.
+  }
+
+  public PhaseShiftExtrapolator(PhaseShiftFFT3D wavefield,
+      double initialDepth,WavefieldDirection direction) {
+    this.wavefield = wavefield;
+    this.currentDepth = initialDepth;
+    this.direction = direction;
     this.extrapTime = new IntervalTimer();
     this.transformTime = new IntervalTimer();
   }
 
-  //TODO what if I want both extrapolators to share timers?
-  //maybe a constructor with a timer as input.
+  public void setBandLimit(double fMin, double fMax) {
+    this.fMin = fMin;
+    this.fMax = fMax;
+  }
 
+  public void PhaseShiftTo(double newDepth,double velocity) {
+    int extrapDir = determineExtrapDirection(newDepth);
+    //TODO refactor so we don't need the zindx or the fMin
+    phaseShift(velocity,Math.abs(newDepth-currentDepth),fMax,extrapDir);
+    currentDepth = newDepth;
+  }
+
+  public void SplitStepTo(double newDepth,double[][] velocitySlice,
+      double averageVelocity) {
+    int extrapDir = determineExtrapDirection(newDepth);
+    phaseShift(averageVelocity,Math.abs(newDepth-currentDepth),fMax,extrapDir);
+    thinLens(velocitySlice, averageVelocity, Math.abs(newDepth - currentDepth), extrapDir);
+  }
+
+  private int determineExtrapDirection(double newDepth) {
+
+    if (direction.equals(WavefieldDirection.DOWNGOING) &&
+        (newDepth > currentDepth)) {
+      return EXTRAP_FORWARD;
+    }
+    if (direction.equals(WavefieldDirection.UPGOING) &&
+        (newDepth > currentDepth)) {
+      return EXTRAP_REVERSE;
+    }
+    if (direction.equals(WavefieldDirection.UPGOING) &&
+        (newDepth < currentDepth)) {
+      return EXTRAP_FORWARD;
+    }
+    if (direction.equals(WavefieldDirection.DOWNGOING) &&
+        (newDepth < currentDepth)) {
+      return EXTRAP_REVERSE;
+    }
+    throw new UnsupportedOperationException("Zero distance extrapolation "
+        + "has yet to be implemented.");
+  }
+
+  @Deprecated
   public void forwardExtrapolate(float velocity,double delz,
-      int zindx,double fMax) {
-    phaseShift(velocity,delz,zindx,fMax,EXTRAP_FORWARD);
+      int zindx) {
+    phaseShift(velocity,delz,fMax,EXTRAP_FORWARD);
   }
 
+  @Deprecated
   public void reverseExtrapolate(float velocity,double delz,
-      int zindx,double fMax) {
-    phaseShift(velocity,delz,zindx,fMax,EXTRAP_REVERSE);
+      int zindx) {
+    phaseShift(velocity,delz,fMax,EXTRAP_REVERSE);
   }
 
-  public void phaseShift(float velocity,double delz,
-      int zindx,double fMax,int direction) {
+  public void phaseShift(double velocity,double delz,
+      double fMax,int direction) {
+
+    //verify FXY domain
+    if (getDomain() != "KyKxF") {
+      throw new IllegalStateException("You can only apply the phase shift "
+          + "in the KyKxF domain");
+    }
     extrapTime.start();
 
     int arrayNumDimensions = wavefield.getShape().length;
@@ -82,13 +149,8 @@ public class PhaseShiftExtrapolator {
 
       double Kz2 = (frequency/velocity)*(frequency/velocity) - kY*kY - kX*kX;
       double exponent = 0;
-      if (Kz2 > EVANESCENT_EDGE && zindx > 0) {
-        exponent = (-2*Math.PI*delz * Math.sqrt(Kz2));
-      }
       if (Kz2 > EVANESCENT_EDGE) {
-        //TODO fix these if statements so we get proper filtering
-        // for depth z = 0.
-
+        exponent = (-2*Math.PI*delz * Math.sqrt(Kz2));
         //TODO use complex math methods instead of doing it manually
         sampleOut[0] = (float) (sampleIn[0]*Math.cos(direction*exponent)
             - sampleIn[1]*Math.sin(direction*exponent));
@@ -97,7 +159,11 @@ public class PhaseShiftExtrapolator {
 
       } else {
         //evanescent region
-        exponent = 2*Math.PI*Math.abs(delz)*Math.sqrt(Math.abs(Kz2));
+        if (delz != 0) {
+          exponent = 2*Math.PI*Math.abs(delz)*Math.sqrt(Math.abs(Kz2));
+        } else {
+          exponent = 2*Math.PI*4*Math.sqrt(Math.abs(Kz2));
+        }
         sampleOut[0] = (float) (sampleIn[0]*Math.exp(-exponent));
         sampleOut[1] = (float) (sampleIn[1]*Math.exp(-exponent));
       }
@@ -141,9 +207,9 @@ public class PhaseShiftExtrapolator {
   //This should be an enum in the FFT object
   public String getDomain() {
     if (wavefield.isTimeTransformed() && wavefield.isSpaceTransformed())
-      return "XYF";
+      return "KyKxF";
     if (!wavefield.isTimeTransformed() && wavefield.isSpaceTransformed())
-      return "XYT";
+      return "KyKxT";
     if (wavefield.isTimeTransformed() && !wavefield.isSpaceTransformed())
       return "FXY";
     if (!wavefield.isTimeTransformed() && !wavefield.isSpaceTransformed())

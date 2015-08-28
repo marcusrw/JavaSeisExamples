@@ -24,7 +24,6 @@ import org.javaseis.grid.ManualOverrideGrid;
 import org.javaseis.grid.VolumeEdgeIO;
 import org.javaseis.imaging.ImagingCondition;
 import org.javaseis.imaging.PhaseShiftExtrapolator;
-import org.javaseis.imaging.PhaseShiftExtrapolator.WavefieldDirection;
 import org.javaseis.imaging.PhaseShiftFFT3D;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
@@ -52,9 +51,8 @@ import org.junit.Assert;
  * @author Marcus Wilson 2015
  *
  */
-public class ExampleMigration implements IVolumeTool {
+public class CheckSourceLocations implements IVolumeTool {
 
-  private static final long serialVersionUID = 1L;
   private static final float S_TO_MS = 1000;
   private static final int[] FFT_ORIENTATION =
       PhaseShiftFFT3D.SEISMIC_FFT_ORIENTATION;
@@ -62,22 +60,15 @@ public class ExampleMigration implements IVolumeTool {
   private static final Logger LOGGER =
       Logger.getLogger(ExampleMigration.class.getName());
 
-  public ExampleMigration() {
+  public CheckSourceLocations() {
   }
 
   @Override
   public void serialInit(ToolState toolState) {
-    checkPublicGrids(toolState);
-    // TODO this method should check that toolState contains enough
-    // information to do a basic extrapolation.
-    // Run main for more information. (ex: inputGrid returns null)
-
-    // redundant, until we figure out the design of the toolState
+    //checkPublicGrids(toolState);
     GridDefinition imageGrid = computeImageGrid(toolState);
     setOutgoingDataStateGrid(toolState,imageGrid);
 
-    //toolState.putFlowGlobal(ToolState.OUTPUT_GRID, imageGrid);
-    //saveVolumeEdgesIfTraceHeadersExist(toolState);
   }
 
   private void setOutgoingDataStateGrid(ToolState toolState,
@@ -86,8 +77,6 @@ public class ExampleMigration implements IVolumeTool {
     outputState.gridDefinition = outputGrid;
     toolState.setOutputState(outputState);
   }
-
-
   //Figure out if the public inputGrid and outputGrid are populated
   //and populate them if they aren't.
   private void checkPublicGrids(ToolState toolState) {
@@ -166,14 +155,13 @@ public class ExampleMigration implements IVolumeTool {
   public void parallelInit(IParallelContext pc, ToolState toolState) {
     Assert.assertNotNull(pc);
     //TODO These grids aren't working now
-    checkPublicGrids(toolState);
+    //checkPublicGrids(toolState);
   }
 
   @Override
   public boolean processVolume(IParallelContext pc, ToolState toolState,
       ISeismicVolume input,ISeismicVolume output) {
-
-    checkPublicGrids(toolState);
+    
     LOGGER.info("Starting parallelTimer on task #" + pc.rank() + "\n");
     LOGGER.info("Input Grid Definition:\n" + toolState.getInputState().gridDefinition + "\n");
     LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
@@ -184,18 +172,7 @@ public class ExampleMigration implements IVolumeTool {
     LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
 
     int[] imageShape = toolState.getOutputState().gridDefinition.getShape();
-    int[] imageVolumeShape = Arrays.copyOf(imageShape,3);
-    output.getDistributedArray().reshape(imageVolumeShape);
-
-    if (processFirstVolumeOnly(toolState) && !isFirstVolume(toolState,input))
-      return false;
-
-    //initialize timers
-    IntervalTimer velocityAccessTime = new IntervalTimer();
-    IntervalTimer sourceGenTime = new IntervalTimer();
-    IntervalTimer singleVolumeTime = new IntervalTimer();
-
-    singleVolumeTime.start();
+    output.getDistributedArray().reshape(imageShape);
 
     PhaseShiftFFT3D rcvr = createReceiverFFT(pc, toolState,input);
     PhaseShiftFFT3D shot = createSourceFFT(rcvr);
@@ -223,160 +200,102 @@ public class ExampleMigration implements IVolumeTool {
     receiverDepth = 0;
     sourceDepth = 0;
 
-    PhaseShiftExtrapolator extrapR = new PhaseShiftExtrapolator(
-        rcvr,receiverDepth,WavefieldDirection.UPGOING);
-    PhaseShiftExtrapolator extrapS = new PhaseShiftExtrapolator(
-        shot,sourceDepth,WavefieldDirection.DOWNGOING);
-
-    // Initialize Imaging Condition
-    ImagingCondition imagingCondition = new ImagingCondition(shot, rcvr,
-        output.getDistributedArray());
+    PhaseShiftExtrapolator extrapR =
+        new PhaseShiftExtrapolator(rcvr,receiverDepth);
+    PhaseShiftExtrapolator extrapS =
+        new PhaseShiftExtrapolator(shot,sourceDepth);
 
     extrapR.transformFromTimeToFrequency();
     extrapS.transformFromTimeToFrequency();
 
     // This has to be after the time transform.
-
-    //TODO:Rewrite this function
-    //ISourceVolume srcVol =
-    //  new DeltaFunctionSourceVolume(gridFromHeaders, shot);
-    //shot = srcVol.getShot();
+    double loudness = 1000000;
     ISourceVolume srcVol = new DeltaFunctionSourceVolume(
-        toolState.getInputState(),input,shot);
+        toolState.getInputState(),input,shot,loudness);
     shot = srcVol.getShot();
-    //shot.plotInTime("Test Delta Function Source");
-    //rcvr.plotInTime("Test Extrapolator Object");
+    double[] srcPos = srcVol.getSourceXYZ();
+    int[] srcIndex = srcVol.getArrayPositionForPhysicalPosition(toolState.getInputState(),srcPos);
+    float[] buf = new float[shot.getArray().getElementCount()];
+    shot.getArray().getSample(buf, srcIndex);
+    System.out.println(Arrays.toString(buf));
+    Assert.assertTrue(buf[0] > 0);
+    
+    extrapR.transformFromFrequencyToTime();
+    extrapS.transformFromFrequencyToTime();
 
-    // Plot to check
-    //shot.plotInTime("Raw source signature (TXY)");
+    //shot.plotInTime("SHOT");
+    //rcvr.plotInTime("RCVR");
 
     checkOutputDAIsEmpty(toolState,input, output);
-    DistributedArray vModelWindowed = (DistributedArray) output
-        .getDistributedArray().clone();
 
     // depth axis information
     double zmin = imageGrid.getAxisPhysicalOrigin(0);
     double delz = imageGrid.getAxisPhysicalDelta(0);
     long numz = imageGrid.getAxisLength(0);
-    double fMax = Double.parseDouble(toolState.getParameter("FMAX"));
     LOGGER.info(String.format("zmin: %6.1f, delz: %6.1f, numz: %4d", zmin,
         delz, numz));
 
-    // Initialize velocity model input
-    velocityAccessTime.start();
-    IVelocityModel vmff = getVelocityModelObject(pc, toolState);
-    //TODO:Check this
-    //orientSeismicInVelocityModel(vmff, gridFromHeaders);
-
-    velocityAccessTime.stop();
-
-    /*
-    DistributedArrayMosaicPlot.showAsModalDialog(
-        output.getDistributedArray(), "Image - In Progress");
-    DistributedArrayMosaicPlot.showAsModalDialog(
-        vModelWindowed, "Velocity Slice - In Progress");
-     */
+    //DistributedArrayMosaicPlot.showAsModalDialog(
+    //    output.getDistributedArray(), "Image - In Progress");
+    //DistributedArrayMosaicPlot.showAsModalDialog(
+    //    input.getDistributedArray(), "Velocity Slice - In Progress");
 
     toolState.getOutputState().gridDefinition.toString();
+    DistributedArray rcvrDA = rcvr.getArray();
+    DistributedArray shotDA = shot.getArray();
+    DistributedArray outputDA = output.getDistributedArray();
+    int[] position = new int[outputDA.getDimensions()];
+    int direction = 1; //forward
+    int scope = 0; //sample scope
+    DistributedArrayPositionIterator dapi =
+        new DistributedArrayPositionIterator(outputDA, gridPos, direction, scope);
 
-    double velocity;
-    for (int zindx = 1; zindx < numz; zindx++) {
-      double depth = zmin + delz * zindx;
-
-      velocityAccessTime.start();
-      velocity = vmff.readAverageVelocity(depth);
-      double[][] windowedSlice = vmff.readSlice(depth);
-      velocityAccessTime.stop();
-
-      LOGGER.info("Volume #" + Arrays.toString(toolState.getInputPosition()));
-
-      extrapR.transformFromSpaceToWavenumber();
-      extrapS.transformFromSpaceToWavenumber();
-
-      LOGGER.info(String.format("Begin Extrapolation to depth %5.1f."
-          + "  Velocity is %5.1f", depth, velocity));
-
-      if (zindx > 0) {
-        delz = imageGrid.getAxisPhysicalDelta(0);
-      } else {
-        delz = 0;
+    float[] shotSample = new float[shotDA.getElementCount()];
+    float[] rcvrSample = new float[rcvrDA.getElementCount()];
+    float[] outSample = new float[outputDA.getElementCount()];
+    while (dapi.hasNext()) {
+      position = dapi.next();
+      shotDA.getSample(shotSample,position);
+      rcvrDA.getSample(rcvrSample,position);
+      for (int k = 0 ; k < shotSample.length ; k++) {
+        outSample[k] = shotSample[k] + rcvrSample[k];
+        if (shotSample[k] > 0) {
+          try {
+            System.out.println("Shot nonzero at: "
+          + Arrays.toString(position));
+            double[] sXYZ = new double[3];
+            double[] rXYZ = new double[3];
+            input.getCoords(position, sXYZ, rXYZ);
+            System.out.println("Source Position from Coords: "
+            + Arrays.toString(sXYZ));
+            System.out.println("Source Position from Shot: "
+            + Arrays.toString(srcVol.getSourceXYZ()));
+            System.out.println("Receiver Position from Coords: "
+            + Arrays.toString(rXYZ));
+            System.out.println("Receiver Origin: "
+                + Arrays.toString(rxyz));
+            System.out.println("source amplitude: " + shotSample[k]);
+            System.out.println("receiver amplitude: " + rcvrSample[k]);
+            System.out.println("output amplitude: " + outSample[k]);
+            System.out.println("press enter to continue");
+            System.in.read();
+          } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+        }
       }
-      
-      extrapR.PhaseShiftTo(depth, velocity);
-      extrapS.PhaseShiftTo(depth, velocity);
-
-      //extrapR.reverseExtrapolate((float) velocity, delz, zindx);
-      //extrapS.forwardExtrapolate((float) velocity, delz, zindx);
-      logTimerOutput("Source Extrapolator Time: ",
-          extrapS.getExtrapolationTime());
-
-      LOGGER.info("Extrapolation finished for depth " + depth);
-
-      extrapR.transformFromWavenumberToSpace();
-      extrapS.transformFromWavenumberToSpace();
-
-      //extrapR.reverseThinLens(windowedSlice,velocity,delz);
-      //logTimerOutput("Receiver Extrapolator Time: ",
-      //    extrapR.getExtrapolationTime());
-      //extrapS.forwardThinLens(windowedSlice,velocity,delz);
-      //logTimerOutput("Source Extrapolator Time: ",
-      //    extrapS.getExtrapolationTime());
-
-      {
-        //TODO test code - plot to check
-        //rcvr.plotInTime("Old receivers - Depth: " + depth);
-        //shot.plotInTime("Old Source - Depth: " + depth);
-      }
-
-      LOGGER.info("Applying imaging condition");
-      imagingCondition.imagingCondition(output.getDistributedArray(), zindx,
-          fMax);
-      LOGGER.info("Imaging condition finished.");
-
-      //save relevant portion of velocity model for comparison
-      saveWindowedVelocitySlice(windowedSlice, vModelWindowed, zindx);
+      outputDA.putSample(outSample, position);
     }
 
-    //LOGGER.info("Processing of volume "
-    //  + Arrays.toString(input.getVolumePosition()) + " complete.");
-
-    vmff.close();
-    singleVolumeTime.stop();
-    logTimerOutput("Single Volume Time", singleVolumeTime.total());
-    //assert (boolean) toolState.getFlowGlobal(ToolState.HAS_INPUT);
-    //assert (boolean) toolState.getFlowGlobal(ToolState.HAS_OUTPUT);
-
-    {
-      //plot to check
-      //DistributedArrayMosaicPlot.showAsModalDialog(output.getDistributedArray(),
-      //    "Final Image.");
-      //DistributedArrayMosaicPlot.showAsModalDialog(vModelWindowed,
-      //    "Velocity Model.");
-
-      // example usage of Front End Viewer
-      //DAFrontendViewer A = new DAFrontendViewer(output.getDistributedArray());
-      // A.setLogicalTraces(75, 125);
-      // A.setLogicalDepth(0, 250);
-      // A.setLogicalFrame(75, 125);
-      //A.show("Final Image.");
+    DistributedArrayMosaicPlot.showAsModalDialog(outputDA,"Source and Receiver Fields");
+    try {
+      System.in.read();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
-
-    logTimerOutput("Velocity Access Time", velocityAccessTime.total());
-    logTimerOutput("Source Generation Time", sourceGenTime.total());
-    logTimerOutput("Transform Time",
-        extrapR.getTransformTime()
-        + extrapS.getTransformTime());
-    logTimerOutput("Extrapolation Time",
-        extrapR.getExtrapolationTime()
-        + extrapS.getExtrapolationTime());
-    logTimerOutput("Imaging Time", imagingCondition.getImagingTime());
-
     return true;
-  }
-
-  //TODO debug code
-  private boolean processFirstVolumeOnly(ToolState toolState) {
-    return Boolean.parseBoolean(toolState.getParameter("FIRSTVOLUME"));
   }
 
   private void checkOutputDAIsEmpty(ToolState toolState,ISeismicVolume input,
@@ -433,34 +352,6 @@ public class ExampleMigration implements IVolumeTool {
     return gridFromHeaders;
   }
    */
-
-  //TODO temporary.  For testing.
-  private boolean usingTestData(ToolState toolState) {
-    return toolState.getParameter("inputFilePath").equals(
-        "100a-rawsynthpwaves.js");
-  }
-
-  private void saveWindowedVelocitySlice(double[][] windowedSlice,
-      DistributedArray vModelWindowed, int zindx) {
-    int[] position = new int[vModelWindowed.getDimensions()];
-    int direction = 1; // forward
-    int scope = 1; // traces
-
-    DistributedArrayPositionIterator dapi;
-    dapi = new DistributedArrayPositionIterator(
-        vModelWindowed, position,direction, scope);
-
-    while (dapi.hasNext()) {
-      position = dapi.next();
-      int[] outputPosition = position.clone();
-      outputPosition[0] = zindx;
-      int[] pos = dapi.getPosition();
-
-      // Pass x = pos[1], y = pos[2];
-      double buffer = windowedSlice[pos[1]][pos[2]];
-      vModelWindowed.putSample((float) buffer, outputPosition);
-    }
-  }
 
   private PhaseShiftFFT3D createReceiverFFT(IParallelContext pc,
       ToolState toolState, ISeismicVolume input) {
@@ -537,32 +428,6 @@ public class ExampleMigration implements IVolumeTool {
     return true;
   }
 
-  private IVelocityModel getVelocityModelObject(IParallelContext pc, ToolState toolState) {
-    IVelocityModel vmff = null;
-    try {
-      vmff = new VelocityModelFromFile(pc, toolState);
-    } catch (FileNotFoundException e1) {
-      LOGGER.log(Level.SEVERE, e1.getMessage(), e1);
-    }
-
-    // override the default behaviour if we're working on the test data
-    // which has no header information.
-    if (usingTestData(toolState)) {
-      vmff = new VelocityInDepthModel(new double[] { 0, 1000, 2000 },
-          new double[] { 2000, 3800 });
-    }
-    vmff.open("r");
-    orientSeismicInVelocityModel(vmff,
-        toolState.getInputState().gridDefinition);
-    return vmff;
-  }
-
-  private void orientSeismicInVelocityModel(IVelocityModel vmff,
-      GridDefinition inputGridObj) {
-    vmff.orientSeismicVolume(inputGridObj,
-        new int[] {2,1,0});
-  }
-
   private double[] computeVolumeSampleRates(ISeismicVolume input,
       GridDefinition grid) {
     double[] localGridSampleRates = grid.getAxisPhysicalDeltas().clone();
@@ -580,10 +445,6 @@ public class ExampleMigration implements IVolumeTool {
         + "milliseconds.  I don't know how to deal with that.");
   }
 
-  private void logTimerOutput(String timerName, double totalTime) {
-    LOGGER.info(String.format("%s: %.2f.", timerName, totalTime));
-  }
-
   public boolean outputVolume(IParallelContext pc, ToolState toolState, ISeismicVolume output) throws SeisException {
     // TODO Auto-generated method stub
     return false;
@@ -595,13 +456,18 @@ public class ExampleMigration implements IVolumeTool {
   }
 
   public void serialFinish(ToolState toolState) throws SeisException {
-    // TODO Auto-generated method stub
+    System.out.println("Press Enter to Exit.");
+    try{
+      System.in.read();
+    } catch (IOException e) {
+      LOGGER.log(Level.SEVERE,e.getMessage(),e);
+    }
   }
 
   private static ParameterService basicParameters() {
 
     String inputFileName = "seg45shot.js";
-    String outputFileName = "seg45imagetest.js";
+    String outputFileName = "testCheckSource.js";
     String vModelFileName = "segsaltmodel.js";
     ParameterService parms = null;;
     try {
@@ -612,7 +478,7 @@ public class ExampleMigration implements IVolumeTool {
     }
 
     parms.setParameter("ZMIN", "0");
-    parms.setParameter("ZMAX", "4000");
+    parms.setParameter("ZMAX", "100");
     parms.setParameter("DELZ", "20");
     parms.setParameter("PADT", "20");
     parms.setParameter("PADX", "5");
@@ -632,7 +498,7 @@ public class ExampleMigration implements IVolumeTool {
 
     toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
     toolList.add(VolumeCorrectionTool.class.getCanonicalName());
-    toolList.add(ExampleMigration.class.getCanonicalName());
+    toolList.add(CheckSourceLocations.class.getCanonicalName());
     toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
     String[] toolArray = Convert.listToArray(toolList);

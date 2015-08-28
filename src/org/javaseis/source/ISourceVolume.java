@@ -13,7 +13,9 @@ public interface ISourceVolume {
    * Converts the physical coordinates to Array Coordinates
    */
   public float[] convertPhysToArray(DataState dataState,
-      double[] sourceXYZ, ISeismicVolume input);
+      double[] sourceXYZ);
+  
+  public double[] getSourceXYZ();
 
   /*
    * Converts the physical coordinates to Array Coordinates
@@ -31,5 +33,7 @@ public interface ISourceVolume {
    * Returns the DistributedArray of the shot
    */
   public DistributedArray getDistributedArray();
+
+  public int[] getArrayPositionForPhysicalPosition(DataState inputState, double[] srcPos);
 
 }
