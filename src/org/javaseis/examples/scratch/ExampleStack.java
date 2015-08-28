@@ -36,219 +36,217 @@ import beta.javaseis.parallel.UniprocessorContext;
 
 public class ExampleStack implements IVolumeTool {
 
-  private static final Logger LOGGER = Logger.getLogger(ExampleStack.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(ExampleStack.class
+			.getName());
 
-  static ParameterService parms;
-  static DistributedArray eda;
+	static ParameterService parms;
+	static DistributedArray eda;
 
-  public static void main(String[] args) throws FileNotFoundException, SeisException {
-    String inputFileName = "seg45shot.js";
-    String outputFileName = "newTestStack.js";
-    String vModelFileName = "segsaltmodel.js";
+	public static void main(String[] args) throws FileNotFoundException,
+			SeisException {
+		String inputFileName = "seg45shot.js";
+		String outputFileName = "newTestStack.js";
+		String vModelFileName = "segsaltmodel.js";
 
-    try {
-      parms = new FindTestData(inputFileName, outputFileName).getParameterService();
+		try {
+			parms = new FindTestData(inputFileName, outputFileName)
+					.getParameterService();
 
-      parms.setParameter("vModelFilePath", vModelFileName);
-      parms.setParameter("outputFileMode", "create");
+			parms.setParameter("vModelFilePath", vModelFileName);
+			parms.setParameter("outputFileMode", "create");
 
-      List<String> toolList = new ArrayList<String>();
+			List<String> toolList = new ArrayList<String>();
 
-      toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
-      toolList.add(VolumeCorrectionTool.class.getCanonicalName());
-      toolList.add(ExampleStack.class.getCanonicalName());
-      //toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
+			toolList.add(ExampleVolumeInputTool.class.getCanonicalName());
+			toolList.add(VolumeCorrectionTool.class.getCanonicalName());
+			toolList.add(ExampleStack.class.getCanonicalName());
+			// toolList.add(ExampleVolumeOutputTool.class.getCanonicalName());
 
-      String[] toolArray = Convert.listToArray(toolList);
+			String[] toolArray = Convert.listToArray(toolList);
 
-      try {
-        VolumeToolRunner.exec(parms, toolArray);
-      } catch (SeisException e) {
-        e.printStackTrace();
-      }
+			try {
+				VolumeToolRunner.exec(parms, toolArray);
+			} catch (SeisException e) {
+				e.printStackTrace();
+			}
 
-    } catch (FileNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-  }
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
 
-  private GridDefinition getVelocityGrid(IParallelContext pc, ToolState toolState) {
-    VelocityModelFromFile vff = null;
-    try {
-      vff = new VelocityModelFromFile(pc, toolState);
-    } catch (FileNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    vff.open("r");
+	private GridDefinition getVelocityGrid(IParallelContext pc,
+			ToolState toolState) {
+		VelocityModelFromFile vff = null;
+		try {
+			vff = new VelocityModelFromFile(pc, toolState);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		vff.open("r");
 
-    return vff.getVModelGrid();
+		return vff.getVModelGrid();
+	}
 
-    // return null;
-  }
+	private void setOutgoingDataStateGrid(ToolState toolState,
+			GridDefinition outputGrid) {
+		DataState outputState = toolState.getOutputState();
+		outputState.gridDefinition = outputGrid;
+		toolState.setOutputState(outputState);
+	}
 
-  private void setOutgoingDataStateGrid(ToolState toolState, GridDefinition outputGrid) {
-    DataState outputState = toolState.getOutputState();
-    outputState.gridDefinition = outputGrid;
-    toolState.setOutputState(outputState);
-  }
+	@Override
+	public void serialInit(ToolState serialToolState) {
+		IParallelContext upc = new UniprocessorContext();
+		GridDefinition veloGrid = getVelocityGrid(upc, serialToolState);
+		setOutgoingDataStateGrid(serialToolState, veloGrid);
+		eda = new DistributedArray(upc, veloGrid.getShape());
+	}
 
-  @Override
-  public void serialInit(ToolState serialToolState) {
-    IParallelContext upc = new UniprocessorContext();
-    GridDefinition veloGrid = getVelocityGrid(upc, serialToolState);
-    setOutgoingDataStateGrid(serialToolState, veloGrid);
-    eda = new DistributedArray(upc, veloGrid.getShape());
-  }
+	@Override
+	public void parallelInit(IParallelContext pc, ToolState toolState) {
 
-  @Override
-  public void parallelInit(IParallelContext pc, ToolState toolState) {
+	}
 
-  }
+	public int[] convertVolPosToVModelPos(int[] dataPos, int[] axis_order,
+			GridDefinition VeloGrid, GridDefinition VolGrid) {
+		int[] vModelPos = new int[dataPos.length];
 
-  public int[] convertVolPosToVModelPos(int[] dataPos, int[] axis_order, GridDefinition VeloGrid,
-      GridDefinition VolGrid) {
-    int[] vModelPos = new int[dataPos.length];
+		int[] v_model_axis = { 2, 1, 0 };
 
-    int[] v_model_axis = { 2, 1, 0 };
+		// Get Z Axis
+		// One Axis from Volume
+		AxisDefinition VolumeAxis = VolGrid.getAxis(axis_order[2]);
+		// Same Axis from Velocity Model
+		AxisDefinition VelocityAxis = VeloGrid.getAxis(v_model_axis[2]);
 
-    // Get Z Axis
-    // One Axis from Volume
-    AxisDefinition VolumeAxis = VolGrid.getAxis(axis_order[2]);
-    // Same Axis from Velocity Model
-    AxisDefinition VelocityAxis = VeloGrid.getAxis(v_model_axis[2]);
+		// data physical origin + data delta * index data - velocity model
+		// physical origin
+		double DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin()
+				+ VolumeAxis.getPhysicalDelta() * dataPos[axis_order[2]]
+				- VelocityAxis.getPhysicalOrigin();
 
-    // data physical origin + data delta * index data - velocity model
-    // physical origin
-    double DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin()
-        + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[2]] - VelocityAxis.getPhysicalOrigin();
+		vModelPos[v_model_axis[2]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis
+				.getPhysicalDelta());
 
-    vModelPos[v_model_axis[2]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
+		// Get X Axis
+		// One Axis from Volume
+		VolumeAxis = VolGrid.getAxis(axis_order[0]);
+		// Same Axis from Velocity Model
+		VelocityAxis = VeloGrid.getAxis(v_model_axis[0]);
 
-    // Get X Axis
-    // One Axis from Volume
-    VolumeAxis = VolGrid.getAxis(axis_order[0]);
-    // Same Axis from Velocity Model
-    VelocityAxis = VeloGrid.getAxis(v_model_axis[0]);
+		// data physical origin + data delta * index data - velocity model
+		// physical origin
+		DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin()
+				+ VolumeAxis.getPhysicalDelta() * dataPos[axis_order[0]]
+				- VelocityAxis.getPhysicalOrigin();
 
-    // data physical origin + data delta * index data - velocity model
-    // physical origin
-    DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[0]]
-        - VelocityAxis.getPhysicalOrigin();
+		vModelPos[v_model_axis[0]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis
+				.getPhysicalDelta());
 
-    vModelPos[v_model_axis[0]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
+		// Get Y Axis
+		// One Axis from Volume
+		VolumeAxis = VolGrid.getAxis(axis_order[1]);
+		// Same Axis from Velocity Model
+		VelocityAxis = VeloGrid.getAxis(v_model_axis[1]);
 
-    // Get Y Axis
-    // One Axis from Volume
-    VolumeAxis = VolGrid.getAxis(axis_order[1]);
-    // Same Axis from Velocity Model
-    VelocityAxis = VeloGrid.getAxis(v_model_axis[1]);
+		// data physical origin + data delta * index data - velocity model
+		// physical origin
+		DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin()
+				+ VolumeAxis.getPhysicalDelta() * dataPos[axis_order[1]]
+				- VelocityAxis.getPhysicalOrigin();
 
-    // data physical origin + data delta * index data - velocity model
-    // physical origin
-    DpoDDmultIndexDataminusVMo = VolumeAxis.getPhysicalOrigin() + VolumeAxis.getPhysicalDelta() * dataPos[axis_order[1]]
-        - VelocityAxis.getPhysicalOrigin();
+		vModelPos[v_model_axis[1]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis
+				.getPhysicalDelta());
 
-    vModelPos[v_model_axis[1]] = (int) (DpoDDmultIndexDataminusVMo / VelocityAxis.getPhysicalDelta());
+		// TODO: No longer needed
+		// Set the Volume to nth index
+		// vModelPos[3] = dataPos[3];
 
-    // TODO: No longer needed
-    // Set the Volume to nth index
-    // vModelPos[3] = dataPos[3];
+		return vModelPos;
+	}
 
-    return vModelPos;
-  }
+	private int[] convertLongArrayToIntArray(long[] A) {
+		int[] B = new int[A.length];
+		for (int i = 0; i < A.length; i++) {
+			B[i] = (int) A[i];
+		}
+		return B;
+	}
 
-  private int[] convertLongArrayToIntArray(long[] A) {
-    int[] B = new int[A.length];
-    for (int i = 0; i < A.length; i++) {
-      B[i] = (int) A[i];
-    }
-    return B;
-  }
+	public void checkPublicGrids(ToolState toolState) {
+		GridDefinition inputGrid = toolState.getInputState().gridDefinition;
+		if (inputGrid == null) {
+			throw new IllegalArgumentException("Input Grid is Null");
+		}
+		GridDefinition outputGrid = toolState.getOutputState().gridDefinition;
+		if (outputGrid == null) {
+			throw new IllegalArgumentException("Output Grid is Null");
+		}
+	}
 
-  public void checkPublicGrids(ToolState toolState) {
-    GridDefinition inputGrid = toolState.getInputState().gridDefinition;
-    if (inputGrid == null) {
-      throw new IllegalArgumentException("Input Grid is Null");
-    }
-    GridDefinition outputGrid = toolState.getOutputState().gridDefinition;
-    if (outputGrid == null) {
-      throw new IllegalArgumentException("Output Grid is Null");
-    }
-  }
+	@Override
+	public boolean processVolume(IParallelContext pc, ToolState toolState,
+			ISeismicVolume input, ISeismicVolume output) {
 
-  @Override
-  public boolean processVolume(IParallelContext pc, ToolState toolState, ISeismicVolume input, ISeismicVolume output) {
+		checkPublicGrids(toolState);
 
-    checkPublicGrids(toolState);
+		GridDefinition velocityGrid = getVelocityGrid(pc, toolState);
 
-    GridDefinition velocityGrid = getVelocityGrid(pc, toolState);
+		output.setDistributedArray(eda);
 
-    output.setDistributedArray(eda);
+		ITraceIterator iti = input.getTraceIterator();
+		ITraceIterator oti = output.getTraceIterator();
 
-    System.out.println("Stack Output DA: " + Arrays.toString(output.getDistributedArray().getShape()));
+		GridDefinition volGrid = toolState.getInputState().gridDefinition;
 
-    // DistributedArray eDA = output.getDistributedArray();
+		while (iti.hasNext()) {
 
-    ITraceIterator iti = input.getTraceIterator();
-    ITraceIterator oti = output.getTraceIterator();
+			iti.next();
 
-    GridDefinition volGrid = toolState.getInputState().gridDefinition;
-    // System.out.println(volGrid.toString());
+			float[] buf = iti.getTrace();
+			float[] vmodbuf = new float[buf.length];
 
-    while (iti.hasNext()) {
+			int[] veloPos = convertVolPosToVModelPos(iti.getPosition().clone(),
+					new int[] { 2, 1, 0 }, velocityGrid, volGrid);
 
-      iti.next();
+			if (oti.hasNext()) {
+				oti.setPosition(veloPos);
+				oti.next();
 
-      float[] buf = iti.getTrace();
+				vmodbuf = oti.getTrace();
+				vmodbuf = addSecondArgToFirst(vmodbuf, buf);
+				oti.putTrace(vmodbuf);
+			}
+		}
 
-      float[] vmodbuf = new float[buf.length];
+		LOGGER.info("Volume Has Been Added To Global Stack.");
 
-      int[] veloPos = convertVolPosToVModelPos(iti.getPosition().clone(), new int[] { 2, 1, 0 }, velocityGrid, volGrid);
+		return true;
+	}
 
-      if (oti.hasNext()) {
-        oti.setPosition(veloPos);
-        oti.next();
+	private float[] addSecondArgToFirst(float[] trace1, float[] trace2) {
+		Assert.assertTrue(trace1.length <= trace2.length);
+		float[] out = new float[trace1.length];
+		for (int k = 0; k < out.length; k++) {
+			out[k] = trace1[k] + trace2[k];
+		}
+		return out;
+	}
 
-        vmodbuf = oti.getTrace();
+	@Override
+	public boolean outputVolume(IParallelContext pc, ToolState toolState,
+			ISeismicVolume output) throws SeisException {
+		return false;
+	}
 
-        // oti.setPosition();
+	@Override
+	public void parallelFinish(IParallelContext pc, ToolState toolState)
+			throws SeisException {
+	}
 
-        vmodbuf = addSecondArgToFirst(vmodbuf, buf);
-
-        oti.putTrace(vmodbuf);
-      }
-
-    }
-    
-    return true;
-  }
-
-  private float[] addSecondArgToFirst(float[] trace1, float[] trace2) {
-    // System.out.println(trace1.length + " " +trace2.length);
-    Assert.assertTrue(trace1.length <= trace2.length);
-    float[] out = new float[trace1.length];
-    for (int k = 0; k < out.length; k++) {
-      out[k] = trace1[k] + trace2[k];
-    }
-    return out;
-  }
-
-  @Override
-  public boolean outputVolume(IParallelContext pc, ToolState toolState, ISeismicVolume output) throws SeisException {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public void parallelFinish(IParallelContext pc, ToolState toolState) throws SeisException {
-    // TODO Auto-generated method stub
-  }
-
-  @Override
-  public void serialFinish(ToolState toolState) throws SeisException {
-    // TODO Auto-generated method stub
-    DistributedArrayMosaicPlot.showAsModalDialog(eda, "Velo");
-  }
+	@Override
+	public void serialFinish(ToolState toolState) throws SeisException {
+		DistributedArrayMosaicPlot.showAsModalDialog(eda, "Velo");
+	}
 }
