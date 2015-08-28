@@ -50,7 +50,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 			.getLogger(VolumeCorrectionTool.class.getName());
 
 	private static final long serialVersionUID = 1L;
-
+	private static final int[] desired_Axis_Order = new int[] { 2, 1, 0 };
 	IDistributedIOService ipio;
 	VolumePropertyService vps;
 	boolean usesProperties;
@@ -135,11 +135,11 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
 		input.getCoords(position, srcXYZ, recXYZ);
 
-		// LOGGER.info("[PV updateVolumeGridDefinition] Source: " +
-		// Arrays.toString(srcXYZ));
+		LOGGER.finer("[PV updateVolumeGridDefinition] Source: "
+				+ Arrays.toString(srcXYZ));
 
-		// LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " +
-		// Arrays.toString(recXYZ));
+		LOGGER.finer("[PV updateVolumeGridDefinition] Reciever: "
+				+ Arrays.toString(recXYZ));
 
 		int[] position2 = new int[] { 0, 0, 0 };
 
@@ -151,20 +151,14 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
 		input.getCoords(position2, srcXYZ2, recXYZ2);
 
-		// LOGGER.info("[PV updateVolumeGridDefinition] Source: " +
-		// Arrays.toString(srcXYZ2));
-
-		// LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " +
-		// Arrays.toString(recXYZ2));
-
 		for (int k = 0; k < recXYZ2.length; k++) {
 			recXYZ2[k] -= recXYZ[k];
 		}
 
-		LOGGER.info("[PV updateVolumeGridDefinition] Reciever: "
+		LOGGER.fine("[PV updateVolumeGridDefinition] Reciever: "
 				+ Arrays.toString(recXYZ));
 
-		LOGGER.info("[PV updateVolumeGridDefinition] Delta: "
+		LOGGER.fine("[PV updateVolumeGridDefinition] Delta: "
 				+ Arrays.toString(recXYZ2));
 
 		for (int gridDefIndex = 0; gridDefIndex < inputAxisLengths.length; gridDefIndex++) {
@@ -219,9 +213,9 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
 		input.getCoords(strPos, sXYZ, rXYZ);
 
-		System.out.println("[computeAxisOrder]: " + Arrays.toString(strPos));
-		System.out.println("[computeAxisOrder]: " + Arrays.toString(sXYZ));
-		System.out.println("[computeAxisOrder]: " + Arrays.toString(rXYZ));
+		LOGGER.finer("[computeAxisOrder]: " + Arrays.toString(strPos));
+		LOGGER.finer("[computeAxisOrder]: " + Arrays.toString(sXYZ));
+		LOGGER.finer("[computeAxisOrder]: " + Arrays.toString(rXYZ));
 
 		double[] sXYZ2 = new double[3];
 		double[] rXYZ2 = new double[3];
@@ -229,24 +223,24 @@ public class VolumeCorrectionTool implements IVolumeTool {
 		for (int k = 1; k < 3; k++) {
 			strPos[k]++;
 			input.getCoords(strPos, sXYZ2, rXYZ2);
-			LOGGER.fine("pos: " + Arrays.toString(strPos));
-			LOGGER.fine("rxyz: " + Arrays.toString(rXYZ));
-			LOGGER.fine("rxyz2: " + Arrays.toString(rXYZ2));
+			LOGGER.finer("pos: " + Arrays.toString(strPos));
+			LOGGER.finer("rxyz: " + Arrays.toString(rXYZ));
+			LOGGER.finer("rxyz2: " + Arrays.toString(rXYZ2));
 			if (Math.abs(rXYZ[0] - rXYZ2[0]) > 0.5) {
 				Xindex = k;
-				LOGGER.fine("Xindex is " + Xindex);
+				LOGGER.finer("Xindex is " + Xindex);
 			}
 			strPos[k]--;
 		}
 		for (int k = 1; k < 3; k++) {
 			strPos[k]++;
 			input.getCoords(strPos, sXYZ2, rXYZ2);
-			LOGGER.fine("pos: " + Arrays.toString(strPos));
-			LOGGER.fine("rxyz: " + Arrays.toString(rXYZ));
-			LOGGER.fine("rxyz2: " + Arrays.toString(rXYZ2));
+			LOGGER.finer("pos: " + Arrays.toString(strPos));
+			LOGGER.finer("rxyz: " + Arrays.toString(rXYZ));
+			LOGGER.finer("rxyz2: " + Arrays.toString(rXYZ2));
 			if (Math.abs(rXYZ[1] - rXYZ2[1]) > 0.5) {
 				Yindex = k;
-				LOGGER.fine("Yindex is " + Yindex);
+				LOGGER.finer("Yindex is " + Yindex);
 			}
 			strPos[k]--;
 		}
@@ -256,7 +250,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
 		Axis_Order = new int[] { Xindex, Yindex, Zindex };
 
-		System.out.println("[computeAxisOrder]: Axis Order: "
+		LOGGER.fine("[computeAxisOrder]: Axis Order: "
 				+ Arrays.toString(Axis_Order));
 		return Axis_Order;
 	}
@@ -267,13 +261,13 @@ public class VolumeCorrectionTool implements IVolumeTool {
 			int val = Axis_Order[i];
 			inverseOrder[val] = i;
 		}
-		System.out.println("[computeInverse]: " + Arrays.toString(inverseOrder));
+		LOGGER.fine("[computeInverse]: " + Arrays.toString(inverseOrder));
 		return inverseOrder;
 	}
 
-	private void flipYaxis(int[] desired_Axis_Order, ISeismicVolume input,
-			ISeismicVolume output, VolumePropertyService propsInput,
-			VolumePropertyService propsOutput, GridDefinition inputGrid) {
+	private void flipaxis(ISeismicVolume input, ISeismicVolume output,
+			VolumePropertyService propsInput, VolumePropertyService propsOutput,
+			GridDefinition inputGrid) {
 
 		// Set the actual Properties of the actual traces
 		// Input should never be null
@@ -296,9 +290,9 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
 		int[] inverse_Order = computeInverse(axis_Order);
 
-		System.out.println(desired_Axis_Order[inverse_Order[0]]);
-		System.out.println(desired_Axis_Order[inverse_Order[1]]);
-		System.out.println(desired_Axis_Order[inverse_Order[2]]);
+		LOGGER.finer("Composed Axis 0: " + desired_Axis_Order[inverse_Order[0]]);
+		LOGGER.finer("Composed Axis 1: " + desired_Axis_Order[inverse_Order[1]]);
+		LOGGER.finer("Composed Axis 2: " + desired_Axis_Order[inverse_Order[2]]);
 
 		while (iti.hasNext()) {
 
@@ -309,7 +303,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
 			int[] tracePos = iti.getPosition().clone();
 
-			// LOGGER.info("Input Iterator Pos: " + Arrays.toString(tracePos));
+			LOGGER.finer("Input Iterator Pos: " + Arrays.toString(tracePos));
 
 			propsInput.setPosition(tracePos);
 
@@ -356,16 +350,9 @@ public class VolumeCorrectionTool implements IVolumeTool {
 			Integer ffIndexInt = (int) Math.round(ffIndex);
 
 			int[] finalPosition = null;
-			// swao only one axis
-			// if (axis_Order[0] == 2 && axis_Order[1] == 1 && axis_Order[2] == 0) {
-			finalPosition = new int[] { 0, 200 - traceIndex, frameIndex };
-			// }
 
-			// swap the x and y axis of data
-			// else if (axis_Order[0] == 1 && axis_Order[1] == 2 && axis_Order[2] ==
-			// 0) {
-			// finalPosition = new int[] { 0, 200 - frameIndex, 200 - traceIndex };
-			// }
+			// swap Axis
+			finalPosition = new int[] { 0, 200 - traceIndex, frameIndex };
 
 			// Don't want to say this is not how it should work
 			// but set position should internally call next() in order
@@ -374,8 +361,8 @@ public class VolumeCorrectionTool implements IVolumeTool {
 			oti.setPosition(finalPosition);
 			oti.next();
 
-			// LOGGER.info("Output Trace Location: " +
-			// Arrays.toString(oti.getPosition().clone()));
+			LOGGER.finer("Output Trace Location: "
+					+ Arrays.toString(oti.getPosition().clone()));
 
 			oti.putTrace(actualTrace);
 
@@ -385,7 +372,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 			double[] rc = new double[3];
 			output.getCoords(finalPosition, sc, rc);
 
-			// LOGGER.fine("Before Trace Copy: " + Arrays.toString(rc));
+			LOGGER.finer("Before Trace Copy: " + Arrays.toString(rc));
 
 			try {
 				propsOutput.copyTrcProps(propsInput, tracePos, finalPosition);
@@ -393,13 +380,9 @@ public class VolumeCorrectionTool implements IVolumeTool {
 				LOGGER.log(Level.SEVERE, e.getMessage(), e);
 			}
 
-			// LOGGER.info("Before Trace Copy: " + Arrays.toString(rc));
-
 			output.getCoords(finalPosition, sc, rc);
 
-			// LOGGER.info("After Trace Copy: " + Arrays.toString(rc));
-
-			// LOGGER.info("Before Value Editing: " + Arrays.toString(rc));
+			LOGGER.finer("After Trace Copy: " + Arrays.toString(rc));
 
 			// Swap the X and Y axis of the coordinates
 			// if (axis_Order[0] == 1 && axis_Order[1] == 2 && axis_Order[2] == 0) {
@@ -409,8 +392,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 			// propsOutput.setValue("SOU_XD", sc[1]);
 			// }
 
-			output.getCoords(finalPosition, sc, rc);
-			// LOGGER.info("After Value Editing: " + Arrays.toString(rc));
+			// output.getCoords(finalPosition, sc, rc);
 
 		}
 	}
@@ -422,6 +404,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 		GridDefinition inputGrid = updateVolumeGridDefinition(input, toolState);
 
 		System.out.println(inputGrid.toString());
+		LOGGER.fine("INPUT GRID: " + inputGrid.toString());
 
 		// Create a new Instance of VolumePropertyService
 		VolumePropertyService vpsO = new VolumePropertyService(ipio);
@@ -434,16 +417,17 @@ public class VolumeCorrectionTool implements IVolumeTool {
 		VolumePropertyService propsOutput = (VolumePropertyService) output
 				.getPropertyService();
 
-		int[] desired_Axis_Order = new int[] { 2, 1, 0 };
+		// int[] desired_Axis_Order = new int[] { 2, 1, 0 };
 
-		flipYaxis(desired_Axis_Order, input, output, propsInput, propsOutput,
-				inputGrid);
+		flipaxis(input, output, propsInput, propsOutput, inputGrid);
 
 		GridDefinition outG2 = updateVolumeGridDefinition(output, toolState);
 
-		// System.out.println(outG2.toString());
+		LOGGER.fine("OUTPUT GRID: " + outG2.toString());
 
 		setOutgoingDataStateGrid(toolState, outG2);
+
+		LOGGER.info("Volume Coordinates Have Been Successfully Corrected.");
 
 		if (ipio.hasNext()) {
 			ipio.next();

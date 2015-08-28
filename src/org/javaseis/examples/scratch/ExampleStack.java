@@ -71,7 +71,6 @@ public class ExampleStack implements IVolumeTool {
 			}
 
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -82,14 +81,11 @@ public class ExampleStack implements IVolumeTool {
 		try {
 			vff = new VelocityModelFromFile(pc, toolState);
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		vff.open("r");
 
 		return vff.getVModelGrid();
-
-		// return null;
 	}
 
 	private void setOutgoingDataStateGrid(ToolState toolState,
@@ -199,23 +195,16 @@ public class ExampleStack implements IVolumeTool {
 
 		output.setDistributedArray(eda);
 
-		System.out.println("Stack Output DA: "
-				+ Arrays.toString(output.getDistributedArray().getShape()));
-
-		// DistributedArray eDA = output.getDistributedArray();
-
 		ITraceIterator iti = input.getTraceIterator();
 		ITraceIterator oti = output.getTraceIterator();
 
 		GridDefinition volGrid = toolState.getInputState().gridDefinition;
-		// System.out.println(volGrid.toString());
 
 		while (iti.hasNext()) {
 
 			iti.next();
 
 			float[] buf = iti.getTrace();
-
 			float[] vmodbuf = new float[buf.length];
 
 			int[] veloPos = convertVolPosToVModelPos(iti.getPosition().clone(),
@@ -226,21 +215,17 @@ public class ExampleStack implements IVolumeTool {
 				oti.next();
 
 				vmodbuf = oti.getTrace();
-
-				// oti.setPosition();
-
 				vmodbuf = addSecondArgToFirst(vmodbuf, buf);
-
 				oti.putTrace(vmodbuf);
 			}
-
 		}
+
+		LOGGER.info("Volume Has Been Added To Global Stack.");
 
 		return true;
 	}
 
 	private float[] addSecondArgToFirst(float[] trace1, float[] trace2) {
-		// System.out.println(trace1.length + " " +trace2.length);
 		Assert.assertTrue(trace1.length <= trace2.length);
 		float[] out = new float[trace1.length];
 		for (int k = 0; k < out.length; k++) {
@@ -252,19 +237,16 @@ public class ExampleStack implements IVolumeTool {
 	@Override
 	public boolean outputVolume(IParallelContext pc, ToolState toolState,
 			ISeismicVolume output) throws SeisException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public void parallelFinish(IParallelContext pc, ToolState toolState)
 			throws SeisException {
-		// TODO Auto-generated method stub
 	}
 
 	@Override
 	public void serialFinish(ToolState toolState) throws SeisException {
-		// TODO Auto-generated method stub
 		DistributedArrayMosaicPlot.showAsModalDialog(eda, "Velo");
 	}
 }
