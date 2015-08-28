@@ -28,7 +28,7 @@ import edu.mines.jtk.util.ArrayMath;
  * <p>
  * Parameters:
  * <P>
- * inputFileSystem - input file system where datatsets are stored
+ * inputFileSystem - input file system where datasets are stored
  * <p>
  * inputFileName - file name to be opened and read
  *
