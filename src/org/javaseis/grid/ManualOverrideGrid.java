@@ -43,7 +43,9 @@ public class ManualOverrideGrid implements ICheckedGrid {
 
   @Override
   public double[] getReceiverXYZ(int[] gridPos) {
-    throw new UnsupportedOperationException("Not implemented.");
+    return new double[] {gridPos[axisOrder[0]]*20,
+        gridPos[axisOrder[1]]*20,
+        0};
   }
 
   @Override

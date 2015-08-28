@@ -333,7 +333,7 @@ public class VModelCheckSave extends StandAloneVolumeTool {
 			// example usage of Front End Viewer
 			String title = "Volume #" + input.getVolumePosition()[3];
 			DAFrontendViewer A = new DAFrontendViewer(vModelWindowed, toolContext);
-			A.setLogicalFrame(10, 190);
+			//A.setLogicalFrame(10, 190);
 			A.show(title);
 			try {
 				Thread.sleep(50);
@@ -353,6 +353,9 @@ public class VModelCheckSave extends StandAloneVolumeTool {
 		output.getDistributedArray().putSample(new float[] { 1 },
 				new int[] { 0, 0, 0, 0 });
 
+		Assert.assertArrayEquals(output.getDistributedArray().getShape(),
+		    vModelWindowed.getShape());
+		Assert.assertFalse(distributedArrayIsEmpty(vModelWindowed));
 		output.getDistributedArray().copy(vModelWindowed);
 		return true;
 	}
