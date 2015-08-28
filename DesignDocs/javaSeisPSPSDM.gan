@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?><project name="javaSeisPSPSDM" company="Orthogonal Geophysics Inc" webLink="http://" view-date="2015-04-19" view-index="0" gantt-divider-location="353" resource-divider-location="562" version="2.7" locale="en_CA">
+    <description><![CDATA[Create a stand-alone 3D phase shift shot migration using JavaSeis classes and supporting libraries
+Read input data and velocity model from JavaSeis datasets
+Output imaged shot as a JavaSeis dataset
+Develop simple 2D and 3D viewers for validating results
+Complete the prototype by the end of May, 2015
+Demonstrate the program using the SEG Salt 45 shot model
+]]></description>
+    <view zooming-state="default:6" id="gantt-chart">
+        <field id="tpd3" name="Name" width="64" order="0"/>
+        <field id="tpd4" name="Begin date" width="18" order="1"/>
+        <field id="tpd5" name="End date" width="17" order="2"/>
+    </view>
+    <view id="resource-table">
+        <field id="0" name="Name" width="50" order="0"/>
+        <field id="1" name="Default role" width="50" order="1"/>
+    </view>
+    <!-- -->
+    <calendars>
+        <day-types>
+            <day-type id="0"/>
+            <day-type id="1"/>
+            <default-week id="1" name="default" sun="1" mon="0" tue="0" wed="0" thu="0" fri="0" sat="1"/>
+            <only-show-weekends value="false"/>
+            <overriden-day-types/>
+            <days/>
+        </day-types>
+        <date year="" month="1" date="1" type="HOLIDAY"/>
+        <date year="" month="7" date="1" type="HOLIDAY"/>
+        <date year="" month="10" date="8" type="HOLIDAY"/>
+        <date year="" month="12" date="25" type="HOLIDAY"/>
+        <date year="2012" month="1" date="2" type="HOLIDAY"/>
+        <date year="2012" month="4" date="6" type="HOLIDAY"/>
+        <date year="2012" month="5" date="21" type="HOLIDAY"/>
+        <date year="2012" month="7" date="2" type="HOLIDAY"/>
+        <date year="2012" month="9" date="3" type="HOLIDAY"/>
+        <date year="2005" month="1" date="1" type="HOLIDAY"/>
+        <date year="2005" month="3" date="25" type="HOLIDAY"/>
+        <date year="2005" month="3" date="28" type="HOLIDAY"/>
+        <date year="2005" month="5" date="23" type="HOLIDAY"/>
+        <date year="2005" month="7" date="1" type="HOLIDAY"/>
+        <date year="2005" month="9" date="5" type="HOLIDAY"/>
+        <date year="2005" month="10" date="10" type="HOLIDAY"/>
+        <date year="2005" month="11" date="11" type="HOLIDAY"/>
+        <date year="2005" month="12" date="25" type="HOLIDAY"/>
+        <date year="2005" month="12" date="26" type="HOLIDAY"/>
+        <date year="2006" month="1" date="1" type="HOLIDAY"/>
+        <date year="2006" month="4" date="14" type="HOLIDAY"/>
+        <date year="2006" month="4" date="17" type="HOLIDAY"/>
+        <date year="2006" month="5" date="22" type="HOLIDAY"/>
+        <date year="2006" month="7" date="1" type="HOLIDAY"/>
+        <date year="2006" month="9" date="4" type="HOLIDAY"/>
+        <date year="2006" month="10" date="9" type="HOLIDAY"/>
+        <date year="2006" month="11" date="11" type="HOLIDAY"/>
+        <date year="2006" month="12" date="25" type="HOLIDAY"/>
+        <date year="2006" month="12" date="26" type="HOLIDAY"/>
+        <date year="2007" month="1" date="1" type="HOLIDAY"/>
+        <date year="2007" month="4" date="6" type="HOLIDAY"/>
+        <date year="2007" month="4" date="9" type="HOLIDAY"/>
+        <date year="2007" month="5" date="21" type="HOLIDAY"/>
+        <date year="2007" month="7" date="1" type="HOLIDAY"/>
+        <date year="2007" month="9" date="3" type="HOLIDAY"/>
+        <date year="2007" month="10" date="8" type="HOLIDAY"/>
+        <date year="2007" month="11" date="11" type="HOLIDAY"/>
+        <date year="2007" month="12" date="25" type="HOLIDAY"/>
+        <date year="2007" month="12" date="26" type="HOLIDAY"/>
+        <date year="2008" month="1" date="1" type="HOLIDAY"/>
+        <date year="2008" month="3" date="21" type="HOLIDAY"/>
+        <date year="2008" month="3" date="24" type="HOLIDAY"/>
+        <date year="2008" month="5" date="19" type="HOLIDAY"/>
+        <date year="2008" month="7" date="1" type="HOLIDAY"/>
+        <date year="2008" month="9" date="1" type="HOLIDAY"/>
+        <date year="2008" month="10" date="13" type="HOLIDAY"/>
+        <date year="2008" month="11" date="11" type="HOLIDAY"/>
+        <date year="2008" month="12" date="25" type="HOLIDAY"/>
+        <date year="2008" month="12" date="26" type="HOLIDAY"/>
+    </calendars>
+    <tasks empty-milestones="true">
+        <taskproperties>
+            <taskproperty id="tpd0" name="type" type="default" valuetype="icon"/>
+            <taskproperty id="tpd1" name="priority" type="default" valuetype="icon"/>
+            <taskproperty id="tpd2" name="info" type="default" valuetype="icon"/>
+            <taskproperty id="tpd3" name="name" type="default" valuetype="text"/>
+            <taskproperty id="tpd4" name="begindate" type="default" valuetype="date"/>
+            <taskproperty id="tpd5" name="enddate" type="default" valuetype="date"/>
+            <taskproperty id="tpd6" name="duration" type="default" valuetype="int"/>
+            <taskproperty id="tpd7" name="completion" type="default" valuetype="int"/>
+            <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
+            <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
+        </taskproperties>
+        <task id="0" name="1. platform development and design" color="#8cb6ce" meeting="true" start="2015-05-05" duration="0" complete="90" expand="true">
+            <notes><![CDATA[define video communication tools and desktop share
+create a development release of JavaSeis on Github
+create a GIT repo on OG0001
+validate that team can log into OG0001
+validate that team can access OG0001 GIT repo
+create initial Eclipse project on GitHub
+prepare Tracking document and put to GIT repo
+prepare GantProject document and push to GIT repo
+build an initial design in PowerPoint and push to GIT repo
+become familiar with base classes in JavaSeis and Eclipse]]></notes>
+            <depend id="48" type="2" difference="0" hardness="Strong"/>
+            <depend id="53" type="2" difference="0" hardness="Strong"/>
+            <depend id="55" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="2" name="communication" color="#8cb6ce" meeting="false" start="2015-04-28" duration="1" complete="100" expand="true">
+            <notes><![CDATA[The current solution is
+
+mumble: push-to-talk voice
+vnc: team user "vncshare" to share desktop
+]]></notes>
+            <depend id="5" type="2" difference="0" hardness="Strong"/>
+            <depend id="11" type="2" difference="0" hardness="Strong"/>
+            <depend id="12" type="2" difference="0" hardness="Strong"/>
+            <depend id="16" type="2" difference="0" hardness="Strong"/>
+            <depend id="48" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="5" name="javaseis dev release" color="#8cb6ce" meeting="false" start="2015-04-29" duration="1" complete="100" expand="true">
+            <notes><![CDATA[prepare a dev release on GIThub for OG use]]></notes>
+            <depend id="9" type="2" difference="0" hardness="Strong"/>
+            <depend id="12" type="2" difference="0" hardness="Strong"/>
+            <depend id="21" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="9" name="GIT repo on OG0001" color="#8cb6ce" meeting="false" start="2015-04-30" duration="1" complete="100" expand="true">
+            <notes><![CDATA[GIT repo is /home/git/repos/javaseis.git]]></notes>
+            <depend id="12" type="2" difference="0" hardness="Strong"/>
+            <depend id="16" type="2" difference="0" hardness="Strong"/>
+            <depend id="21" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="11" name="OG0001 team logon" color="#8cb6ce" meeting="false" start="2015-04-29" duration="1" complete="100" expand="true">
+            <notes><![CDATA[All team members connect by VNC
+Security using screen and tunnel - no vnc encription]]></notes>
+            <depend id="12" type="2" difference="0" hardness="Strong"/>
+            <depend id="16" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="12" name="GIT repo team acces" color="#8cb6ce" meeting="false" start="2015-05-01" duration="1" complete="100" expand="true">
+            <notes><![CDATA[team can pull javaseis repo]]></notes>
+            <depend id="16" type="2" difference="0" hardness="Strong"/>
+            <depend id="21" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="16" name="Set up Gantt chart" color="#8cb6ce" meeting="false" start="2015-05-04" duration="1" complete="100" expand="true">
+            <notes><![CDATA[Gantt chart is updated continuously]]></notes>
+        </task>
+        <task id="21" name="javaseis / eclipse base classes" color="#8cb6ce" meeting="false" start="2015-05-04" duration="1" complete="100" expand="true">
+            <notes><![CDATA[Marcus and Chad become familiar with javaseis and eclips base classes]]></notes>
+            <depend id="0" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="43" name="2. base class construction" color="#8cb6ce" meeting="true" start="2015-06-02" duration="0" complete="0" expand="true">
+            <notes><![CDATA[complete the Gantt Chart
+release 3D FFT example with Parallel I/O to GitHub repo
+pull release and run
+build a ppt of an initial design and push to GIT repo
+Marcus start working with the Distributed Array classes to design and implement the phase shift and imaging class.
+begin design of phase shift and imaging classes based on distributed arrays
+migrate Marcus's 3D shot gather
+]]></notes>
+        </task>
+        <task id="48" name="3D FFT release to GIThub" color="#8cb6ce" meeting="false" start="2015-05-05" duration="1" complete="100" expand="true">
+            <notes><![CDATA[Chuck releases 3D FFT to GIThub]]></notes>
+            <depend id="50" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="50" name="pull 3D FFT and run" color="#8cb6ce" meeting="false" start="2015-05-06" duration="8" complete="100" expand="true">
+            <depend id="57" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="53" name="ppt of initial design" color="#8cb6ce" meeting="false" start="2015-05-05" duration="31" complete="30" expand="true">
+            <notes><![CDATA[1) parallel IO
+2) Transpose
+3) FT t-w
+4) stuff
+5) IFT w->t
+6) ITranspose
+7) parallel IO]]></notes>
+            <depend id="57" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="55" name="distributed array classes" color="#8cb6ce" meeting="false" start="2015-05-05" duration="36" complete="60" expand="true">
+            <notes><![CDATA[Marcus begins work with DA classes to design and implement phaseshift and imaging classes
+
+Chuck: 
+complex use cases for the volume tool
+File IO with different sizes (see ExtractPWaveData.java)
+A simple accumulator (stacking)
+Add Marcus as a committer to the repo so he can push his branch]]></notes>
+            <depend id="57" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="74" name="3D viewer" color="#8cb6ce" meeting="false" start="2015-06-16" duration="6" complete="20" expand="true">
+            <notes><![CDATA[develop a 3D viewer for QC
+DAMosaicPlot to get panel plot triples]]></notes>
+        </task>
+        <task id="80" name="stationary extrapolator" color="#8cb6ce" meeting="false" start="2015-06-16" duration="6" complete="20" expand="true">
+            <notes><![CDATA[ develop and test the constant velocity extrapolator]]></notes>
+            <depend id="57" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="86" name="cmplx abs" color="#8cb6ce" meeting="false" start="2015-06-16" duration="6" complete="20" expand="true">
+            <notes><![CDATA[create real / complex / absolute value vollumes for 3D plots]]></notes>
+        </task>
+        <task id="57" name="build PSPSDM and migrate" color="#8cb6ce" meeting="false" start="2015-06-24" duration="7" complete="0" expand="true">
+            <notes><![CDATA[migrate Marcus's 3D shot record]]></notes>
+        </task>
+    </tasks>
+    <resources>
+        <resource id="4" name="Rob Ferguson" function="Default:1" contacts="rob@ogeop.com" phone="403 808 7539"/>
+        <resource id="5" name="Marcus Wilson" function="1" contacts="wilsonmr@ogeop.com" phone=""/>
+        <resource id="6" name="Chad Hogan" function="2" contacts="chad@ogeop.com" phone=""/>
+        <resource id="7" name="Charles Mosher" function="3" contacts="chuckmosher@yahoo.com" phone="1 612 834 8823"/>
+    </resources>
+    <allocations>
+        <allocation task-id="0" resource-id="4" function="Default:1" responsible="true" load="50.0"/>
+        <allocation task-id="2" resource-id="4" function="Default:1" responsible="true" load="100.0"/>
+        <allocation task-id="57" resource-id="4" function="Default:1" responsible="true" load="25.0"/>
+        <allocation task-id="53" resource-id="4" function="Default:1" responsible="true" load="100.0"/>
+        <allocation task-id="0" resource-id="5" function="1" responsible="false" load="100.0"/>
+        <allocation task-id="9" resource-id="5" function="1" responsible="true" load="100.0"/>
+        <allocation task-id="11" resource-id="5" function="1" responsible="true" load="100.0"/>
+        <allocation task-id="21" resource-id="5" function="1" responsible="true" load="50.0"/>
+        <allocation task-id="50" resource-id="5" function="1" responsible="true" load="100.0"/>
+        <allocation task-id="55" resource-id="5" function="1" responsible="true" load="20.0"/>
+        <allocation task-id="57" resource-id="5" function="1" responsible="false" load="25.0"/>
+        <allocation task-id="12" resource-id="5" function="1" responsible="true" load="100.0"/>
+        <allocation task-id="80" resource-id="5" function="1" responsible="true" load="80.0"/>
+        <allocation task-id="74" resource-id="5" function="1" responsible="true" load="80.0"/>
+        <allocation task-id="86" resource-id="5" function="1" responsible="true" load="80.0"/>
+        <allocation task-id="0" resource-id="6" function="2" responsible="false" load="100.0"/>
+        <allocation task-id="21" resource-id="6" function="2" responsible="false" load="50.0"/>
+        <allocation task-id="57" resource-id="6" function="2" responsible="false" load="25.0"/>
+        <allocation task-id="0" resource-id="7" function="3" responsible="false" load="100.0"/>
+        <allocation task-id="5" resource-id="7" function="3" responsible="true" load="100.0"/>
+        <allocation task-id="48" resource-id="7" function="3" responsible="true" load="100.0"/>
+        <allocation task-id="57" resource-id="7" function="3" responsible="false" load="25.0"/>
+        <allocation task-id="16" resource-id="7" function="3" responsible="true" load="100.0"/>
+        <allocation task-id="80" resource-id="7" function="3" responsible="false" load="20.0"/>
+        <allocation task-id="74" resource-id="7" function="3" responsible="false" load="20.0"/>
+        <allocation task-id="86" resource-id="7" function="3" responsible="false" load="20.0"/>
+        <allocation task-id="55" resource-id="7" function="3" responsible="false" load="80.0"/>
+    </allocations>
+    <vacations>
+        <vacation start="2015-05-15" end="2015-05-26" resourceid="5"/>
+    </vacations>
+    <taskdisplaycolumns>
+        <displaycolumn property-id="tpd2" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd7" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd8" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd12" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd6" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd10" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd11" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd9" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd1" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd0" order="-1" width="75" visible="false"/>
+        <displaycolumn property-id="tpd3" order="0" width="224" visible="true"/>
+        <displaycolumn property-id="tpd4" order="1" width="63" visible="true"/>
+        <displaycolumn property-id="tpd5" order="2" width="62" visible="true"/>
+    </taskdisplaycolumns>
+    <previous/>
+    <roles roleset-name="Default"/>
+    <roles>
+        <role id="1" name="computational physics specialist"/>
+        <role id="2" name="computational physics scientist"/>
+        <role id="3" name="computational physics advisor"/>
+        <role id="4" name="javaseis programmer"/>
+    </roles>
+</project>
