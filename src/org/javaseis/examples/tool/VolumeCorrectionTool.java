@@ -46,10 +46,10 @@ import org.junit.Assert;
  */
 public class VolumeCorrectionTool implements IVolumeTool {
 
-  private static final Logger LOGGER =
-      Logger.getLogger(VolumeCorrectionTool.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(VolumeCorrectionTool.class.getName());
 
   private static final long serialVersionUID = 1L;
+  
 
   IDistributedIOService ipio;
   VolumePropertyService vps;
@@ -156,21 +156,14 @@ public class VolumeCorrectionTool implements IVolumeTool {
       recXYZ2[k] -= recXYZ[k];
     }
 
-    // LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " +
-    // Arrays.toString(recXYZ));
+    LOGGER.info("[PV updateVolumeGridDefinition] Reciever: " + Arrays.toString(recXYZ));
 
-    // LOGGER.info("[PV updateVolumeGridDefinition] Delta: " +
-    // Arrays.toString(recXYZ2));
+    LOGGER.info("[PV updateVolumeGridDefinition] Delta: " + Arrays.toString(recXYZ2));
 
     for (int gridDefIndex = 0; gridDefIndex < inputAxisLengths.length; gridDefIndex++) {
       AxisDefinition inputAxis = inputGrid.getAxis(gridDefIndex);
-      physicalOAxisArray[gridDefIndex] = new AxisDefinition(
-          inputAxis.getLabel(),
-          inputAxis.getUnits(),
-          inputAxis.getDomain(),
-          inputAxis.getLength(),
-          inputAxis.getLogicalOrigin(),
-          inputAxis.getLogicalDelta(),
+      physicalOAxisArray[gridDefIndex] = new AxisDefinition(inputAxis.getLabel(), inputAxis.getUnits(),
+          inputAxis.getDomain(), inputAxis.getLength(), inputAxis.getLogicalOrigin(), inputAxis.getLogicalDelta(),
           CalculateNewPhysicalOrigin(inputAxis, gridDefIndex, recXYZ),
           CalculateNewDeltaOrigin(inputAxis, gridDefIndex, recXYZ2));
     }
@@ -200,11 +193,79 @@ public class VolumeCorrectionTool implements IVolumeTool {
     return new GridDefinition(inputGrid.getNumDimensions(), physicalOAxisArray);
   }
 
+  private int[] computeAxisOrder(ISeismicVolume input) {
+
+    int[] strPos = new int[] { 0, 0, 0 };
+
+    int[] Axis_Order = null;
+
+    int Xindex = Integer.MAX_VALUE;
+    int Yindex = Integer.MAX_VALUE;
+    int Zindex = Integer.MAX_VALUE;
+
+    double[] sXYZ = new double[3];
+    double[] rXYZ = new double[3];
+
+    input.getCoords(strPos, sXYZ, rXYZ);
+
+    System.out.println("[computeAxisOrder]: " + Arrays.toString(strPos));
+    System.out.println("[computeAxisOrder]: " + Arrays.toString(sXYZ));
+    System.out.println("[computeAxisOrder]: " + Arrays.toString(rXYZ));
+
+    double[] sXYZ2 = new double[3];
+    double[] rXYZ2 = new double[3];
+
+    for (int k = 1; k < 3; k++) {
+      strPos[k]++;
+      input.getCoords(strPos, sXYZ2, rXYZ2);
+      LOGGER.fine("pos: " + Arrays.toString(strPos));
+      LOGGER.fine("rxyz: " + Arrays.toString(rXYZ));
+      LOGGER.fine("rxyz2: " + Arrays.toString(rXYZ2));
+      if (Math.abs(rXYZ[0] - rXYZ2[0]) > 0.5) {
+        Xindex = k;
+        LOGGER.fine("Xindex is " + Xindex);
+      }
+      strPos[k]--;
+    }
+    for (int k = 1; k < 3; k++) {
+      strPos[k]++;
+      input.getCoords(strPos, sXYZ2, rXYZ2);
+      LOGGER.fine("pos: " + Arrays.toString(strPos));
+      LOGGER.fine("rxyz: " + Arrays.toString(rXYZ));
+      LOGGER.fine("rxyz2: " + Arrays.toString(rXYZ2));
+      if (Math.abs(rXYZ[1] - rXYZ2[1]) > 0.5) {
+        Yindex = k;
+        LOGGER.fine("Yindex is " + Yindex);
+      }
+      strPos[k]--;
+    }
+
+    // sample axis is almost always time/depth
+    Zindex = 0;
+
+    Axis_Order = new int[] { Xindex, Yindex, Zindex };
+
+    System.out.println("[computeAxisOrder]: Axis Order: " + Arrays.toString(Axis_Order));
+    return Axis_Order;
+  }
+
+  private int[] computeInverse(int[] Axis_Order) {
+    int[] inverseOrder = new int[3];
+    for (int i = 0; i < Axis_Order.length; i++) {
+      int val = Axis_Order[i];
+      inverseOrder[val] = i;
+    }
+    System.out.println("[computeInverse]: " + Arrays.toString(inverseOrder));
+    return inverseOrder;
+  }
+
   @Override
   public boolean processVolume(IParallelContext pc, ToolState toolState, ISeismicVolume input, ISeismicVolume output)
       throws SeisException {
 
     GridDefinition inputGrid = updateVolumeGridDefinition(input, toolState);
+
+    System.out.println(inputGrid.toString());
 
     // Create a new Instance of VolumePropertyService
     VolumePropertyService vpsO = new VolumePropertyService(ipio);
@@ -224,13 +285,28 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
     GridDefinition outputGrid = null;
 
-    double sampleAxisMin = (double) Double.MAX_VALUE - 1;
+    double sampleAxisMin = (double) Double.MAX_VALUE;
     sampleAxisMin = inputGrid.getAxisPhysicalOrigin(0);
-    double traceAxisMin = (double) Double.MAX_VALUE - 1;
-    double frameAxisMin = (double) Double.MAX_VALUE - 1;
-    double sampleDelta = (double) Double.MAX_VALUE - 1;
-    double traceDelta = (double) Double.MAX_VALUE - 1;
-    double frameDelta = (double) Double.MAX_VALUE - 1;
+    double traceAxisMin = (double) Double.MAX_VALUE;
+    double frameAxisMin = (double) Double.MAX_VALUE;
+    double sampleDelta = (double) Double.MAX_VALUE;
+    double traceDelta = (double) Double.MAX_VALUE;
+    double frameDelta = (double) Double.MAX_VALUE;
+
+    int[] axis_Order = computeAxisOrder(input);
+
+    int[] desired_Axis_Order = new int[] { 2, 1, 0 };
+
+    int[] inverse_Order = computeInverse(axis_Order);
+
+    System.out.println(desired_Axis_Order[inverse_Order[0]]);
+    System.out.println(desired_Axis_Order[inverse_Order[1]]);
+    System.out.println(desired_Axis_Order[inverse_Order[2]]);
+
+    /*
+     * try { System.in.read(); } catch (IOException e1) { // TODO Auto-generated
+     * catch block e1.printStackTrace(); }
+     */
 
     while (iti.hasNext()) {
 
@@ -241,48 +317,52 @@ public class VolumeCorrectionTool implements IVolumeTool {
 
       int[] tracePos = iti.getPosition().clone();
 
-      LOGGER.fine("Input Iterator Pos: " + Arrays.toString(tracePos));
+      //LOGGER.info("Input Iterator Pos: " + Arrays.toString(tracePos));
 
       propsInput.setPosition(tracePos);
 
-      int traceIndex = tracePos[1];
-      int frameIndex = tracePos[2];
+      int sampleIndex = tracePos[desired_Axis_Order[inverse_Order[0]]];
+      int traceIndex = tracePos[desired_Axis_Order[inverse_Order[1]]];
+      int frameIndex = tracePos[desired_Axis_Order[inverse_Order[2]]];
 
-      double traceLen = inputGrid.getAxis(1).getLength() - 1;
-      double frameLen = inputGrid.getAxis(2).getLength() - 1;
+      int sampleLen = (int) (inputGrid.getAxis(desired_Axis_Order[inverse_Order[0]]).getLength() - 1);
+      int traceLen = (int) (inputGrid.getAxis(desired_Axis_Order[inverse_Order[1]]).getLength() - 1);
+      int frameLen = (int) (inputGrid.getAxis(desired_Axis_Order[inverse_Order[2]]).getLength() - 1);
 
-      double tracePhysicalOrigin = inputGrid.getAxis(1).getPhysicalOrigin();
-      double framePhyscialOrigin = inputGrid.getAxis(2).getPhysicalOrigin();
+      double samplePhysicalOrigin = inputGrid.getAxis(desired_Axis_Order[inverse_Order[0]]).getPhysicalOrigin();
+      double tracePhysicalOrigin = inputGrid.getAxis(desired_Axis_Order[inverse_Order[1]]).getPhysicalOrigin();
+      double framePhyscialOrigin = inputGrid.getAxis(desired_Axis_Order[inverse_Order[2]]).getPhysicalOrigin();
 
-      sampleDelta = inputGrid.getAxis(0).getPhysicalDelta();
-      traceDelta = inputGrid.getAxis(1).getPhysicalDelta();
-      frameDelta = inputGrid.getAxis(2).getPhysicalDelta();
-
-      double traceAxisMinAccum;
-      double frameAxisMinAccum;
+      sampleDelta = inputGrid.getAxis(desired_Axis_Order[inverse_Order[0]]).getPhysicalDelta();
+      traceDelta = inputGrid.getAxis(desired_Axis_Order[inverse_Order[1]]).getPhysicalDelta();
+      frameDelta = inputGrid.getAxis(desired_Axis_Order[inverse_Order[2]]).getPhysicalDelta();
 
       if (traceDelta < 0) {
-        traceAxisMinAccum = tracePhysicalOrigin + traceDelta * (traceLen - traceIndex);
-        traceAxisMin = tracePhysicalOrigin + traceDelta * (traceLen - 0);
+        traceAxisMin = tracePhysicalOrigin + traceDelta * (traceLen);
       } else {
-        traceAxisMinAccum = tracePhysicalOrigin + traceDelta * traceIndex;
         traceAxisMin = tracePhysicalOrigin;
       }
       if (frameDelta < 0) {
-        frameAxisMinAccum = framePhyscialOrigin + frameDelta * (frameLen - frameIndex);
-        frameAxisMin = framePhyscialOrigin + frameDelta * (frameLen - 0);
+        frameAxisMin = framePhyscialOrigin + frameDelta * (frameLen);
       } else {
-        frameAxisMinAccum = framePhyscialOrigin + frameDelta * frameIndex;
         frameAxisMin = framePhyscialOrigin;
       }
 
-      Double ftIndex = Math.abs((tracePhysicalOrigin - traceAxisMinAccum) / (traceDelta));
-      Double ffIndex = Math.abs((framePhyscialOrigin - frameAxisMinAccum) / (frameDelta));
+      Double ftIndex = (tracePhysicalOrigin - traceAxisMin) / traceDelta;
+      Double ffIndex = (framePhyscialOrigin - frameAxisMin) / frameDelta;
 
       Integer ftIndexInt = (int) Math.round(ftIndex);
       Integer ffIndexInt = (int) Math.round(ffIndex);
 
-      int[] finalPosition = new int[] { 0, ftIndexInt, ffIndexInt };
+      int[] finalPosition = null;
+      // swao only one axis
+      if (axis_Order[0] == 2 && axis_Order[1] == 1 && axis_Order[2] == 0) {
+        finalPosition = new int[] { 0, 201 - traceIndex, frameIndex };
+      }
+      // swap the x and y axis of data
+      else if (axis_Order[0] == 1 && axis_Order[1] == 2 && axis_Order[2] == 0) {
+        finalPosition = new int[] { 0, 201 - frameIndex, 201 - traceIndex };
+      }
 
       // Don't want to say this is not how it should work
       // but set position should internally call next() in order
@@ -291,11 +371,9 @@ public class VolumeCorrectionTool implements IVolumeTool {
       oti.setPosition(finalPosition);
       oti.next();
 
-      LOGGER.fine("Output Trace Location: " + Arrays.toString(oti.getPosition().clone()));
+      //LOGGER.info("Output Trace Location: " + Arrays.toString(oti.getPosition().clone()));
 
       oti.putTrace(actualTrace);
-
-      Assert.assertNotNull(propsOutput);
 
       propsOutput.setPosition(finalPosition);
 
@@ -303,7 +381,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
       double[] rc = new double[3];
       output.getCoords(finalPosition, sc, rc);
 
-      LOGGER.fine("Before Trace Copy: " + Arrays.toString(rc));
+      //LOGGER.fine("Before Trace Copy: " + Arrays.toString(rc));
 
       try {
         propsOutput.copyTrcProps(propsInput, tracePos, finalPosition);
@@ -311,39 +389,61 @@ public class VolumeCorrectionTool implements IVolumeTool {
         LOGGER.log(Level.SEVERE, e.getMessage(), e);
       }
 
-      LOGGER.fine("Before Trace Copy: " + Arrays.toString(rc));
+      //LOGGER.info("Before Trace Copy: " + Arrays.toString(rc));
 
       output.getCoords(finalPosition, sc, rc);
 
-      LOGGER.fine("After Trace Copy: " + Arrays.toString(rc));
+      //LOGGER.info("After Trace Copy: " + Arrays.toString(rc));
+
+      //LOGGER.info("Before Value Editing: " + Arrays.toString(rc));
+
+      // Swap the X and Y axis of the coordinates
+      if (axis_Order[0] == 1 && axis_Order[1] == 2 && axis_Order[2] == 0) {
+        propsOutput.setValue("REC_YD", rc[0]);
+        propsOutput.setValue("REC_XD", rc[1]);
+        propsOutput.setValue("SOU_YD", sc[0]);
+        propsOutput.setValue("SOU_XD", sc[1]);
+      }
+
+      output.getCoords(finalPosition, sc, rc);
+      //LOGGER.info("After Value Editing: " + Arrays.toString(rc));
+
     }
+    
+    //double[] minPhys = new double[] { sampleAxisMin, traceAxisMin, frameAxisMin };
+    //double[] Delta = new double[] { sampleDelta, traceDelta, frameDelta };
 
-    double[] minPhys = new double[] { sampleAxisMin, traceAxisMin, frameAxisMin };
-    double[] Delta = new double[] { sampleDelta, traceDelta, frameDelta };
+    /*
+     * int[] posTest1 = new int[] { 0, 0, 0 };
+     * 
+     * LOGGER.info("ATTEMPTING TO GET POS: " + Arrays.toString(posTest1));
+     * 
+     * double[] sr = new double[3]; double[] rc = new double[3];
+     * 
+     * output.getCoords(posTest1, sr, rc);
+     * 
+     * LOGGER.info("Source Trace: " + Arrays.toString(sr)); LOGGER.info(
+     * "Reciever Trace: " + Arrays.toString(rc));
+     * 
+     * int[] posTest2 = new int[] { 0, 200, 200 };
+     * 
+     * LOGGER.info("ATTEMPTING TO GET POS: " + Arrays.toString(posTest2));
+     * 
+     * output.getCoords(posTest2, sr, rc);
+     * 
+     * LOGGER.info("Source Trace: " + Arrays.toString(sr)); LOGGER.info(
+     * "Reciever Trace: " + Arrays.toString(rc));
+     */
 
-    int[] posTest1 = new int[] { 0, 0, 0 };
+    //outputGrid = generateOutputGrid(input, minPhys, Delta);
 
-    LOGGER.info("ATTEMPTING TO GET POS: " + Arrays.toString(posTest1));
+    //System.out.println(outputGrid.toString());
 
-    double[] sr = new double[3];
-    double[] rc = new double[3];
+    GridDefinition outG2 = updateVolumeGridDefinition(output, toolState);
 
-    output.getCoords(posTest1, sr, rc);
+    //System.out.println(outG2.toString());
 
-    LOGGER.info("Source Trace: " + Arrays.toString(sr));
-    LOGGER.info("Reciever Trace: " + Arrays.toString(rc));
-
-    int[] posTest2 = new int[] { 0, 200, 200 };
-
-    LOGGER.info("ATTEMPTING TO GET POS: " + Arrays.toString(posTest2));
-
-    output.getCoords(posTest2, sr, rc);
-
-    LOGGER.info("Source Trace: " + Arrays.toString(sr));
-    LOGGER.info("Reciever Trace: " + Arrays.toString(rc));
-
-    outputGrid = generateOutputGrid(input, minPhys, Delta);
-    setOutgoingDataStateGrid(toolState, outputGrid);
+    setOutgoingDataStateGrid(toolState, outG2);
 
     if (ipio.hasNext()) {
       ipio.next();
@@ -353,7 +453,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
   }
 
   private void setOutgoingDataStateGrid(ToolState toolState, GridDefinition outputGrid) {
-    //toolState.getOutputState().gridDefinition = outputGrid;
+    // toolState.getOutputState().gridDefinition = outputGrid;
     DataState outputState = toolState.getOutputState();
     outputState.gridDefinition = outputGrid;
     toolState.setOutputState(outputState);
