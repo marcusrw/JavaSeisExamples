@@ -352,7 +352,7 @@ public class VolumeCorrectionTool implements IVolumeTool {
 			int[] finalPosition = null;
 
 			// swap Axis
-			finalPosition = new int[] { 0, 200 - traceIndex, frameIndex };
+			finalPosition = new int[] { 0, traceLen - traceIndex, frameIndex };
 
 			// Don't want to say this is not how it should work
 			// but set position should internally call next() in order
