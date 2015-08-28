@@ -24,6 +24,7 @@ import org.javaseis.grid.ManualOverrideGrid;
 import org.javaseis.grid.VolumeEdgeIO;
 import org.javaseis.imaging.ImagingCondition;
 import org.javaseis.imaging.PhaseShiftExtrapolator;
+import org.javaseis.imaging.PhaseShiftExtrapolator.WavefieldDirection;
 import org.javaseis.imaging.PhaseShiftFFT3D;
 import org.javaseis.properties.AxisDefinition;
 import org.javaseis.properties.AxisLabel;
@@ -53,6 +54,7 @@ import org.junit.Assert;
  */
 public class ExampleMigration implements IVolumeTool {
 
+  private static final long serialVersionUID = 1L;
   private static final float S_TO_MS = 1000;
   private static final int[] FFT_ORIENTATION =
       PhaseShiftFFT3D.SEISMIC_FFT_ORIENTATION;
@@ -182,7 +184,8 @@ public class ExampleMigration implements IVolumeTool {
     LOGGER.info("Output Grid Definition:\n" + toolState.getOutputState().gridDefinition + "\n");
 
     int[] imageShape = toolState.getOutputState().gridDefinition.getShape();
-    output.getDistributedArray().reshape(imageShape);
+    int[] imageVolumeShape = Arrays.copyOf(imageShape,3);
+    output.getDistributedArray().reshape(imageVolumeShape);
 
     if (processFirstVolumeOnly(toolState) && !isFirstVolume(toolState,input))
       return false;
@@ -220,10 +223,10 @@ public class ExampleMigration implements IVolumeTool {
     receiverDepth = 0;
     sourceDepth = 0;
 
-    PhaseShiftExtrapolator extrapR =
-        new PhaseShiftExtrapolator(rcvr,receiverDepth);
-    PhaseShiftExtrapolator extrapS =
-        new PhaseShiftExtrapolator(shot,sourceDepth);
+    PhaseShiftExtrapolator extrapR = new PhaseShiftExtrapolator(
+        rcvr,receiverDepth,WavefieldDirection.UPGOING);
+    PhaseShiftExtrapolator extrapS = new PhaseShiftExtrapolator(
+        shot,sourceDepth,WavefieldDirection.DOWNGOING);
 
     // Initialize Imaging Condition
     ImagingCondition imagingCondition = new ImagingCondition(shot, rcvr,
@@ -267,15 +270,17 @@ public class ExampleMigration implements IVolumeTool {
 
     velocityAccessTime.stop();
 
+    /*
     DistributedArrayMosaicPlot.showAsModalDialog(
         output.getDistributedArray(), "Image - In Progress");
     DistributedArrayMosaicPlot.showAsModalDialog(
         vModelWindowed, "Velocity Slice - In Progress");
+     */
 
     toolState.getOutputState().gridDefinition.toString();
 
     double velocity;
-    for (int zindx = 0; zindx < numz; zindx++) {
+    for (int zindx = 1; zindx < numz; zindx++) {
       double depth = zmin + delz * zindx;
 
       velocityAccessTime.start();
@@ -283,7 +288,7 @@ public class ExampleMigration implements IVolumeTool {
       double[][] windowedSlice = vmff.readSlice(depth);
       velocityAccessTime.stop();
 
-      //LOGGER.info("Volume #" + Arrays.toString(input.getVolumePosition()));
+      LOGGER.info("Volume #" + Arrays.toString(toolState.getInputPosition()));
 
       extrapR.transformFromSpaceToWavenumber();
       extrapS.transformFromSpaceToWavenumber();
@@ -291,8 +296,17 @@ public class ExampleMigration implements IVolumeTool {
       LOGGER.info(String.format("Begin Extrapolation to depth %5.1f."
           + "  Velocity is %5.1f", depth, velocity));
 
-      extrapR.reverseExtrapolate((float) velocity, delz, zindx, fMax);
-      extrapS.forwardExtrapolate((float) velocity, delz, zindx, fMax);
+      if (zindx > 0) {
+        delz = imageGrid.getAxisPhysicalDelta(0);
+      } else {
+        delz = 0;
+      }
+      
+      extrapR.PhaseShiftTo(depth, velocity);
+      extrapS.PhaseShiftTo(depth, velocity);
+
+      //extrapR.reverseExtrapolate((float) velocity, delz, zindx);
+      //extrapS.forwardExtrapolate((float) velocity, delz, zindx);
       logTimerOutput("Source Extrapolator Time: ",
           extrapS.getExtrapolationTime());
 
@@ -301,17 +315,17 @@ public class ExampleMigration implements IVolumeTool {
       extrapR.transformFromWavenumberToSpace();
       extrapS.transformFromWavenumberToSpace();
 
-      extrapR.reverseThinLens(windowedSlice,velocity,delz);
-      logTimerOutput("Receiver Extrapolator Time: ",
-          extrapR.getExtrapolationTime());
-      extrapS.forwardThinLens(windowedSlice,velocity,delz);
-      logTimerOutput("Source Extrapolator Time: ",
-          extrapS.getExtrapolationTime());
+      //extrapR.reverseThinLens(windowedSlice,velocity,delz);
+      //logTimerOutput("Receiver Extrapolator Time: ",
+      //    extrapR.getExtrapolationTime());
+      //extrapS.forwardThinLens(windowedSlice,velocity,delz);
+      //logTimerOutput("Source Extrapolator Time: ",
+      //    extrapS.getExtrapolationTime());
 
       {
         //TODO test code - plot to check
-        //rcvr.plotInTime("New receivers - Depth: " + depth);
-        //shot.plotInTime("New Source - Depth: " + depth);
+        //rcvr.plotInTime("Old receivers - Depth: " + depth);
+        //shot.plotInTime("Old Source - Depth: " + depth);
       }
 
       LOGGER.info("Applying imaging condition");
@@ -329,8 +343,8 @@ public class ExampleMigration implements IVolumeTool {
     vmff.close();
     singleVolumeTime.stop();
     logTimerOutput("Single Volume Time", singleVolumeTime.total());
-    assert (boolean) toolState.getFlowGlobal(ToolState.HAS_INPUT);
-    assert (boolean) toolState.getFlowGlobal(ToolState.HAS_OUTPUT);
+    //assert (boolean) toolState.getFlowGlobal(ToolState.HAS_INPUT);
+    //assert (boolean) toolState.getFlowGlobal(ToolState.HAS_OUTPUT);
 
     {
       //plot to check
