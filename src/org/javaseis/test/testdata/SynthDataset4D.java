@@ -1,4 +1,4 @@
-package org.javaseis.examples.tool;
+package org.javaseis.test.testdata;
 
 import org.javaseis.grid.GridDefinition;
 import org.javaseis.io.ExtentPolicy;
